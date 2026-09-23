@@ -1,50 +1,31 @@
-#  Chromebook Surveillance & Monitoring System
+# Chromebook Surveillance & Monitoring System
 
 Système de surveillance et de suivi du parc Chromebook pour entreprise. Cette application permet de récupérer les télémétries, appareils, événements et utilisateurs via les API Google Admin, et de les gérer à travers un backend **FastAPI** et un frontend **React/Vite** connecté à une base de données **PostgreSQL**.
 
 ---
 
-##  Guide d'Installation et Configuration
+##  Installation et Configuration
 
-### 1. Création de l'Environnement Virtuel (venv)
+### 1. Backend (Python / FastAPI)
 
-Créer un environnement virtuel isolé pour le projet :
+#### A. Création et activation de l'environnement virtuel (venv)
 
 * **Sur Windows :**
   ```bash
   python -m venv venv
-  ```
-
-* **Sur Linux / Ubuntu :**
-  ```bash
-  python3 -m venv venv
-  ```
-
-### 2. Activation de l'Environnement Virtuel
-
-* **Sur Windows (PowerShell / CMD) :**
-  ```bash
   venv\Scripts\activate
   ```
 
 * **Sur Linux / Ubuntu :**
   ```bash
+  python3 -m venv venv
   source venv/bin/activate
   ```
 
----
-
-### 3. Mise à jour de pip & Installation des Dépendances
-
-Mettre à jour le gestionnaire de paquets `pip` :
+#### B. Mise à jour de pip & installation des dépendances
 
 ```bash
 python -m pip install --upgrade pip
-```
-
-Installer toutes les dépendances requises à partir du fichier `requirements.txt` :
-
-```bash
 pip install -r code/requirements.txt
 ```
 
@@ -53,42 +34,70 @@ pip install -r code/requirements.txt
 > pip install "pwdlib[argon2]"
 > ```
 
----
+#### C. Configuration des Variables d'Environnement
 
-### 4. Configuration des Variables d'Environnement
-
-1. Dupliquer le fichier modèle `.env.example` situé dans le dossier `code/` :
+1. Dupliquer le fichier modèle `.env.example` dans le dossier `code/` :
    ```bash
    cp code/.env.example code/.env
    ```
-2. Compléter le fichier `code/.env` avec vos identifiants réels (base de données PostgreSQL, clé secrète JWT, identifiants Google API).
+2. Compléter `code/.env` avec vos identifiants (PostgreSQL, clé JWT, identifiants Google API).
+
+---
+
+### 2. Frontend (React / Vite)
+
+#### Installation des dépendances Node.js
+
+Se déplacer dans le dossier `code/frontend` et installer les packages :
+
+```bash
+cd code/frontend
+npm install
+```
 
 ---
 
 ## Lancement du Projet
 
-### Lancer le serveur Backend (FastAPI)
+### Lancer le Backend (FastAPI)
 
-Dans le dossier `code/`, exécuter :
+Depuis le dossier `code/`, exécuter :
 
 ```bash
 uvicorn backend.main:app --reload
 ```
 
-L'API sera accessible sur : [http://127.0.0.1:8000](http://127.0.0.1:8000)  
-La documentation interactive Swagger est disponible sur : [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
+- **API REST :** [http://127.0.0.1:8000](http://127.0.0.1:8000)  
 
-### Exécution des tests
 
-Pour exécuter les modules de test du backend :
+### Lancer le Frontend (React + Vite)
+
+Depuis le dossier `code/frontend/`, exécuter :
 
 ```bash
-python -m backend.test
+npm run dev
 ```
+
+- **Application Web :** [http://localhost:5173](http://localhost:5173)
+
+### Autres commandes utiles
+
+* **Exécution des tests backend :**
+  ```bash
+  python -m backend.test
+  ```
+
+* **Build de production frontend :**
+  ```bash
+  cd code/frontend
+  npm run build
+  ```
 
 ---
 
-##  Liste des Packages & Utilité
+## Liste des Packages & Utilité
+
+### Backend (Python)
 
 | Package | Utilité / Rôle |
 | :--- | :--- |
@@ -106,9 +115,20 @@ python -m backend.test
 | **`python-multipart`** | Traitement des formulaires et données multipart |
 | **`pwdlib[argon2]`** | Hachage sécurisé des mots de passe avec l'algorithme Argon2 |
 
+### Frontend (Node.js / React)
+
+| Package | Utilité / Rôle |
+| :--- | :--- |
+| **`react` & `react-dom`** | Bibliothèque d'interface utilisateur web |
+| **`vite`** | Outil de build et serveur de développement ultra-rapide |
+| **`react-router-dom`** | Gestion de la navigation et du routage des pages |
+| **`axios`** | Client HTTP pour consommer l'API REST FastAPI |
+| **`lucide-react`** | Collection d'icônes modernes pour l'interface |
+| **`tailwindcss` & `daisyui`** | Frameworks CSS pour le design et les composants UI |
+
 ---
 
-## Sécurité & Bonnes Pratiques
+##  Sécurité & Bonnes Pratiques
 
 - **Le fichier `.env` et le dossier `credential/` ne doivent jamais être commités sur Git.**
 - Utilisez le fichier `.env.example` pour partager la structure des variables aux nouveaux collaborateurs.
