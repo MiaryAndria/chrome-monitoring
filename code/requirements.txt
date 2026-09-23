@@ -9,6 +9,5 @@ sqlalchemy
 pydantic-settings
 python-dotenv
 python-jose[cryptography]
-passlib[bcrypt]
 python-multipart
 pwdlib[argon2]

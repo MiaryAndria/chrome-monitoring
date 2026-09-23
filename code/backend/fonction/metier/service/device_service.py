@@ -9,7 +9,7 @@ from backend.google_api.devices import (
 )
 from backend.fonction.metier.repository.filiale.filiale import get_or_create_filiale
 from backend.fonction.metier.repository.devices.devices import (
-    insert_device, update_device, get_device_by_id, 
+    insert_device, update_device, get_device_by_id, get_device_by_device_id,
     insert_device_filiale, delete_all, get_liste_device
 )
 from backend.fonction.metier.repository.devices.type_appareil import get_or_create_type_appareil
@@ -273,17 +273,6 @@ def getListeDevice():
     finally:
         close_connection(connexion)
 
-# def getDeviceDetail(id):
-#     connexion = get_connection()
-#     if connexion is None :
-#         print("Connexion BDD IMPOSSIBLE")
-#         return None 
-#     try:
-#         cur = connexion.cursor()
-#         deviceDetail = get_device_by_id(cur,id)
-#         return deviceDetail
-#     finally:
-#         close_connection(connexion)
 def getDeviceDetail(id):
     connexion = get_connection()
     if connexion is None:
