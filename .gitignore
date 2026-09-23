@@ -1,0 +1,68 @@
+# =========================
+# Environment variables (SECRETS)
+# =========================
+.env
+.env.local
+.env.*.local
+!.env.example
+code/.env
+code/.env.local
+code/.env.*.local
+!code/.env.example
+
+# =========================
+# Google Credentials & Tokens (SECRETS)
+# =========================
+credential/
+credentials/
+code/credential/
+code/credentials/
+*.json
+!package.json
+!package-lock.json
+!tsconfig.json
+!components.json
+!eslint.config.json
+
+# =========================
+# Python & Virtual environments
+# =========================
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+env/
+code/venv/
+code/.venv/
+code/__pycache__/
+
+# =========================
+# Node & Frontend Build
+# =========================
+node_modules/
+code/frontend/node_modules/
+dist/
+code/frontend/dist/
+build/
+.vite/
+code/frontend/.vite/
+
+# =========================
+# IDEs & OS Files
+# =========================
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# =========================
+# Logs & Generated Data / DBs / Outputs
+# =========================
+*.log
+*.sqlite
+*.sqlite3
+*.db
+output/
+code/output/
+**/output/

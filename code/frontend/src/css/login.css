@@ -1,0 +1,112 @@
+/* src/css/login.css */
+
+.login-container {
+  display: flex;
+  min-height: 100vh;
+  width: 100vw;
+  align-items: center;
+  justify-content: center;
+  background-color: #050508;
+  color: #d4d4d8;
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Cybernetic Grid Overlay */
+.cyber-grid {
+  position: absolute;
+  inset: 0;
+  background-image: 
+    linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+}
+
+/* Interactive Cursor Spotlight Glow */
+.mouse-spotlight {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    650px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+    rgba(6, 182, 212, 0.14),
+    rgba(168, 85, 247, 0.05) 40%,
+    transparent 70%
+  );
+  z-index: 1;
+  transition: background 150ms ease-out;
+}
+
+/* Animated Neon Border Wrapper */
+.animated-neon-wrapper {
+  position: relative;
+  border-radius: 1.35rem;
+  padding: 2px;
+  background: linear-gradient(90deg, #06b6d4, #a855f7, #10b981, #06b6d4);
+  background-size: 300% 300%;
+  animation: neonBorderFlow 4s linear infinite;
+  box-shadow: 0 0 30px rgba(6, 182, 212, 0.25);
+  z-index: 10;
+}
+
+@keyframes neonBorderFlow {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.login-card {
+  width: 100%;
+  max-width: 25rem;
+  padding: 2.25rem;
+  border-radius: 1.25rem;
+  background: rgba(10, 10, 15, 0.94);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+/* Input Styling with fixed left padding for icons */
+.login-input {
+  width: 100%;
+  padding: 0.75rem 1rem 0.75rem 2.75rem !important;
+  background-color: rgba(6, 6, 10, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.75rem;
+  color: #f4f4f5;
+  font-size: 0.875rem;
+  outline: none;
+  transition: all 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.login-input:focus {
+  border-color: rgba(6, 182, 212, 0.8);
+  box-shadow: 0 0 16px rgba(6, 182, 212, 0.35);
+  background-color: rgba(6, 6, 10, 0.95);
+}
+
+.login-button {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: linear-gradient(135deg, #0891b2 0%, #06b6d4 100%);
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 0.875rem;
+  border-radius: 0.75rem;
+  border: none;
+  cursor: pointer;
+  transition: all 300ms ease;
+  box-shadow: 0 0 15px rgba(6, 182, 212, 0.3);
+  position: relative;
+  overflow: hidden;
+}
+
+.login-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 30px rgba(6, 182, 212, 0.6);
+}
+
+.login-button:active {
+  transform: translateY(0);
+}

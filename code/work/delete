@@ -1,0 +1,72 @@
+user 
+    delete_user(id)
+    delete_all_user()
+filiale 
+    delete_filiale(id)
+    delete_all_filiale()
+reseau
+    delete_reseau(id)
+    delete_all_reseau()
+reseau_filiale 
+    delete_reseau_filiale(id)
+    delete_reseau_filiale_by_reseau(id_reseau)
+    delete_reseau_filiale_by_filiale(id_filiale)
+type_appareil
+    delete_type_appareil(id)
+    delete_all_type_appareil()
+utilisateur
+    delete_utilisateur(id)
+    delete_all_utilisateur()
+filiale_utilisateur
+    delete_filiale_utilisateur(id)
+    delete_filiale_utilisateur_by_filiale(id_filiale)
+    delete_filiale_utilisateur_by_utilisateur(id_utilisateur)
+statut
+    delete_statut(id)
+    delete_all_statut()
+device
+    delete_device(id)
+    delete_all_device()
+device_historique
+    delete_device_historique(id)
+    delete_historique_device(id_device)
+device_filiale
+    delete_device_filiale(id)
+device_utilisateur_recent
+    delete_device_utilisateur_recent(id)
+    delete_historique_utilisateurs_device(id_device)
+type_rapport
+    delete_type_rapport(id)
+    delete_all_type_rapport()
+rapport_device
+    delete_rapport_device(id)
+    delete_rapports_device(id_device)
+version_report
+    delete_version_report(id)
+    delete_versions_device(id_device)
+type_evenement
+    delete_type_evenement(id)
+    delete_all_type_evenement()
+evenement_device
+    delete_evenement_device(id)
+    delete_evenements_device(id_device)
+imprimante 
+    delete_imprimante(id)
+    delete_all_imprimante()
+imprimante_device
+    delete_imprimante_device(id)
+    delete_imprimantes_device(id_device)
+alerte
+    delete_alerte(id)
+    delete_all_alerte()
+device_alerte
+    delete_device_alerte(id)
+    delete_alertes_device(id_device)
+configuration
+    delete_configuration(id)
+    delete_configuration_by_type(type)
+comparaison 
+    delete_comparaison(id)
+device_statut 
+    delete_device_statut(id)
+    delete_statuts_device(id_device)

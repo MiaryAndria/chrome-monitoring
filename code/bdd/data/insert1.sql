@@ -1,0 +1,1 @@
+INSERT INTO t_user (nom,email,mdp) VALUES('administrateur','gtadmin@gmail.com','Gtadmin','Gtadmin');

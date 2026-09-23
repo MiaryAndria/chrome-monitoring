@@ -1,0 +1,78 @@
+user
+    insert_user(nom, email, mdp)
+
+filiale
+    insert_filiale(nom, org_unit_path)
+
+reseau
+    insert_reseau(valeur)
+
+reseau_filiale
+    insert_reseau_filiale(id_reseau, id_filiale)
+
+type_appareil
+    insert_type_appareil(type_device)
+    insert_liste_type_appareil(type_devices)
+
+utilisateur
+    insert_utilisateur(google_user_id, email)
+    insert_liste_utilisateur(utilisateurs)
+
+filiale_utilisateur
+    insert_filiale_utilisateur(id_filiale, id_utilisateur)
+
+statut
+    insert_statut(statut)
+    insert_liste_statut(statuts)
+
+device
+    insert_device(...)
+    insert_liste_device(...)
+
+device_historique
+    insert_device_historique(...)
+
+device_filiale
+    insert_device_filiale(id_device, id_filiale)
+
+device_utilisateur_recent
+    insert_device_utilisateur_recent(id_device, id_utilisateur)
+
+type_rapport
+    insert_type_rapport(type)
+    insert_liste_type_rapport(types)
+
+rapport_device
+    insert_rapport_device(...)
+
+version_report
+    insert_version_report(...)
+
+type_evenement
+    insert_type_evenement(type)
+    insert_liste_type_evenement(types)
+
+evenement_device
+    insert_evenement_device(...)
+
+imprimante
+    insert_imprimante(...)
+    insert_liste_imprimante(...)
+
+imprimante_device
+    insert_imprimante_device(...)
+
+alerte
+    insert_alerte(type, message)
+
+device_alerte
+    insert_device_alerte(id_device, id_alerte)
+
+configuration
+    insert_configuration(type, valeur)
+
+comparaison
+    insert_comparaison(...)
+
+device_statut
+    insert_device_statut(id_device, id_statut)

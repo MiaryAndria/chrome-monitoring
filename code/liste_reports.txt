@@ -1,0 +1,49 @@
+cpuInfo	Informations CPU
+memoryInfo	                Mémoire RAM
+storageInfo	                Stockage
+networkInfo	                Informations réseau
+networkDiagnosticsReport	Diagnostics réseau
+networkBandwidthReport	    Bande passante
+bootPerformanceReport	    Informations/performance du démarrage
+batteryInfo	                Batterie
+audioStatusReport	        État audio
+graphicsInfo	            Informations graphiques/GPU
+graphicsStatusReport	    État graphique
+heartbeatStatusReport	    État/activité récente de l'appareil
+osUpdateStatus	            État des mises à jour ChromeOS
+peripheralsReport	        Périphériques connectés
+appReport	                Informations sur les applications, selon les données disponibles
+
+Et pour les événements
+
+Les events sont séparés des reports. On avait notamment prévu de les stocker dans :
+
+t_type_evenement
+t_evenement_device
+
+Alors que les reports vont dans :
+
+t_type_rapport
+t_rapport_device
+
+Par exemple, avec ton modèle générique :
+
+t_type_rapport
+----------------
+1 | cpuInfo
+2 | memoryInfo
+3 | storageInfo
+4 | networkInfo
+5 | peripheralsReport
+6 | batteryInfo
+...
+
+Puis :
+
+t_rapport_device
+------------------------------------------------
+device | type_report       | report_time | donnees
+   1   | cpuInfo            | ...         | {...}
+   1   | memoryInfo         | ...         | {...}
+   1   | storageInfo        | ...         | {...}
+   1   | peripheralsReport  | ...         | {...}

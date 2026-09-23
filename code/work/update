@@ -1,0 +1,73 @@
+user
+    update_user(id, nom, email, mdp)
+
+filiale
+    update_filiale(id, nom, org_unit_path)
+
+reseau
+    update_reseau(id, valeur)
+
+reseau_filiale
+    ── pas nécessaire
+
+type_appareil
+    update_type_appareil(id, type_device)
+
+utilisateur
+    ── pas nécessaire
+
+filiale_utilisateur
+    ── pas nécessaire
+
+statut
+    ── pas nécessaire pour les données Google
+
+device
+    ── pas de update_device() générique
+
+device_historique
+    ── pas nécessaire
+
+device_filiale
+    update_device_filiale(...)
+    terminer_affectation_device(id)
+
+device_utilisateur_recent
+    ── pas nécessaire
+
+type_rapport
+    update_type_rapport(id, type)
+
+rapport_device
+    ── pas nécessaire
+
+version_report
+    ── pas nécessaire
+
+type_evenement
+    update_type_evenement(id, type)
+
+evenement_device
+    ── pas nécessaire
+
+imprimante
+    ── à définir selon les champs réellement modifiables par l'API Google
+
+imprimante_device
+    update_derniere_detection(...)
+
+alerte
+    update_alerte(id, type, message)
+
+device_alerte
+    resoudre_alerte(id)
+
+configuration
+    update_configuration(id, type, valeur)
+    update_valeur_configuration(type, valeur)
+
+comparaison
+    update_comparaison(...)
+
+update_device_annotation(...)
+

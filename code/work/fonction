@@ -1,0 +1,73 @@
+fonctions Stat
+Ces fonctions ne correspondent pas forcément directement à une table. Elles font des COUNT, JOIN, etc.
+Dashboard
+    get_dashboard_resume()
+    get_nombre_total_device()
+    get_nombre_chromebook()
+    get_nombre_chromebox()
+    get_nombre_device_actif()
+    get_nombre_device_hors_ligne()
+    get_nombre_device_reparation()
+    get_nombre_device_anomalie()
+    get_nombre_crash()
+    get_nombre_incident()
+    get_nombre_alerte_active()
+    get_nombre_imprimante()
+
+Statistiques
+    get_cpu_statistics(id_device, date_debut, date_fin)
+    get_memory_statistics(id_device, date_debut, date_fin)
+    get_storage_statistics(id_device, date_debut, date_fin)
+    get_storage_statistics(id_device, date_debut, date_fin)
+    get_network_statistics(id_device, date_debut, date_fin)
+    get_battery_statistics(id_device, date_debut, date_fin)
+    get_event_statistics(id_device, date_debut, date_fin)
+    get_version_statistics(id_device, date_debut, date_fin)
+
+Recherche 
+    search_device(...)
+    search_utilisateur(...)
+    search_imprimante(...)
+    search_alerte(...)
+    search_global(...) ->   device
+                            serial
+                            modèle
+                            utilisateur
+                            email
+                            imprimante
+    
+fonction synchronisation 
+    sync_devices()
+    sync_device(device)
+    sync_users()
+    sync_user(user)
+    sync_telemetry()
+    sync_telemetry_device(device)
+    sync_telemetry_events()
+    sync_versions()
+    sync_events()
+    sync_printers()
+    sync_printer_usage()
+    sync_all()
+
+Génération d'alertes
+    check_battery_alert()
+    check_storage_alert()
+    check_cpu_alert()
+    check_memory_alert()
+    check_offline_alert()
+    check_crash_alert()
+    check_version_alert()
+    check_anomaly_alert()
+    check_incident_alert()
+    check_all_alerts()
+
+fonctions d'export
+    export_devices_pdf()
+    export_devices_excel()
+    export_device_detail_pdf(id_device)
+    export_device_detail_excel(id_device)
+    export_statistics_pdf(...)
+    export_statistics_excel(...)
+    export_comparison_pdf(id_comparaison)
+    export_comparison_excel(id_comparaison)

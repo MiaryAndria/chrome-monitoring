@@ -1,0 +1,11 @@
+@import "tailwindcss";
+@plugin "daisyui";
+
+/* Reset root defaults from template */
+#root {
+  width: 100%;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+  text-align: left;
+}

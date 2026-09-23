@@ -1,0 +1,26 @@
+TRUNCATE TABLE 
+    t_device_alerte,
+    t_device_utilisateur_recent,
+    t_device_filiale,
+    t_device_historique,
+    t_device_statut,
+    t_rapport_device,
+    t_version_report,
+    t_evenement_device,
+    t_imprimante_device,
+    t_comparaison,
+    t_filiale_utilisateur,
+    t_reseau_filiale,
+    t_device,
+    t_imprimante,
+    t_alerte,
+    t_type_evenement,
+    t_type_rapport,
+    t_statut,
+    t_utilisateur,
+    t_type_appareil,
+    t_reseau,
+    t_filiale,
+    t_configuration
+RESTART IDENTITY CASCADE;
+-- TRUNCATE TABLE t_user RESTART IDENTITY CASCADE;

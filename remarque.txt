@@ -1,0 +1,38 @@
+front = react
+initiation react et installation bibliothèque
+installation tailwind css 
+
+back = python
+bibliothèque installé dans requirements dia nampise environnement virtuel deployement en utilisant uvicorn
+mbola tsisy implimentation base
+premier test récupération ceci en attendant api telemetry fonctionne utilisation sdk admin api 
+f"Appareil : {model} (S/N: {serial})",
+        f"   Statut: {status} | OS: {os_version}",
+        f"   Utilisateur assigné : {assigned_user}",
+        f"   Dernier utilisateur connecté : {last_user}",
+        f"   Dernière synchronisation : {last_sync}",
+        f"   Dernière adresse IP connue : {last_ip}",
+        f"   Unité organisationnelle : {org_unit}",
+        f"   Historique récent des utilisateurs : {', '.join(user_history) if user_history else 'Aucun'}",
+deuxieme test utilisation et recupération via telemetry api
+création frontend avec react surtout page liste devices avec reo ambony reo et un page de connexion et design 
+
+à faire 
+token toutes les 30minutes 
+matetika fin de semaine ny mahita évenements
+GT
+page acceuil par filiale ny affichage
+
+get_devices -> fonction persistance en base 
+fonction get_base 
+get_base -> main
+
+version chromeOs et chrome je ne sais pas si possible obtention 
+
+
+presentation
+ivelany miditra zany hoe ilay interface miditra hoe otranzao nanaovana anty 
+sujet mila azavaina tsara precisement izay azavaina mila ain'olona ny contexte rehetra dia ny valeur ajouterany hoe fa maninona no nanao aniny 
+typo ampitombona kely fond atao somary clair 
+base synchronisation
+active aussi à preciser si possible active ou en activité que signifie le mots active

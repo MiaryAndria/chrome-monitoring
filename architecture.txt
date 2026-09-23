@@ -1,0 +1,280 @@
+Model = Structure données avec base
+View = affichage react
+controller = fastApi 
+
+Service et repository fanampiny logique metier et persistance 
+
+Model : il regroupe la représentation des données et leur persistance, notamment les modèles et les repositories.
+View : React constitue l'interface utilisateur.
+Controller : FastAPI reçoit et traite les requêtes HTTP.
+Service : cette couche contient la logique métier et fait le lien entre les contrôleurs et la persistance.
+
+Repository = COMMENT accéder aux données ?
+Service    = QUOI FAIRE avec ces données ?
+Controller = COMMENT recevoir/envoyer les requêtes ?
+View       = COMMENT afficher les données ?
+Model      = QUELLE est la structure des données ?
+
+
+Oui, il y a bien des noms précis. « Architecture en couches » est le nom général (Layered Architecture), et il existe plusieurs variantes. Mais il faut distinguer le nom de l’architecture et le découpage interne.
+
+Les principales architectures en couches
+Architecture	Découpage typique	Ton projet
+3-Tier Architecture	Présentation → Métier → Données	⚠️ proche
+N-Tier Architecture	Présentation → Services → Accès données → BDD	✅ très proche
+Layered Architecture	plusieurs couches avec responsabilités séparées	✅
+Clean Architecture	Domain → Application → Infrastructure → Presentation	possible, mais plus complexe
+Onion Architecture	Domain au centre → services → infrastructure	possible
+Hexagonal Architecture	Domaine/Application + Ports + Adapters	possible, mais plus complexe
+Dans ton cas, le terme le plus précis
+
+Avec :
+
+React
+   ↓
+FastAPI Controller
+   ↓
+Service
+   ↓
+Repository
+   ↓
+Model / PostgreSQL
+
+je dirais :
+
+Architecture en couches de type N-Tier (ou architecture multicouche).
+
+Pourquoi N-Tier ?
+
+Parce que tu as plusieurs niveaux distincts :
+
+┌─────────────────────────────┐
+│  1. Présentation            │
+│  React                      │
+└──────────────┬──────────────┘
+               ↓
+┌─────────────────────────────┐
+│  2. Contrôleur / API        │
+│  FastAPI                    │
+└──────────────┬──────────────┘
+               ↓
+┌─────────────────────────────┐
+│  3. Logique métier          │
+│  Service                    │
+└──────────────┬──────────────┘
+               ↓
+┌─────────────────────────────┐
+│  4. Accès aux données       │
+│  Repository                 │
+└──────────────┬──────────────┘
+               ↓
+┌─────────────────────────────┐
+│  5. Données                 │
+│  Model + PostgreSQL         │
+└─────────────────────────────┘
+
+Tu as donc plus de 3 couches, d'où l'idée de N-Tier.
+
+Mais attention
+
+Le terme N-Tier est surtout utilisé quand on parle de séparation en tiers pouvant être physiquement séparés. Layered Architecture / architecture en couches est souvent plus approprié pour parler de la séparation logique du code.
+
+Donc pour ton rapport, je te conseillerais cette formulation :
+
+Le projet adopte une architecture logicielle en couches (Layered Architecture), organisée selon une approche multicouche de type N-Tier.
+
+Puis tu expliques :
+
+React       → présentation
+FastAPI     → contrôleurs / API
+Service     → logique métier
+Repository  → accès aux données
+Model       → représentation des données
+PostgreSQL  → stockage
+
+C'est beaucoup plus précis que de dire simplement « nous utilisons MVC », parce que dans ton architecture, le Service et le Repository ont des responsabilités clairement séparées.
+
+
+Votre architecture actuelle correspond exactement à une architecture 3-tier, mais structurée en interne selon le pattern Layered Architecture (Architecture en couches).Voici comment vos éléments se répartissent concrètement entre les 3 grands niveaux (tiers) et pourquoi on parle de 3-tier :Répartition de vos éléments dans les 3 tiers[ Tiers 1 : Présentation ]   -->   React (Frontend)
+                                         │  (Requêtes HTTP / API)
+                                         ▼
+[ Tiers 2 : Logique Métier ] -->   Python (Backend)
+                                   ├── Controller
+                                   ├── Service
+                                   └── Repository / Model
+                                         │  (Requêtes SQL / NoSQL)
+                                         ▼
+[ Tiers 3 : Données ]        -->   Base de données (PostgreSQL, MySQL, etc.)
+Le détail par niveau1. Le Tiers Présentation (L'interface)Composant : Votre frontend en React.Rôle : Il s'exécute dans le navigateur de l'utilisateur. Il affiche les données de manière visuelle et capture les actions de l'utilisateur pour les envoyer au serveur Python via des requêtes API (souvent REST ou GraphQL).2. Le Tiers Logique (Le traitement)C'est ici, à l'intérieur de votre backend Python, que vous avez découpé votre code pour qu'il soit propre et maintenable. Vos quatre dossiers représentent des sous-couches logiques :Controller : La porte d'entrée. Il reçoit les requêtes de React, vérifie la sécurité ou le format, et passe la main au Service.Service : Le "cerveau". C'est ici que vit toute votre logique métier (calculs, règles, décisions).Repository : La passerelle de données. Il contient le code qui sait comment parler à la base de données.Model : La structure. Il définit à quoi ressemblent vos données dans le code (les objets).3. Le Tiers Données (Le stockage)Composant : Votre Base de données (ex: PostgreSQL, MongoDB).Rôle : Stocker de manière persistante et sécurisée toutes les informations de l'application. Elle est interrogée uniquement par la couche Repository de votre Python.Pourquoi dit-on "3-tier" et non "5 ou 6-tier" ?En informatique, on fait une distinction importante entre :Les "Tiers" (Niveaux physiques/de déploiement) : Ce sont les composants qui s'exécutent sur des machines ou processus séparés. Dans votre cas, il y en a 3 distincts : le navigateur du client (React), le serveur d'application (Python), et le serveur de données.Les "Layers" (Couches logiques) : C'est l'organisation interne de votre code Python (Controller, Service, Repository). Ils vivent tous au sein du même serveur Python.
+
+┌──────────────────────────────────────┐
+│  COUCHE 1 — PRÉSENTATION             │
+│                                      │
+│  React                               │
+└──────────────────┬───────────────────┘
+                   ↓
+┌──────────────────────────────────────┐
+│  COUCHE 2 — APPLICATION / MÉTIER     │
+│                                      │
+│  Controller (FastAPI)                │
+│  Service (Logique métier)            │
+└──────────────────┬───────────────────┘
+                   ↓
+┌──────────────────────────────────────┐
+│  COUCHE 3 — DONNÉES                  │
+│                                      │
+│  Repository (Accès aux données)      │
+│  Model (Structure des données)       │
+│  PostgreSQL (Stockage)               │
+└──────────────────────────────────────┘
+
+Parce que Controller + Service vont ensemble dans la partie application :
+
+Controller
+    ↓
+Service
+
+Le Controller reçoit la requête HTTP et le Service décide quoi faire.
+
+Par exemple :
+
+React
+  │
+  │ GET /liste/device
+  ↓
+Controller
+  │
+  ↓
+Service
+  │
+  ↓
+Repository
+  │
+  ↓
+Model / PostgreSQL
+
+Le Repository, lui, est clairement orienté accès aux données. Il ne devrait donc pas être dans la couche métier.
+
+Et le Model ?
+
+C'est là qu'il faut faire attention.
+
+Je ne dirais pas simplement :
+
+Couche 3 = Model + PostgreSQL
+
+mais plutôt :
+
+Couche 3 — Données
+│
+├── Repository → accès à PostgreSQL
+├── Model      → représentation des données
+└── PostgreSQL → stockage
+
+Par exemple :
+
+model/device.py
+
+peut représenter un Device.
+
+repository/device_repository.py
+
+contient les requêtes SQL.
+
+Et :
+
+PostgreSQL
+
+contient réellement t_device, t_statut, t_alerte, etc.
+
+Donc ton architecture finale pourrait être
+                    ┌──────────────────┐
+                    │      REACT       │
+                    │  Présentation    │
+                    └────────┬─────────┘
+                             │
+                             ▼
+              ┌──────────────────────────┐
+              │        APPLICATION       │
+              │                          │
+              │ Controller   → FastAPI   │
+              │ Service      → Métier    │
+              └──────────────┬───────────┘
+                             │
+                             ▼
+              ┌──────────────────────────┐
+              │          DONNÉES         │
+              │                          │
+              │ Repository → Accès BDD   │
+              │ Model      → Modèles     │
+              │ PostgreSQL → Stockage    │
+              └──────────────────────────┘
+
+C'est celle que je te suggère pour ton projet. Elle reste suffisamment simple pour un rapport/S6, tout en montrant clairement la séparation entre interface, logique métier et données.
+
+
+Oui, c'est une bonne manière de le présenter. Je ferais juste quelques petites corrections de formulation pour que ce soit techniquement plus propre.
+
+Tu peux dire :
+
+Le projet adopte une architecture 3-Tier (architecture à trois couches). Elle est composée d'une couche présentation, d'une couche application et d'une couche données.
+
+Puis :
+
+┌──────────────────────────────────────────┐
+│  1. COUCHE PRÉSENTATION                  │
+│                                          │
+│  React                                   │
+│  → Affichage et interaction utilisateur │
+└────────────────────┬─────────────────────┘
+                     ↓
+┌──────────────────────────────────────────┐
+│  2. COUCHE APPLICATION                   │
+│                                          │
+│  Controller → FastAPI                    │
+│  Service    → Logique métier             │
+│                                          │
+│  → Traite les requêtes et règles métier │
+└────────────────────┬─────────────────────┘
+                     ↓
+┌──────────────────────────────────────────┐
+│  3. COUCHE DONNÉES                       │
+│                                          │
+│  Repository → Accès à la BDD             │
+│  Model      → Structure des données      │
+│  PostgreSQL → Stockage                   │
+│                                          │
+│  → Gère l'accès et le stockage des      │
+│    données                               │
+└──────────────────────────────────────────┘
+Petite nuance importante
+
+Je remplacerais :
+
+« la couche données qui gère toutes les relations base de données »
+
+par :
+
+« la couche données qui assure l'accès, la manipulation et le stockage des données. »
+
+Parce que les relations entre les tables sont principalement définies dans PostgreSQL avec les FOREIGN KEY, tandis que le Repository permet à ton application d'interagir avec ces données.
+
+Pour ton rapport
+
+Tu pourrais donc écrire exactement :
+
+Choix de l'architecture
+
+Le projet utilise une architecture 3-Tier (architecture à trois couches) afin de séparer les différentes responsabilités de l'application.
+La première couche correspond à la présentation, développée avec React, qui assure l'affichage des informations et les interactions avec l'utilisateur.
+La deuxième couche correspond à l'application, composée des contrôleurs développés avec FastAPI et des services qui prennent en charge la logique métier.
+Enfin, la troisième couche correspond aux données. Elle regroupe les repositories responsables de l'accès à la base de données, les modèles représentant les données et PostgreSQL qui assure leur stockage.
+
+Et ton schéma peut être simplement :
+
+React → Controller/FastAPI → Service → Repository/Model → PostgreSQL
+
+Même si Controller, Service, Repository et Model sont des composants internes, ils sont regroupés dans tes 3 grandes couches. C'est probablement la présentation la plus claire pour ton projet.
+
+Dans Modele userNonResponse(baseAdmin)  champs nécessaires lors requete post
+            userResponse(baseAdmin) champs lors get
