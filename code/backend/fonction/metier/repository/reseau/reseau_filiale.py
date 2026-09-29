@@ -1,6 +1,4 @@
 from backend.fonction.conn.connexion import get_connection
-connexion = get_connection()
-cur = connexion.cursor()
 
 def get_liste_reseau_filiale(cur):
     cur.execute(
@@ -26,7 +24,7 @@ def get_reseau_by_filiale(cur,id_filiale):
     SELECT * FROM t_reseau_filiale WHERE id_filiale =%s
     """,(id_filiale,)
     )
-    result = cur.fetchone()
+    result = cur.fetchall()
     return result 
 
 def get_filiale_by_reseaux(cur,id_reseau):
@@ -48,9 +46,14 @@ def get_filiale_by_reseaux_and_filiale(cur,id_reseau,id_filiale):
     return result 
 
 def insert_into_reseau_filiale(cur,id_reseau,id_filiale):
+    existing = get_filiale_by_reseaux_and_filiale(cur, id_reseau, id_filiale)
+    if existing:
+        return existing
     cur.execute(
     """
     INSERT INTO t_reseau_filiale(id_reseau,id_filiale) VALUES(%s , %s)
+    ON CONFLICT (id_reseau, id_filiale) DO NOTHING
+    RETURNING id, id_reseau, id_filiale;
     """,(id_reseau,id_filiale,)
     )
     result = cur.fetchone()

@@ -1,7 +1,21 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Search, Bell, User } from 'lucide-react';
 
 export default function Navbar() {
+    const navigate = useNavigate();
+    const [parametre, setParametre] = useState('');
+
+    const handleKeyDown = (e) => {
+        if (e.key === 'Enter') {
+            if (parametre.trim()) {
+                navigate(`/liste/device?search=${encodeURIComponent(parametre.trim())}`);
+            } else {
+                navigate('/liste/device');
+            }
+        }
+    };
+
     return (
         <div className="header-container glass-panel">
             <div className="flex items-center gap-4">
@@ -11,10 +25,13 @@ export default function Navbar() {
             <div className="flex items-center gap-6">
                 <div className="relative hidden md:block">
                     <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
-                    <input
-                        type="text"
-                        placeholder="Search resources..."
-                        className="input input-sm input-bordered bg-zinc-900/50 border-zinc-800 text-zinc-300 w-64 pl-9 focus:border-cyan-500/50 focus:outline-none transition-all"
+                    <input 
+                        type="text" 
+                        value={parametre}
+                        onChange={(e) => setParametre(e.target.value)}
+                        onKeyDown={handleKeyDown}
+                        placeholder="Rechercher (S/N, Modèle, IP, Email)..."
+                        className="input input-sm input-bordered bg-zinc-900/50 border-zinc-800 text-zinc-300 w-72 pl-9 focus:border-cyan-500/50 focus:outline-none transition-all"
                     />
                 </div>
 

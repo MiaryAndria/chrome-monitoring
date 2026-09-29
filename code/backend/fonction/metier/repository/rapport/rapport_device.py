@@ -1,6 +1,3 @@
-from backend.fonction.conn.connexion import get_connection
-
-
 def get_liste_rapport_device(cur):
     cur.execute(
         """
@@ -62,16 +59,30 @@ def get_dernier_rapport_device(cur,id_device):
     result = cur.fetchone()
     return result
 
-def get_rapport_by_device_and_type(cur,id_device,id_type_rapport):
+def get_rapport_by_device_and_type(cur, id_device, id_type_rapport):
     cur.execute(
         """
-        SELECT * FROM t_rapport_device
-        WHERE id_device = %s AND id_type_rapport = %s
+        SELECT id, id_device, id_type_rapport, report_time, donnees
+        FROM t_rapport_device
+        WHERE id_device = %s
+        AND id_type_rapport = %s
         ORDER BY report_time DESC
-        """,(id_device,id_type_rapport,)
+        """,
+        (id_device, id_type_rapport,)
     )
+
     result = cur.fetchall()
-    return result
+
+    return [
+        {
+            "id": row[0],
+            "id_device": row[1],
+            "id_type_rapport": row[2],
+            "report_time": row[3],
+            "donnees": row[4]
+        }
+        for row in result
+    ]
 
 def get_rapport_by_device_date(cur,id_device,date):
     cur.execute(
@@ -95,17 +106,31 @@ def get_rapport_by_type_and_period(cur,id_type_rapport,date_debut,date_fin):
     result = cur.fetchall()
     return result
 
-def get_rapport_by_device_type_and_period(cur,id_device,id_type_rapport,date_debut,date_fin):
+def get_rapport_by_device_type_and_period(cur, id_device, id_type_rapport, date_debut, date_fin):
     cur.execute(
         """
-        SELECT * FROM t_rapport_device
-        WHERE id_device = %s AND id_type_rapport = %s AND report_time BETWEEN %s AND %s
+        SELECT id, id_device, id_type_rapport, report_time, donnees
+        FROM t_rapport_device
+        WHERE id_device = %s
+          AND id_type_rapport = %s
+          AND report_time >= %s
+          AND report_time < (%s::date + INTERVAL '1 day')
         ORDER BY report_time DESC
         """,
-        (id_device,id_type_rapport,date_debut,date_fin,)
+        (id_device, id_type_rapport, date_debut, date_fin)
     )
     result = cur.fetchall()
-    return result
+
+    return [
+        {
+            "id": row[0],
+            "id_device": row[1],
+            "id_type_rapport": row[2],
+            "report_time": row[3],
+            "donnees": row[4]
+        }
+        for row in result
+    ]
 
 def create_rapport_device(cur,device_id,id_type_rapport,date_releve,data):
     cur.execute(
@@ -115,3 +140,4 @@ def create_rapport_device(cur,device_id,id_type_rapport,date_releve,data):
     """, 
     (device_id, id_type_rapport, date_releve, data)
     )
+    

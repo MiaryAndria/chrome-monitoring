@@ -35,23 +35,5 @@ def getDevicesByFiliale(id_filiale: int):
             status_code=500,
             detail="Impossible de récupérer les devices de cette filiale"
         )
-    return [
-        {
-            "id": d[0],
-            "id_device": d[1],
-            "serial_number": d[2],
-            "modele": d[3],
-            "id_type_appareil": d[4],
-            "id_utilisateur": d[5],
-            "chromeos_version": d[6],
-            "chrome_version": d[7],
-            "date": str(d[8]) if d[8] else None,
-            "ip_adress": d[9],
-            "mac_adress": d[10],
-            "status": d[11],
-            "utilisateur_email": d[12],
-            "utilisateurs_recents": d[13],
-        }
-        for d in devices
-    ]
+    return devices
 

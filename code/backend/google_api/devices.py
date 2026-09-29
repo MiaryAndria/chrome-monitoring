@@ -12,8 +12,14 @@ from backend.utils.format_org import format_org_unit
 load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parents[3]
-_token_env_path = os.getenv("GOOGLE_TOKEN_PATH", "../credential/token.json")
-TOKEN_FILE = Path(_token_env_path) if Path(_token_env_path).is_absolute() else (BASE_DIR / _token_env_path).resolve()
+_token_env_path = os.getenv("GOOGLE_TOKEN_PATH", "credential/token.json")
+_candidate_path = Path(_token_env_path) if Path(_token_env_path).is_absolute() else (BASE_DIR / _token_env_path).resolve()
+
+if not _candidate_path.exists():
+    _fallback = (BASE_DIR / "credential" / "token.json").resolve()
+    TOKEN_FILE = _fallback if _fallback.exists() else _candidate_path
+else:
+    TOKEN_FILE = _candidate_path
 OUTPUT_DIR = BASE_DIR / "output"
 
 SCOPES = [

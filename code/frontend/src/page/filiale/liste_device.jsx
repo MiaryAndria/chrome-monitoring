@@ -7,21 +7,7 @@ import MouseSpotlight from "../../components/MouseSpotlight";
 import '../../css/liste.css';
 import '../../css/filiale.css';
 import { getDevicesByFiliale, getListeFiliale } from "../../fonction/filialeFonction";
-
-function getStatusClass(status) {
-    if (!status) return 'status-badge--unknown';
-    const s = status.toUpperCase();
-    if (s === 'ACTIVE') return 'status-badge--active';
-    if (s === 'DEPROVISIONED') return 'status-badge--deprovisioned';
-    if (s === 'INACTIVE') return 'status-badge--inactive';
-    if (s === 'DISABLED') return 'status-badge--disabled';
-    return 'status-badge--unknown';
-}
-
-function getDeviceStats(devices) {
-    const active = devices.filter(d => (d.status || '').toUpperCase() === 'ACTIVE').length;
-    return { active, other: devices.length - active };
-}
+import { getBadgeClass } from "../../fonction/deviceFonction";
 
 function ListeDeviceFiliale() {
     const { id_filiale } = useParams();
@@ -70,8 +56,12 @@ function ListeDeviceFiliale() {
         setCurrentPage(1);
     }, [id_filiale]);
 
-    const stats = getDeviceStats(devices);
 
+    const activeCount = devices.filter(d => {
+        const s = (d.status || d.nom_statut || '').toUpperCase();
+        return s === 'ACTIVE' || s === 'ACTIFS';
+    }).length;
+    const otherCount = devices.length - activeCount;
 
     return (
         <div className="device-layout" data-theme="dark">
@@ -116,12 +106,12 @@ function ListeDeviceFiliale() {
                         </div>
                         <div className="stat place-items-center border-t md:border-t-0 md:border-l border-white/5">
                             <div className="stat-title text-zinc-400">Actifs</div>
-                            <div className="stat-value text-emerald-400 text-4xl">{stats.active}</div>
+                            <div className="stat-value text-emerald-400 text-4xl">{activeCount}</div>
                             <div className="stat-desc text-zinc-500">État ACTIVE</div>
                         </div>
                         <div className="stat place-items-center border-t md:border-t-0 md:border-l border-white/5">
                             <div className="stat-title text-zinc-400">Autres états</div>
-                            <div className="stat-value text-purple-400 text-4xl">{stats.other}</div>
+                            <div className="stat-value text-purple-400 text-4xl">{otherCount}</div>
                             <div className="stat-desc text-zinc-500">Inactifs / Autres</div>
                         </div>
                     </div>
@@ -152,7 +142,7 @@ function ListeDeviceFiliale() {
                                             <span className="text-zinc-500 text-xs flex items-center gap-1">
                                                 <Users className="w-3.5 h-3.5 text-cyan-400" /> Device #{d.id}
                                             </span>
-                                            <span className={`status-badge ${getStatusClass(d.status)}`}>
+                                            <span className={`status-badge ${getBadgeClass(d.status)}`}>
                                                 {d.status || 'N/A'}
                                             </span>
                                         </div>
@@ -207,15 +197,16 @@ function ListeDeviceFiliale() {
                                                     {d.utilisateurs_recents?.length > 0 ? d.utilisateurs_recents.join(", ") : 'Aucun'}
                                                 </span>
                                             </div>
-                                            <div className="flex justify-between items-center mt-3 pt-3 border-t border-white/5">
+                                            <div className="flex justify-between items-center mt-3 pt-3 border-t border-white/5 gap-2">
                                                 <button
                                                     onClick={() => setSelectedDevice(d)}
-                                                    className="device-detail-btn"
+                                                    className="px-3 py-1.5 text-xs font-semibold text-cyan-400 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 hover:border-cyan-500/50 rounded-xl transition-all flex items-center gap-1 cursor-pointer shadow-sm"
                                                 >
-                                                    Voir liste utilisateurs récents
+                                                    Voir tout
                                                 </button>
                                                 <button
-                                                    onClick={() => navigate(`/device/${d.id}`)}
+                                                    onClick={() => navigate(`/device/${d.id || d.id_device}`)}
+                                                    className="px-2.5 py-1.5 text-xs font-semibold text-zinc-300 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 rounded-xl transition-all flex items-center gap-1 cursor-pointer whitespace-nowrap"
                                                 >
                                                     Voir détails
                                                 </button>
@@ -253,50 +244,75 @@ function ListeDeviceFiliale() {
 
             {selectedDevice && (
                 <div className="modal-overlay" onClick={() => setSelectedDevice(null)}>
-                    <h3 className="text-base font-bold text-zinc-100">
-                        Historique des Utilisateurs Récents
-                    </h3>
-                    <div className="p-5 space-y-2.5 max-h-[60vh] overflow-y-auto">
-                        {selectedDevice.utilisateurs_recents && selectedDevice.utilisateurs_recents.length > 0 ? (
-                            selectedDevice.utilisateurs_recents.map((u, index) => {
-                                const userEmail = typeof u === 'string' ? u : (u.email || u.userEmail || 'Inconnu');
-                                const isLatest = index === selectedDevice.utilisateurs_recents.length - 1;
-                                return (
-                                    <div key={index} className="user-item">
-                                        <div className="flex items-center gap-3">
-                                            <div className={`p-2 rounded-lg ${isLatest ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30' : 'bg-white/5 text-zinc-400'}`}>
-                                                <User className="w-4 h-4" />
-                                            </div>
-                                            <div>
-                                                <p className="text-xs font-medium text-zinc-200">{userEmail}</p>
-                                                {isLatest && (
-                                                    <span className="text-[10px] text-cyan-400 font-semibold uppercase tracking-wider">
-                                                        Dernier connecté
-                                                    </span>
-                                                )}
-                                            </div>
-                                        </div>
-                                        <span className="text-[11px] text-zinc-500 font-mono bg-zinc-900/60 px-2 py-0.5 rounded-md border border-white/5">
-                                            #{index + 1}
-                                        </span>
-                                    </div>
-                                );
-                            })
-                        ) : (
-                            <div className="text-center py-8 border border-dashed border-white/10 rounded-xl bg-white/[0.01]">
-                                <User className="w-8 h-8 text-zinc-600 mx-auto mb-2 opacity-50" />
-                                <p className="text-xs text-zinc-400">Aucun utilisateur récent enregistré pour ce périphérique.</p>
+                    <div className="modal-content">
+                        <div className="p-5 border-b border-white/10 flex justify-between items-center bg-zinc-900/60">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2.5 bg-cyan-500/10 border border-cyan-500/30 rounded-xl text-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.2)]">
+                                    <Users className="w-5 h-5" />
+                                </div>
+                                <div>
+                                    <h3 className="text-base font-bold text-zinc-100">
+                                        Historique des Utilisateurs Récents
+                                    </h3>
+                                    <p className="text-xs text-zinc-400 mt-0.5">
+                                        {selectedDevice.modele || 'Device'} <span className="text-zinc-500 font-mono">({selectedDevice.serial_number})</span>
+                                    </p>
+                                </div>
                             </div>
-                        )}
-                    </div>
+                            <button
+                                onClick={() => setSelectedDevice(null)}
+                                className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
 
-                    <div className="modal-footer">
-                        <button className="modal-close-action-btn" onClick={() => setSelectedDevice(null)}>
-                            Fermer
-                        </button>
+                        <div className="p-5 space-y-2.5 max-h-[60vh] overflow-y-auto">
+                            {selectedDevice.utilisateurs_recents && selectedDevice.utilisateurs_recents.length > 0 ? (
+                                selectedDevice.utilisateurs_recents.map((u, index) => {
+                                    const userEmail = typeof u === 'string' ? u : (u.email || u.userEmail || 'Inconnu');
+                                    const isLatest = index === selectedDevice.utilisateurs_recents.length - 1;
+                                    return (
+                                        <div key={index} className="user-item">
+                                            <div className="flex items-center gap-3">
+                                                <div className={`p-2 rounded-lg ${isLatest ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30' : 'bg-white/5 text-zinc-400'}`}>
+                                                    <User className="w-4 h-4" />
+                                                </div>
+                                                <div>
+                                                    <p className="text-xs font-medium text-zinc-200">{userEmail}</p>
+                                                    {isLatest && (
+                                                        <span className="text-[10px] text-cyan-400 font-semibold uppercase tracking-wider">
+                                                            Dernier connecté
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <span className="text-[11px] text-zinc-500 font-mono bg-zinc-900/60 px-2 py-0.5 rounded-md border border-white/5">
+                                                #{index + 1}
+                                            </span>
+                                        </div>
+                                    );
+                                })
+                            ) : (
+                                <div className="text-center py-8 border border-dashed border-white/10 rounded-xl bg-white/[0.01]">
+                                    <User className="w-8 h-8 text-zinc-600 mx-auto mb-2 opacity-50" />
+                                    <p className="text-xs text-zinc-400">Aucun utilisateur récent enregistré pour ce périphérique.</p>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="p-4 border-t border-white/10 bg-zinc-900/60 flex justify-end">
+                            <button
+                                onClick={() => setSelectedDevice(null)}
+                                className="px-4 py-2 text-xs font-semibold rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 hover:bg-cyan-500/20 hover:border-cyan-500/50 transition-all cursor-pointer shadow-md"
+                            >
+                                Fermer
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}
+
         </div>
     );
 }

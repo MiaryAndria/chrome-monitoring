@@ -30,6 +30,13 @@ def get_reseau_by_valeur(cur,valeur):
 def insert_reseau(cur,valeur):
     cur.execute(
     """
-    INSERT INTO t_reseau(valeur)VALUES(%s)
+    INSERT INTO t_reseau(valeur) VALUES(%s) RETURNING id, valeur;
     """,(valeur,)
     )
+    return cur.fetchone()
+
+def get_or_create_reseau(cur, valeur):
+    existing = get_reseau_by_valeur(cur, valeur)
+    if existing:
+        return existing
+    return insert_reseau(cur, valeur)

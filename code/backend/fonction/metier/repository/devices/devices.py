@@ -1,8 +1,9 @@
-from backend.fonction.conn.connexion import get_connection
 def get_liste_device(cur):
     cur.execute(
         """
-        SELECT * FROM t_device
+        SELECT id, device_id, serial_number, modele, id_type_appareil,
+               chromeos_version, chrome_version, mac_adress, ip_adress, date_creation
+        FROM t_device
         """
     )
     result = cur.fetchall()
@@ -12,7 +13,9 @@ def get_liste_device(cur):
 def get_device_by_id(cur,id):
     cur.execute(
         """
-        SELECT * FROM t_device WHERE id = %s
+        SELECT id, device_id, serial_number, modele, id_type_appareil,
+               chromeos_version, chrome_version, mac_adress, ip_adress, date_creation
+        FROM t_device WHERE id = %s
         """,(id,)
     )
     result = cur.fetchone()
@@ -21,7 +24,9 @@ def get_device_by_id(cur,id):
 def get_device_by_device_id(cur,device_id):
     cur.execute(
         """
-        SELECT * FROM t_device WHERE device_id = %s
+        SELECT id, device_id, serial_number, modele, id_type_appareil,
+               chromeos_version, chrome_version, mac_adress, ip_adress, date_creation
+        FROM t_device WHERE device_id = %s
         """,(device_id,)
     )
     result = cur.fetchone()
@@ -30,7 +35,9 @@ def get_device_by_device_id(cur,device_id):
 def get_device_by_serial_number(cur,serial_number):
     cur.execute(
         """
-        SELECT * FROM t_device WHERE serial_number = %s
+        SELECT id, device_id, serial_number, modele, id_type_appareil,
+               chromeos_version, chrome_version, mac_adress, ip_adress, date_creation
+        FROM t_device WHERE serial_number = %s
         """,(serial_number,)
     )
     result = cur.fetchone()
@@ -39,7 +46,11 @@ def get_device_by_serial_number(cur,serial_number):
 def get_device_by_utilisateur(cur,id_utilisateur):
     cur.execute(
         """
-        SELECT * FROM t_device WHERE id_utilisateur = %s
+        SELECT d.id, d.device_id, d.serial_number, d.modele, d.id_type_appareil,
+               d.chromeos_version, d.chrome_version, d.mac_adress, d.ip_adress, d.date_creation
+        FROM t_device d
+        JOIN t_device_utilisateur du ON d.id = du.id_device
+        WHERE du.id_utilisateur = %s
         """,(id_utilisateur,)
     )
     result = cur.fetchall()
@@ -49,14 +60,26 @@ def get_device_by_filiale(cur,id_filiale):
     cur.execute(
         """
         SELECT d.id, d.device_id, d.serial_number, d.modele, d.id_type_appareil,
-               d.id_utilisateur, d.chromeos_version, d.chrome_version, d.date_creation,
-               d.ip_adress, d.mac_adress
+               d.chromeos_version, d.chrome_version, d.mac_adress, d.ip_adress, d.date_creation
         FROM t_device d
         JOIN t_device_filiale df ON d.id = df.id_device
         WHERE df.id_filiale = %s
         """,(id_filiale,)
     )
     result = cur.fetchall()
+    return result
+
+def get_filiale_by_device(cur, id_device):
+    cur.execute(
+        """
+        SELECT f.id, f.org_unit_path
+        FROM t_filiale f
+        JOIN t_device_filiale df ON f.id = df.id_filiale
+        WHERE df.id_device = %s
+        LIMIT 1
+        """, (id_device,)
+    )
+    result = cur.fetchone()
     return result
 
 def get_device_by_type(cur,id_type_appareil):
@@ -154,28 +177,35 @@ def get_device_anomalie(cur):
     result = cur.fetchall()
     return result
 
-def search_device(cur,recherche):
+def recherche_multicritere(cur, recherche):
+    terme = f"%{recherche}%"
     cur.execute(
         """
-        SELECT d.*, u.email AS email_utilisateur, ta.nom AS type_appareil,
-               s.nom AS statut, f.nom AS filiale
+        SELECT DISTINCT d.id, d.device_id, d.serial_number, d.modele, d.id_type_appareil,
+               d.chromeos_version, d.chrome_version, d.mac_adress, d.ip_adress, d.date_creation,
+               ta.nom AS type_appareil, s.nom AS statut, f.org_unit_path AS filiale
         FROM t_device d
-        LEFT JOIN t_utilisateur u ON d.id_utilisateur = u.id
+        LEFT JOIN t_device_utilisateur du ON d.id = du.id_device
+        LEFT JOIN t_utilisateur u ON du.id_utilisateur = u.id
+        LEFT JOIN t_device_utilisateur_recent dur ON d.id = dur.id_device
+        LEFT JOIN t_utilisateur ur ON dur.id_utilisateur = ur.id
         LEFT JOIN t_type_appareil ta ON d.id_type_appareil = ta.id
         LEFT JOIN t_device_statut ds ON d.id = ds.id_device
             AND ds.date = (SELECT MAX(ds2.date) FROM t_device_statut ds2 WHERE ds2.id_device = d.id)
         LEFT JOIN t_statut s ON ds.id_statut = s.id
-        LEFT JOIN t_device_filiale df ON d.id = df.id_device AND df.date_fin_affectation IS NULL
+        LEFT JOIN t_device_filiale df ON d.id = df.id_device  IS NULL
         LEFT JOIN t_filiale f ON df.id_filiale = f.id
         WHERE d.device_id ILIKE %s
            OR d.serial_number ILIKE %s
            OR d.modele ILIKE %s
            OR u.email ILIKE %s
+           OR ur.email ILIKE %s
            OR ta.nom ILIKE %s
            OR s.nom ILIKE %s
-           OR f.nom ILIKE %s
-        """,(recherche,recherche,recherche,recherche,recherche,recherche,recherche,)
+           OR f.org_unit_path ILIKE %s
+        """, (terme, terme, terme, terme, terme, terme, terme, terme)
     )
+
     result = cur.fetchall()
     return result
 
@@ -186,7 +216,7 @@ def get_nombre_device(cur):
         """
     )
     result = cur.fetchone()
-    return result
+    return result[0]
 
 def get_nombre_chromebook(cur):
     cur.execute(
@@ -286,7 +316,9 @@ def get_device_by_type_and_statut(cur,id_type_appareil,id_statut):
 def get_device_by_utilisateur_and_type(cur,id_utilisateur,id_type_appareil):
     cur.execute(
         """
-        SELECT * FROM t_device WHERE id_utilisateur = %s AND id_type_appareil = %s
+        SELECT d.* FROM t_device d
+        JOIN t_device_utilisateur du ON d.id = du.id_device
+        WHERE du.id_utilisateur = %s AND d.id_type_appareil = %s
         """,(id_utilisateur,id_type_appareil,)
     )
     result = cur.fetchall()
@@ -323,23 +355,24 @@ def get_device_by_filiale_and_utilisateur(cur,id_filiale,id_utilisateur):
         """
         SELECT d.* FROM t_device d
         JOIN t_device_filiale df ON d.id = df.id_device
-        WHERE df.id_filiale = %s AND d.id_utilisateur = %s
+        JOIN t_device_utilisateur du ON d.id = du.id_device
+        WHERE df.id_filiale = %s AND du.id_utilisateur = %s
         AND df.date_fin_affectation IS NULL
         """,(id_filiale,id_utilisateur,)
     )
     result = cur.fetchall()
     return result
 
-def insert_device(cur, device_id, serial_number, modele, id_type_appareil, id_utilisateur,
+def insert_device(cur, device_id, serial_number, modele, id_type_appareil,
     chromeos_version, chrome_version, date_creation, ip_adress, mac_adress):
     cur.execute(
         """
-        INSERT INTO t_device (device_id, serial_number, modele, id_type_appareil, id_utilisateur,
+        INSERT INTO t_device (device_id, serial_number, modele, id_type_appareil,
             chromeos_version, chrome_version, date_creation, ip_adress, mac_adress)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
         RETURNING id;
         """,
-        (device_id, serial_number, modele, id_type_appareil, id_utilisateur,
+        (device_id, serial_number, modele, id_type_appareil,
          chromeos_version, chrome_version, date_creation, ip_adress, mac_adress)
     )
     row = cur.fetchone()
@@ -383,12 +416,14 @@ def insert_device_filiale(cur, id_device, id_filiale):
 def delete_all(cur):
     cur.execute(
     """
-        TRUNCATE TABLE 
+    TRUNCATE TABLE
         t_device_alerte,
         t_device_utilisateur_recent,
         t_device_filiale,
         t_device_historique,
         t_device_statut,
+        t_device_utilisateur,
+        t_disk_device,
         t_rapport_device,
         t_version_report,
         t_evenement_device,
@@ -401,12 +436,15 @@ def delete_all(cur):
         t_alerte,
         t_type_evenement,
         t_type_rapport,
-        t_statut,
         t_utilisateur,
         t_type_appareil,
         t_reseau,
         t_filiale,
-        t_configuration
+        t_configuration,
+        t_cpu,
+        t_statut,
+        t_disk,
+        t_user
     RESTART IDENTITY CASCADE;
     
     """,

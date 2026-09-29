@@ -1,9 +1,11 @@
-TRUNCATE TABLE 
+TRUNCATE TABLE
     t_device_alerte,
     t_device_utilisateur_recent,
     t_device_filiale,
     t_device_historique,
     t_device_statut,
+    t_device_utilisateur,
+    t_disk_device,
     t_rapport_device,
     t_version_report,
     t_evenement_device,
@@ -16,11 +18,14 @@ TRUNCATE TABLE
     t_alerte,
     t_type_evenement,
     t_type_rapport,
-    t_statut,
     t_utilisateur,
     t_type_appareil,
     t_reseau,
     t_filiale,
-    t_configuration
+    t_configuration,
+    t_cpu,
+    t_statut,
+    t_disk,
+    t_user
 RESTART IDENTITY CASCADE;
 -- TRUNCATE TABLE t_user RESTART IDENTITY CASCADE;

@@ -4,30 +4,25 @@ import { Server, Laptop, Activity, XOctagon, ShieldAlert, CheckCircle2 } from 'l
 import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
 import MouseSpotlight from "../components/MouseSpotlight";
-import { getDeviceStats, getListeDevice} from "../fonction/deviceFonction";
-import '../css/liste.css'; 
+import { getDashboardStats, getStatusStyle } from "../fonction/deviceFonction";
+import '../css/liste.css';
 import '../css/filiale.css';
 
 function Dashboard() {
     const navigate = useNavigate();
-    const [devices, setDevices] = useState([]);
     const [loading, setLoading] = useState(false);
     const [stats, setStats] = useState({
         total: 0,
-        active: 0,
-        inactive: 0,
-        deprovisioned: 0,
-        disabled: 0,
-        unknown: 0
+        par_statut: {},
+        par_type: {}
     });
 
     const fetchData = async () => {
         try {
             setLoading(true);
-            const data = await getListeDevice();
+            const data = await getDashboardStats();
             if (data) {
-                setDevices(data);
-                setStats(getDeviceStats(data));
+                setStats(data);
             }
         } catch (e) {
             console.log(e);
@@ -43,55 +38,58 @@ function Dashboard() {
     const statCards = [
         {
             title: "Tous les appareils",
-            value: stats.total,
+            value: stats.total || 0,
             icon: Laptop,
             colorClass: "text-cyan-400",
             bgClass: "bg-cyan-500/10",
             borderClass: "border-cyan-500/30",
             hoverClass: "hover:bg-cyan-500/20 hover:border-cyan-500/50",
             onClick: () => navigate("/liste/device")
-        },
-        {
-            title: "Actifs",
-            value: stats.active,
-            icon: CheckCircle2,
-            colorClass: "text-emerald-400",
-            bgClass: "bg-emerald-500/10",
-            borderClass: "border-emerald-500/30",
-            hoverClass: "hover:bg-emerald-500/20 hover:border-emerald-500/50",
-            onClick: () => navigate("/liste/device?status=ACTIVE")
-        },
-        {
-            title: "Inactifs",
-            value: stats.inactive,
-            icon: Activity,
-            colorClass: "text-amber-400",
-            bgClass: "bg-amber-500/10",
-            borderClass: "border-amber-500/30",
-            hoverClass: "hover:bg-amber-500/20 hover:border-amber-500/50",
-            onClick: () => navigate("/liste/device?status=INACTIVE")
-        },
-        {
-            title: "Déprovisionnés",
-            value: stats.deprovisioned,
-            icon: XOctagon,
-            colorClass: "text-red-400",
-            bgClass: "bg-red-500/10",
-            borderClass: "border-red-500/30",
-            hoverClass: "hover:bg-red-500/20 hover:border-red-500/50",
-            onClick: () => navigate("/liste/device?status=DEPROVISIONED")
-        },
-        {
-            title: "Désactivés",
-            value: stats.disabled,
-            icon: ShieldAlert,
-            colorClass: "text-purple-400",
-            bgClass: "bg-purple-500/10",
-            borderClass: "border-purple-500/30",
-            hoverClass: "hover:bg-purple-500/20 hover:border-purple-500/50",
-            onClick: () => navigate("/liste/device?status=DISABLED")
         }
     ];
+
+    if (stats?.par_statut) {
+        let index = 0;
+        for (const nomStatut in stats.par_statut) {
+            const nombre = stats.par_statut[nomStatut];
+            const style = getStatusStyle(index);
+
+            statCards.push({
+                title: nomStatut,
+                value: nombre,
+                icon: style.icon,
+                colorClass: style.colorClass,
+                bgClass: style.bgClass,
+                borderClass: style.borderClass,
+                hoverClass: style.hoverClass,
+                onClick: () => navigate(`/liste/device?status=${nomStatut}`)
+            });
+
+            index++;
+        }
+    }
+
+    
+    if (stats?.par_type) {
+        let index = 0;
+        for (const nomType in stats.par_type) {
+            const nombre = stats.par_type[nomType];
+            const style = getStatusStyle(index);
+
+            statCards.push({
+                title: nomType,
+                value: nombre,
+                icon: style.icon,
+                colorClass: style.colorClass,
+                bgClass: style.bgClass,
+                borderClass: style.borderClass,
+                hoverClass: style.hoverClass,
+                onClick: () => navigate(`/liste/device?type=${nomType}`)
+            });
+
+            index++;
+        }
+    }
 
     return (
         <div className="device-layout" data-theme="dark">
@@ -115,7 +113,7 @@ function Dashboard() {
                             </p>
                         </div>
                     </div>
-                    
+
                     {loading ? (
                         <div className="flex justify-center p-12">
                             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-400"></div>
@@ -125,7 +123,7 @@ function Dashboard() {
                             {statCards.map((card, idx) => {
                                 const Icon = card.icon;
                                 return (
-                                    <div 
+                                    <div
                                         key={idx}
                                         onClick={card.onClick}
                                         className={`glass-panel p-6 rounded-2xl border ${card.borderClass} ${card.bgClass} ${card.hoverClass} cursor-pointer transition-all duration-300 transform hover:-translate-y-1`}

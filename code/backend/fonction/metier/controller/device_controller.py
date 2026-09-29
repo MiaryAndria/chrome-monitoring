@@ -1,7 +1,7 @@
 from typing import List
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException,Query
 from backend.fonction.metier.models.device import DeviceResponses
-from backend.fonction.metier.service.device_service import synchroniser_tout,reset_data,getListeDevice
+from backend.fonction.metier.service.device_service import synchroniser_tout,reset_data,getListeDevice,getDeviceFiltered
 from backend.fonction.metier.service.device_service import getDeviceDetail
 
 router = APIRouter()
@@ -26,11 +26,18 @@ def resetAll():
 @router.get("/liste", response_model=List[DeviceResponses])
 def getListe():
     try:
-        getListeDevice()
-        return {"liste obtenu"}
+        liste = getListeDevice()
+        return liste
     except Exception as e:
-        raise HTTPException(status_code=500, detail="Connexion BDD impossible")
-        
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/search", response_model=List[DeviceResponses])
+def getListeFiltrer(recherche : str = Query(...)):
+    try:
+        liste = getDeviceFiltered(recherche)
+        return liste
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/{id}",response_model=DeviceResponses)
 def getDetailDevice(id):
@@ -44,4 +51,6 @@ def getDetailDevice(id):
         return device 
         
     except Exception as e:
-        raise HTTPException(status_code=500, detail="Connexion BDD impossible")
+                raise HTTPException(status_code=500, detail=str(e))
+
+        

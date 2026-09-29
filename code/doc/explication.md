@@ -35,6 +35,7 @@ python-jose[cryptography]	    JWT / authentification
 passlib[bcrypt]	                Hashage des mots de passe
 python-multipart	            Formulaires et données multipart
 pip install "pwdlib[argon2]"        Haschage mdp
+pip install openpyxl reportlab      Bibliothèque pour export 
 
 
 ## synchronisation toutes les 30 minutes 
@@ -68,3 +69,7 @@ cd "C:\Users\miary\Etude\finalisation s6\projet\chromebook_surveillance\chrome-m
 # for A, B in dictionnaire.items():
     # A → clé
     # B → valeur
+
+# si on veut passer un parametres dans une requete url controller on utilise Query
+        def getListe(recherche : str = Query(...)):
+

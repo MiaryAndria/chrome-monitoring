@@ -4,20 +4,27 @@ from backend.google_api.devices import get_devices,get_credentials,get_telemetry
 from backend.fonction.metier.controller.user_controller import router as user_router
 from backend.fonction.metier.controller.device_controller import router as device_router
 from backend.fonction.metier.controller.filiale_controller import router as filiale_router
+from backend.fonction.metier.controller.dashboard_controller import router as dashboard_router
+from backend.fonction.metier.controller.statut_controller import router as statut_router
+from backend.fonction.metier.controller.rapport_controller import router as rapport_router
 
 app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
+app.include_router(dashboard_router,prefix="/dashboard",tags=["dashboard"])
 app.include_router(user_router,prefix="/user",tags=["user"])
 app.include_router(device_router,prefix="/device",tags=["device"])
 app.include_router(filiale_router,prefix="/filiale",tags=["filiale"])
+app.include_router(statut_router,prefix="/statut",tags=["statut"])
+app.include_router(rapport_router,prefix="/rapport",tags=["rapport"])
+
+
 @app.get("/")
 def accueil():
     return {

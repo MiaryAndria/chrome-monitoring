@@ -8,7 +8,6 @@ import '../../css/liste.css';
 import '../../css/filiale.css';
 import { getListeFiliale } from "../../fonction/filialeFonction";
 
-// Variantes de couleur cycliques — définies uniquement dans le CSS
 const CARD_VARIANTS = ['cyan', 'purple', 'emerald', 'amber'];
 
 function getOrgLabel(path) {

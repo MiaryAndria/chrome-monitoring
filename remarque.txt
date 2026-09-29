@@ -35,4 +35,11 @@ ivelany miditra zany hoe ilay interface miditra hoe otranzao nanaovana anty
 sujet mila azavaina tsara precisement izay azavaina mila ain'olona ny contexte rehetra dia ny valeur ajouterany hoe fa maninona no nanao aniny 
 typo ampitombona kely fond atao somary clair 
 base synchronisation
-active aussi à preciser si possible active ou en activité que signifie le mots active
+active aussi à preciser si possible active ou en activité que signifie le mots active , recherche sur barre de recherche on fait recherche pour qu'on peut faire recherche filiale et truc suite
+
+asina version liste aussi ny carte
+imprimante reseau et usb 
+cups 
+dans page detail stockage et cpu etc asina filtrage date 
+
+Hiérarchiser les fonctionnalités mvp et secondaire

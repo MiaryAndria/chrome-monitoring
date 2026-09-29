@@ -1,26 +1,19 @@
 import { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { Server, Laptop, Network, User, Users, X, Copy, Check } from 'lucide-react';
 import Sidebar from "../../components/Sidebar";
 import Navbar from "../../components/Navbar";
 import MouseSpotlight from "../../components/MouseSpotlight";
 import '../../css/liste.css';
 import '../../css/filiale.css';
-import { getDeviceStats, getListeDevice } from "../../fonction/deviceFonction";
-
-function getStatusClass(status) {
-    if (!status) return 'status-badge--unknown';
-    const s = status.toUpperCase();
-    if (s === 'ACTIVE') return 'status-badge--active';
-    if (s === 'DEPROVISIONED') return 'status-badge--deprovisioned';
-    if (s === 'INACTIVE') return 'status-badge--inactive';
-    if (s === 'DISABLED') return 'status-badge--disabled';
-    return 'status-badge--unknown';
-}
+import { getListeDevice, getBadgeClass, searchDevices } from "../../fonction/deviceFonction";
 
 function ListeDevice() {
+    const navigate = useNavigate();
     const [searchParams] = useSearchParams();
     const filterStatus = searchParams.get("status");
+    const filterType = searchParams.get("type");
+    const filterSearch = searchParams.get("search");
 
     const [device, setDevice] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -30,10 +23,17 @@ function ListeDevice() {
 
     const deviceParPage = 8;
 
-
-    const filteredDevices = filterStatus 
-        ? device.filter(d => (d.status || '').toUpperCase() === filterStatus.toUpperCase())
-        : device;
+    const filteredDevices = device.filter(d => {
+        if (filterStatus) {
+            const s = (d.status || d.nom_statut || '').toUpperCase();
+            if (s !== filterStatus.toUpperCase()) return false;
+        }
+        if (filterType) {
+            const t = (d.type_appareil || d.nom_type || d.modele || '').toUpperCase();
+            if (!t.includes(filterType.toUpperCase())) return false;
+        }
+        return true;
+    });
 
     const indexLastDevice = currentPage * deviceParPage;
     const indexFirstDevice = indexLastDevice - deviceParPage;
@@ -49,20 +49,24 @@ function ListeDevice() {
 
     const RecuperationListeDevice = async () => {
         try {
-            setLoading(true)
-            const d = await getListeDevice()
-            setDevice(d)
-            setLoading(false)
+            setLoading(true);
+            let d;
+            
+            if (filterSearch) {
+                d = await searchDevices(filterSearch);
+            } else {
+                d = await getListeDevice();
+            }
+            setDevice(d || []);
+            setLoading(false);
         } catch (e) {
-            console.log(e)
+            console.log(e);
         }
-    }
+    };
 
     useEffect(() => {
         RecuperationListeDevice();
-    }, [])
-
-    const stats = getDeviceStats(device)
+    }, [filterSearch, filterStatus, filterType]);
 
     return (
         <div className="device-layout" data-theme="dark">
@@ -77,27 +81,6 @@ function ListeDevice() {
                 <Navbar />
 
                 <div className="flex-1 overflow-y-auto p-6 lg:p-8 space-y-8 z-10">
-                    <div className="stats stats-container glass-panel">
-                        <div className="stat place-items-center">
-                            <div className="stat-title text-zinc-400">Total Devices</div>
-                            <div className="stat-value neon-text-cyan text-4xl">{device.length}</div>
-                            <div className="stat-desc text-zinc-500 flex items-center gap-1 mt-1">
-                                <Server className="w-3 h-3 text-emerald-500" /> Inventoried
-                            </div>
-                        </div>
-
-                        <div className="stat place-items-center border-t md:border-t-0 md:border-l border-white/5">
-                            <div className="stat-title text-zinc-400">Active Devices</div>
-                            <div className="stat-value text-emerald-400 text-4xl">{stats.activeacounts}</div>
-                            <div className="stat-desc text-zinc-500">Currently in ACTIVE state</div>
-                        </div>
-
-                        <div className="stat place-items-center border-t md:border-t-0 md:border-l border-white/5">
-                            <div className="stat-title text-zinc-400">Other States</div>
-                            <div className="stat-value text-purple-400 text-4xl">{stats.notactiveacounts}</div>
-                            <div className="stat-desc text-zinc-500">Devices not active</div>
-                        </div>
-                    </div>
                     <div>
                         <div className="flex justify-between items-center mb-6">
                             <h2 className="text-lg font-medium text-zinc-100">Monitored Infrastructure</h2>
@@ -112,19 +95,13 @@ function ListeDevice() {
                                 {currentDevices.map((d) => {
                                     const status = d.status || 'UNKNOWN';
 
-                                    const badgeClass = status === 'ACTIVE'
-                                        ? "badge-success bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                                        : (status === 'INACTIVE' || status === 'DEPROVISIONED')
-                                            ? "badge-error bg-red-500/10 text-red-400 border-red-500/20"
-                                            : "badge-warning bg-amber-500/10 text-amber-400 border-amber-500/20";
-
                                     return (
                                         <div key={d.id_device || d.serial_number} className="device-card">
                                             <div className="flex justify-between items-start mb-4">
                                                 <div className="p-2.5 bg-white/5 rounded-xl text-zinc-300">
                                                     <Laptop className="w-5 h-5" />
                                                 </div>
-                                                <div className={`badge badge-sm ${badgeClass} font-medium tracking-wide`}>
+                                                <div className={`badge badge-sm ${getBadgeClass(status)} font-medium tracking-wide`}>
                                                     {status}
                                                 </div>
                                             </div>
@@ -173,13 +150,17 @@ function ListeDevice() {
                                                     </span>
                                                 </div>
                                                 <div className="flex justify-between items-center mt-3 pt-3 border-t border-white/5">
-                                                    <span className="text-zinc-500 text-xs flex items-center gap-1">
-                                                    </span>
                                                     <button
                                                         onClick={() => setSelectedDevice(d)}
                                                         className="px-3 py-1.5 text-xs font-semibold text-cyan-400 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 hover:border-cyan-500/50 rounded-xl transition-all flex items-center gap-1 cursor-pointer shadow-sm"
                                                     >
                                                         Voir tout
+                                                    </button>
+                                                    <button
+                                                        onClick={() => navigate(`/device/${d.id || d.id_device}`)}
+                                                        className="px-3 py-1.5 text-xs font-semibold text-zinc-300 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 rounded-xl transition-all flex items-center gap-1 cursor-pointer"
+                                                    >
+                                                        Voir détails
                                                     </button>
                                                 </div>
                                             </div>

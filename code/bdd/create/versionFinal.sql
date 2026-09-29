@@ -19,6 +19,11 @@ CREATE TABLE t_reseau (
     valeur VARCHAR(255) NOT NULL
 );
 
+CREATE TABLE t_statut(
+    id SERIAL PRIMARY KEY ,
+    nom VARCHAR(255) NOT NULL
+);
+
 CREATE TABLE t_reseau_filiale (
     id SERIAL PRIMARY KEY,
     id_reseau INT NOT NULL REFERENCES t_reseau(id),
@@ -39,13 +44,15 @@ CREATE TABLE t_utilisateur (
 CREATE TABLE t_filiale_utilisateur (
     id SERIAL PRIMARY KEY,
     id_filiale INT NOT NULL REFERENCES t_filiale(id),
-    id_utilisateur INT NOT NULL REFERENCES t_utilisateur(id)
+    id_utilisateur INT NOT NULL REFERENCES t_utilisateur(id),
     UNIQUE (id_filiale, id_utilisateur)
 );
 
-CREATE TABLE t_statut (
+CREATE TABLE t_cpu (
     id SERIAL PRIMARY KEY,
-    nom VARCHAR(100) UNIQUE NOT NULL
+    cpu_model VARCHAR(250) UNIQUE,
+    freq_max_proc BIGINT,
+    cpu_architecture VARCHAR(50)
 );
 
 CREATE TABLE t_device (
@@ -53,13 +60,31 @@ CREATE TABLE t_device (
     device_id VARCHAR(255) UNIQUE NOT NULL,
     serial_number VARCHAR(255),
     modele VARCHAR(255),
-    id_type_appareil INT REFERENCES t_type_appareil(id),
-    id_utilisateur INT REFERENCES t_utilisateur(id),
+    id_type_appareil INT NOT NULL REFERENCES t_type_appareil(id),
     chromeos_version VARCHAR(100),
     chrome_version VARCHAR(100),
     mac_adress VARCHAR(255),
+    ram_total BIGINT,
+    id_cpu INT REFERENCES t_cpu(id),          
     ip_adress VARCHAR(255),
     date_creation TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE t_disk (
+    id SERIAL PRIMARY KEY,
+    model VARCHAR(250),
+    type VARCHAR(250),
+    UNIQUE (model, type)
+);
+
+CREATE TABLE t_disk_device (
+    id SERIAL PRIMARY KEY,
+    id_device INT NOT NULL REFERENCES t_device(id),
+    id_disk INT NOT NULL REFERENCES t_disk(id),
+    disponible BIGINT,
+    total_reel BIGINT,
+    total_formater BIGINT,
+    date TIMESTAMPTZ DEFAULT NOW()
 );
 
 CREATE TABLE t_device_statut (
@@ -79,6 +104,13 @@ CREATE TABLE t_device_historique (
     date_mise_a_jour TIMESTAMPTZ DEFAULT NOW()
 );
 
+CREATE TABLE t_device_utilisateur (
+    id SERIAL PRIMARY KEY , 
+    id_device INT NOT NULL REFERENCES t_device(id),
+    id_utilisateur INT NOT NULL REFERENCES t_utilisateur(id),
+    UNIQUE (id_device, id_utilisateur)
+);
+
 CREATE TABLE t_device_filiale (
     id SERIAL PRIMARY KEY,
     id_device INT NOT NULL REFERENCES t_device(id),
@@ -95,7 +127,8 @@ CREATE TABLE t_device_utilisateur_recent (
 
 CREATE TABLE t_type_rapport (
     id SERIAL PRIMARY KEY,
-    type VARCHAR(100) UNIQUE NOT NULL
+    type VARCHAR(100) UNIQUE NOT NULL,
+    cle_api VARCHAR(255) UNIQUE NOT NULL
 );
 
 CREATE TABLE t_rapport_device (
@@ -184,3 +217,10 @@ ALTER TABLE t_device ALTER COLUMN ip_adress DROP NOT NULL;
 ALTER TABLE t_device ALTER COLUMN mac_adress DROP NOT NULL;
 ALTER TABLE t_filiale_utilisateur ADD COLUMN id_utilisateur_recent INT UNIQUE NOT NULL;
 ALTER TABLE t_filiale_utilisateur DROP COLUMN id_utilisateur_recent;
+ALTER TABLE t_type_rapport ADD COLUMN IF NOT EXISTS cle_api VARCHAR(255);
+ALTER TABLE t_device ADD COLUMN ram_total BIGINT, ADD COLUMN disk_total BIGINT
+ALTER TABLE t_device DROP COLUMN cpu_model ;
+ALTER TABLE t_device DROP COLUMN cpu_max_clock;
+ALTER TABLE t_device DROP COLUMN cpu_architecture;
+ALTER TABLE t_device ADD COLUMN id_cpu INT NOT NULL REFERENCES t_cpu(id)
+
