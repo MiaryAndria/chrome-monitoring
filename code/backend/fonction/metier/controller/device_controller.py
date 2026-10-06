@@ -3,6 +3,7 @@ from fastapi import APIRouter, HTTPException,Query
 from backend.fonction.metier.models.device import DeviceResponses
 from backend.fonction.metier.service.device_service import synchroniser_tout,reset_data,getListeDevice,getDeviceFiltered
 from backend.fonction.metier.service.device_service import getDeviceDetail
+import traceback
 
 router = APIRouter()
 
@@ -12,8 +13,12 @@ def synchDevices():
         synchroniser_tout()
         return {"message": "Synchronisation terminée avec succès"}
     except Exception as e:
+        print('Erreur synchronisation')
+        print('cause:',str(e))
+        traceback.print_exc
         raise HTTPException(status_code=500, detail=str(e))
 
+    
 @router.post("/reset")
 def resetAll():
     try:
@@ -39,18 +44,27 @@ def getListeFiltrer(recherche : str = Query(...)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/{id}",response_model=DeviceResponses)
+
+@router.get("/{id}", response_model=DeviceResponses)
 def getDetailDevice(id):
     try:
         device = getDeviceDetail(id)
-        if device is None :
-                raise HTTPException(
-                    status_code=404,
-                    detail="Device introuvable"
-            )
-        return device 
-        
-    except Exception as e:
-                raise HTTPException(status_code=500, detail=str(e))
 
-        
+        if device is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Device introuvable"
+            )
+
+        return device
+
+    except HTTPException:
+        raise
+
+    except Exception as e:
+        traceback.print_exc()
+
+        raise HTTPException(
+            status_code=500,
+            detail=str(e)
+        )

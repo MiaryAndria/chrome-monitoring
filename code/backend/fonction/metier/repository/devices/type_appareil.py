@@ -47,13 +47,11 @@ def insert_type_appareil(cur,type_device):
         cur.execute("INSERT INTO t_type_appareil (nom) VALUES (%s)", (type_device,))
         
 def get_or_create_type_appareil(cur, type_device):
-    type_appareil = get_type_appareil_by_name(cur,type_device)
+    type_appareil = get_type_appareil_by_name(cur, type_device)
     if type_appareil:
-        return type_appareil
+        return type_appareil[0]
 
     insert_type_appareil(cur, type_device)
 
-    return get_type_appareil_by_name(
-        cur,
-        type_device
-    )
+    created = get_type_appareil_by_name(cur, type_device)
+    return created[0] if created else None

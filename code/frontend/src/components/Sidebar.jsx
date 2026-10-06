@@ -24,11 +24,12 @@ export default function Sidebar() {
         { path: '/filiale', label: 'Filiales', icon: Building2 },
         { path: '/liste/device', label: 'Tous les Devices', icon: Laptop },
         { path: '/imprimantes', label: 'Imprimantes', icon: Printer },
+        { path: '/liste/event', label: 'Liste evenements', icon: Bell },
         { path: '/dashboard', label: 'Dashboard', icon: BarChart3 },
-        { path: '/alerts', label: 'Alertes', icon: Bell },
-        { path: '/statistiques', label: 'Statistiques', icon: TrendingUp },
-        { path: '/comparaison', label: 'Comparaison', icon: GitCompare },
-        { path: '/configuration', label: 'Configuration', icon: Settings },
+        // { path: '/dashboard', label: 'Alertes', icon: Bell },
+        // { path: '/dashboard', label: 'Statistiques', icon: TrendingUp },
+        // { path: '/dashboard', label: 'Comparaison', icon: GitCompare },
+        // { path: '/dashboard', label: 'Configuration', icon: Settings },
     ];
 
     const synch = async () => {

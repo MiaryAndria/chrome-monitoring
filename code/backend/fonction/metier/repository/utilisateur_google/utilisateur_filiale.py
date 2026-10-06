@@ -57,6 +57,7 @@ def insert_filiale_utilisateur(cur,id_filiale,id_utilisateur):
 def get_or_create_filiale_utilisateur(cur,id_filiale,id_utilisateur):
     filiale_utilisateur = get_filiale_by_utilisateur_and_filiale(cur,id_utilisateur,id_filiale)
     if filiale_utilisateur:
-        return filiale_utilisateur
+        return filiale_utilisateur[0]
     else:
         insert_filiale_utilisateur(cur,id_filiale,id_utilisateur)
+        return get_filiale_by_utilisateur_and_filiale(cur, id_utilisateur, id_filiale)[0] if get_filiale_by_utilisateur_and_filiale(cur, id_utilisateur, id_filiale) else None

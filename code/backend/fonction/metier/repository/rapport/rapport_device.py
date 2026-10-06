@@ -132,12 +132,13 @@ def get_rapport_by_device_type_and_period(cur, id_device, id_type_rapport, date_
         for row in result
     ]
 
-def create_rapport_device(cur,device_id,id_type_rapport,date_releve,data):
+def create_rapport_device(cur, device_id, id_type_rapport, date_releve, data):
     cur.execute(
     """
     INSERT INTO t_rapport_device (id_device, id_type_rapport, report_time, donnees)
-    VALUES (%s, %s, %s, %s);
-    """, 
+    VALUES (%s, %s, %s, %s)
+    ON CONFLICT (id_device, id_type_rapport, report_time) DO NOTHING;
+    """,
     (device_id, id_type_rapport, date_releve, data)
     )
     

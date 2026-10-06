@@ -1,6 +1,6 @@
 from backend.fonction.conn.connexion import get_connection, close_connection
-from backend.fonction.metier.repository.user.user import get_user_by_email
-from backend.utils.password_hashage import verifier_password  
+from backend.fonction.metier.repository.user import get_user_by_email
+from backend.utils.password_hashage import verifier_password
 
 def login_user(email, mdp):
     if not email or not mdp:

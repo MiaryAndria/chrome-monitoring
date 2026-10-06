@@ -38,3 +38,9 @@ def create_type_evenement(cur, type_evenement):
     )
     return cur.fetchone()
     
+def get_or_create_type_evenement(cur, crash_type):
+    type_obj = get_type_evenement_by_type(cur, crash_type)
+    if type_obj:
+        return type_obj[0]
+    res = create_type_evenement(cur, crash_type)
+    return res[0] if res else None

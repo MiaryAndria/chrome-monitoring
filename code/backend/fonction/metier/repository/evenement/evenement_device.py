@@ -1,5 +1,3 @@
-from backend.fonction.conn.connexion import get_connection
-
 def get_liste_evenement_device(cur):
     cur.execute(
         """
@@ -139,3 +137,27 @@ def create_evenement_device(cur,id_device,id_type_evenement,date_evenement,detai
         VALUES (%s, %s, %s, %s);
         """, (id_device,id_type_evenement,date_evenement,details)
     )
+
+
+def get_liste_evenement_avec_details(cur):
+    cur.execute(
+        """
+        SELECT DISTINCT ON (ed.id)
+            ed.id,
+            ed.date_evenement,
+            ed.details,
+            te.type       AS type_evenement,
+            d.device_id,
+            d.serial_number,
+            d.modele,
+            f.org_unit_path AS filiale
+        FROM t_evenement_device ed
+        LEFT JOIN t_type_evenement te  ON te.id = ed.id_type_evenement
+        LEFT JOIN t_device         d   ON d.id  = ed.id_device
+        LEFT JOIN t_device_filiale df  ON df.id_device = d.id
+        LEFT JOIN t_filiale        f   ON f.id = df.id_filiale
+        ORDER BY ed.id, ed.date_evenement DESC
+        """
+    )
+    return cur.fetchall()
+

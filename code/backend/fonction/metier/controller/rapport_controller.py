@@ -101,10 +101,12 @@ def exportRapportExcel(
     try:
         reports = getReportsForExport(onglet, id, date_debut, date_fin)
         sections = build_sections(onglet, reports)
+        from backend.fonction.metier.service.device_service import getDeviceDetail
+        device_info = getDeviceDetail(id)
         device_name = resolve_device_export_name(id)
         titre = f"Rapport {onglet} - {device_name}"
 
-        buffer = generate_excel(sections, titre)
+        buffer = generate_excel(sections, titre, device_info=device_info)
         media = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         ext = "xlsx"
 
@@ -131,11 +133,13 @@ def exportPdf(
     try:
         reports = getReportsForExport(onglet, id, date_debut, date_fin)
         sections = build_sections(onglet, reports)
+        from backend.fonction.metier.service.device_service import getDeviceDetail
+        device_info = getDeviceDetail(id)
         device_name = resolve_device_export_name(id)
         titre = f"Rapport {onglet} - {device_name}"
         periode = f"Période : {date_debut} au {date_fin}" if date_debut and date_fin else "Toute la période"
 
-        buffer = generate_pdf(sections, titre, periode)
+        buffer = generate_pdf(sections, titre, periode, device_info=device_info)
         media = "application/pdf"
         ext = "pdf"
 

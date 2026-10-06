@@ -17,7 +17,7 @@ def get_statut_by_name(cur, nom):
 def get_or_create_statut(cur, nom):
     statut = get_statut_by_name(cur, nom)
     if statut:
-        return statut
+        return statut[0]
     cur.execute(
         """
         INSERT INTO t_statut (nom)
@@ -26,7 +26,8 @@ def get_or_create_statut(cur, nom):
         """,
         (nom, nom)
     )
-    return get_statut_by_name(cur, nom)
+    created = get_statut_by_name(cur, nom)
+    return created[0] if created else None
 
 def insert_device_statut(cur, id_device, id_statut):
     cur.execute(

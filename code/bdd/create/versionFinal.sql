@@ -64,8 +64,7 @@ CREATE TABLE t_device (
     chromeos_version VARCHAR(100),
     chrome_version VARCHAR(100),
     mac_adress VARCHAR(255),
-    ram_total BIGINT,
-    id_cpu INT REFERENCES t_cpu(id),          
+    ram_total BIGINT,       
     ip_adress VARCHAR(255),
     date_creation TIMESTAMPTZ DEFAULT NOW()
 );
@@ -83,7 +82,10 @@ CREATE TABLE t_disk_device (
     id_disk INT NOT NULL REFERENCES t_disk(id),
     disponible BIGINT,
     total_reel BIGINT,
-    total_formater BIGINT,
+    disponible_formater VARCHAR(50),
+    total_formater VARCHAR(50),
+    taille_utiliser BIGINT,
+    total_utiliser_formater VARCHAR(50),
     date TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -94,15 +96,14 @@ CREATE TABLE t_device_statut (
     date TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE TABLE t_device_historique (
-    id SERIAL PRIMARY KEY,
-    id_device INT NOT NULL REFERENCES t_device(id),
-    id_utilisateur INT REFERENCES t_utilisateur(id),
-    id_statut INT REFERENCES t_statut(id),
-    org_unit_path VARCHAR(255),
-    last_sync TIMESTAMPTZ,
-    date_mise_a_jour TIMESTAMPTZ DEFAULT NOW()
-);
+-- CREATE TABLE t_device_historique (
+--     id SERIAL PRIMARY KEY,
+--     id_device INT NOT NULL REFERENCES t_device(id),
+--     id_utilisateur INT REFERENCES t_utilisateur(id),
+--     id_statut INT REFERENCES t_statut(id),
+--     org_unit_path VARCHAR(255),
+--     last_sync TIMESTAMPTZ,
+-- );
 
 CREATE TABLE t_device_utilisateur (
     id SERIAL PRIMARY KEY , 
@@ -139,13 +140,13 @@ CREATE TABLE t_rapport_device (
     donnees JSONB NOT NULL
 );
 
-CREATE TABLE t_version_report (
-    id SERIAL PRIMARY KEY,
-    id_device INT NOT NULL REFERENCES t_device(id),
-    chromeos_version VARCHAR(100),
-    chrome_version VARCHAR(100),
-    date_observation TIMESTAMPTZ DEFAULT NOW()
-);
+-- CREATE TABLE t_version_report (
+--     id SERIAL PRIMARY KEY,
+--     id_device INT NOT NULL REFERENCES t_device(id),
+--     chromeos_version VARCHAR(100),
+--     chrome_version VARCHAR(100),
+--     date_observation TIMESTAMPTZ DEFAULT NOW()
+-- );
 
 CREATE TABLE t_type_evenement (
     id SERIAL PRIMARY KEY,
@@ -165,17 +166,23 @@ CREATE TABLE t_imprimante (
     vid INT,
     pid INT,
     vendor VARCHAR(255),
-    nom VARCHAR(255),
-    date_premiere_detection TIMESTAMPTZ DEFAULT NOW()
+    nom VARCHAR(255)
 );
 
 CREATE TABLE t_imprimante_device (
     id SERIAL PRIMARY KEY,
     id_imprimante INT NOT NULL REFERENCES t_imprimante(id),
     id_device INT NOT NULL REFERENCES t_device(id),
-    premiere_detection TIMESTAMPTZ DEFAULT NOW(),
-    derniere_detection TIMESTAMPTZ DEFAULT NOW(),
+    date TIMESTAMPTZ DEFAULT NOW()
     UNIQUE (id_imprimante, id_device)
+);
+
+CREATE TABLE t_imprimante_user(
+    id SERIAL PRIMARY KEY , 
+    id_imprimante INT NOT NULL REFERENCES t_imprimante(id),
+    id_utilisateur INT NOT NULL REFERENCES t_utilisateur(id),
+    date TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(id_imprimante,id_utilisateur)
 );
 
 CREATE TABLE t_alerte (
@@ -209,6 +216,13 @@ CREATE TABLE t_comparaison (
     commentaires TEXT
 );
 
+CREATE TABLE t_device_cpu (
+    id SERIAL PRIMARY KEY ,
+    id_device INT NOT NULL REFERENCES t_device(id),
+    id_cpu INT NOT NULL REFERENCES t_cpu(id),
+    date TIMESTAMPTZ DEFAULT NOW()
+);
+
 ALTER TABLE t_user ADD COLUMN vrai_mdp VARCHAR(255)NOT NULL;
 ALTER TABLE t_utilisateur DROP COLUMN google_customer_id ;
 ALTER TABLE t_device ADD COLUMN mac_adress VARCHAR(255)NOT NULL;
@@ -222,5 +236,16 @@ ALTER TABLE t_device ADD COLUMN ram_total BIGINT, ADD COLUMN disk_total BIGINT
 ALTER TABLE t_device DROP COLUMN cpu_model ;
 ALTER TABLE t_device DROP COLUMN cpu_max_clock;
 ALTER TABLE t_device DROP COLUMN cpu_architecture;
-ALTER TABLE t_device ADD COLUMN id_cpu INT NOT NULL REFERENCES t_cpu(id)
-
+ALTER TABLE t_device ADD COLUMN id_cpu INT REFERENCES t_cpu(id);
+ALTER TABLE t_device ALTER COLUMN id_cpu DROP NOT NULL;
+ALTER TABLE t_disk_device DROP COLUMN taille_utiliser;
+ALTER TABLE t_disk_device ADD COLUMN total_utiliser BIGINT;
+ALTER TABLE t_device ALTER COLUMN id_cpu DROP NOT NULL;
+ALTER TABLE t_disk_device ALTER COLUMN total_formater TYPE VARCHAR(50);
+ALTER TABLE t_disk_device ADD COLUMN disponible_formater VARCHAR(50);
+ALTER TABLE t_disk_device ADD COLUMN total_utiliser_formater VARCHAR(50);
+ALTER TABLE t_device DROP COLUMN id_cpu ;
+alter table t_imprimante_device drop column date_premiere_detection;
+alter table t_imprimante_device add column date TIMESTAMPTZ DEFAULT NOW();
+ALTER TABLE t_device_historique drop column date_mise_a_jour;
+ALTER TABLE t_rapport_device ADD CONSTRAINT uq_rapport_device_type_time UNIQUE (id_device, id_type_rapport, report_time);

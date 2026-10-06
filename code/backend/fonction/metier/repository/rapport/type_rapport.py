@@ -41,8 +41,9 @@ def create_type_rapport(cur, type, cle_api):
 def get_or_create_type_rapport(cur, type, cle_api):
     existing = get_type_rapport_by_type(cur, type)
     if existing:
-        return existing
-    return create_type_rapport(cur, type, cle_api)
+        return existing[0]
+    created = create_type_rapport(cur, type, cle_api)
+    return created[0] if created else None
 
 def init_default_types_rapport(cur):
     default_categories = {

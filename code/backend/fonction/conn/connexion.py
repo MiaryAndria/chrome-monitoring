@@ -1,6 +1,11 @@
 import os
 import psycopg2
-from dotenv import load_dotenv
+
+try:
+    from dotenv import load_dotenv
+except ImportError:  # pragma: no cover - compat environnement sans python-dotenv
+    def load_dotenv(*args, **kwargs):
+        return False
 
 load_dotenv()
 

@@ -47,8 +47,9 @@ def get_or_create_utilisateur(cur, email):
     utilisateur = get_utilisateur_by_email(cur, email)
 
     if utilisateur:
-        return utilisateur
+        return utilisateur[0]
 
     create_utilisateur(cur, email)
 
-    return get_utilisateur_by_email(cur, email)
+    created = get_utilisateur_by_email(cur, email)
+    return created[0] if created else None

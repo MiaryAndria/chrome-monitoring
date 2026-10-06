@@ -1,7 +1,9 @@
 from backend.fonction.conn.connexion import get_connection, close_connection
-
 from backend.fonction.metier.repository.devices import (
-    get_nombre_device, get_device_by_type, get_device_by_statut, get_liste_type_appareil
+    get_nombre_device,
+    get_device_by_type,
+    get_device_by_statut,
+    get_liste_type_appareil,
 )
 from backend.fonction.metier.repository.statut import get_liste_statut
 

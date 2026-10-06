@@ -1,8 +1,3 @@
-from backend.fonction.conn.connexion import get_connection
-
-connexion = get_connection()
-cur=connexion.cursor()
-
 def get_liste_imprimante(cur):
     cur.execute(
         """
@@ -27,7 +22,7 @@ def get_imprimante_by_vid(cur,vid):
         SELECT * FROM t_imprimante WHERE vid = %s
         """,(vid,)
     )
-    result = cur.fetchall()
+    result = cur.fetchone()
     return result
 
 def get_imprimante_by_pid(cur,pid):
@@ -36,7 +31,7 @@ def get_imprimante_by_pid(cur,pid):
         SELECT * FROM t_imprimante WHERE pid = %s
         """,(pid,)
     )
-    result = cur.fetchall()
+    result = cur.fetchone()
     return result
 
 def get_imprimante_by_vendor(cur,vendor):
@@ -45,7 +40,7 @@ def get_imprimante_by_vendor(cur,vendor):
         SELECT * FROM t_imprimante WHERE vendor = %s
         """,(vendor,)
     )
-    result = cur.fetchall()
+    result = cur.fetchone()
     return result
 
 def get_imprimante_by_nom(cur,nom):
@@ -96,3 +91,36 @@ def get_imprimante_by_vendor_and_nom(cur,vendor,nom):
     )
     result = cur.fetchone()
     return result
+
+def insert_imprimante(cur, vid, pid, vendor, nom):
+    cur.execute(
+        """
+        INSERT INTO t_imprimante (vid, pid, vendor, nom)
+        VALUES (%s, %s, %s, %s)
+        RETURNING id;
+        """,
+        (vid, pid, vendor, nom)
+    )
+
+# def getImprimantesDevice(cur,id_device):
+#     cur.execute("""
+#         SELECT i.id, i.vid, i.pid, i.vendor, i.nom, MAX(idv.date)
+#         FROM imprimante_device idv
+#         JOIN imprimante i ON i.id = idv.id_imprimante
+#         WHERE idv.id_device = %s
+#         GROUP BY i.id, i.vid, i.pid, i.vendor, i.nom
+#         ORDER BY i.nom
+#     """, (id_device,))
+#     return [
+#         {"id": r[0], "vid": r[1], "pid": r[2],
+#          "vendor": r[3], "nom": r[4], "derniere_detection": r[5]}
+#         for r in cur.fetchall()
+#     ]
+    
+def get_or_create_imprimante(cur,vid,pid,vendor,nom):
+    imprimante = get_imprimante_by_vid_and_pid(cur,vid,pid)
+    if not imprimante :
+        insert_imprimante(cur,vid,pid,vendor,nom)
+        imprimante = get_imprimante_by_vid_and_pid(cur,vid,pid)
+        
+    return imprimante 

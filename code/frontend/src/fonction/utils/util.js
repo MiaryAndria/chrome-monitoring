@@ -5,9 +5,18 @@ export const formatBytes = (bytes) => {
     const num = typeof bytes === 'string' ? parseInt(bytes) : bytes;
     if (isNaN(num) || num === 0) return '0 B';
     const sizes = ['B', 'Ko', 'Mo', 'Go', 'To'];
-    const i = Math.floor(Math.log(num) / Math.log(1024));
-    return `${(num / Math.pow(1024, i)).toFixed(i > 2 ? 2 : 0)} ${sizes[i]}`;
+    const i = Math.floor(Math.log(num) / Math.log(1000));
+    return `${(num / Math.pow(1000, i)).toFixed(i > 2 ? 2 : 0)} ${sizes[i]}`;
 };
+
+// export const formatBytes = (bytes) => {
+//     if (!bytes && bytes !== 0) return 'N/A';
+//     const num = typeof bytes === 'string' ? parseInt(bytes) : bytes;
+//     if (isNaN(num) || num === 0) return '0 B';
+//     const sizes = ['B', 'Ko', 'Mo', 'Go', 'To'];
+//     const i = Math.floor(Math.log(num) / Math.log(1024));
+//     return `${(num / Math.pow(1024, i)).toFixed(i > 2 ? 2 : 0)} ${sizes[i]}`;
+// };
 
 export const cleanLabel = (label) => {
     if (!label) return 'Inconnu';
@@ -51,7 +60,7 @@ export const getUtilBarColor = (pct) => {
     return 'bg-red-500';
 };
 
-const showExportSuccess = (message) => {
+const showExportSuccess = (message, fileType) => {
     const toast = document.createElement('div');
     toast.style.position = 'fixed';
     toast.style.right = '20px';
@@ -68,24 +77,27 @@ const showExportSuccess = (message) => {
     toast.style.border = '1px solid rgba(255,255,255,0.08)';
     toast.textContent = message;
 
-    const badge = document.createElement('span');
-    badge.textContent = fileType;
-    badge.style.display = 'inline-block';
-    badge.style.marginLeft = '8px';
-    badge.style.padding = '4px 8px';
-    badge.style.borderRadius = '999px';
-    badge.style.background = '#22c55e';
-    badge.style.color = '#fff';
-    badge.style.fontSize = '11px';
-    badge.style.fontWeight = '700';
-
-    toast.appendChild(badge);
+    if (fileType) {
+        const badge = document.createElement('span');
+        badge.textContent = fileType;
+        badge.style.display = 'inline-block';
+        badge.style.marginLeft = '8px';
+        badge.style.padding = '4px 8px';
+        badge.style.borderRadius = '999px';
+        badge.style.background = fileType === 'PDF' ? '#ef4444' : '#22c55e'; // Red for PDF, Green for Excel
+        badge.style.color = '#fff';
+        badge.style.fontSize = '11px';
+        badge.style.fontWeight = '700';
+        toast.appendChild(badge);
+    }
 
     document.body.appendChild(toast);
 
     setTimeout(() => {
-        toast.remove();
-    }, 3500);
+        toast.style.transition = 'opacity 0.5s ease-out';
+        toast.style.opacity = '0';
+        setTimeout(() => toast.remove(), 500);
+    }, 3000);
 };
 
 export const exportPdf = async ({ onglet, id, date_debut, date_fin } = {}) => {
@@ -106,7 +118,7 @@ export const exportPdf = async ({ onglet, id, date_debut, date_fin } = {}) => {
         window.open(fileUrl, '_blank', 'noopener,noreferrer');
     }
 
-    showExportSuccess('Rapport PDF généré dans export/pdf');
+    showExportSuccess('Rapport généré avec succès', 'PDF');
     return response;
 };
 
@@ -128,6 +140,6 @@ export const exportExcel = async ({ onglet, id, date_debut, date_fin } = {}) => 
         window.open(fileUrl, '_blank', 'noopener,noreferrer');
     }
 
-    showExportSuccess('Rapport Excel généré dans export/excel');
+    showExportSuccess('Rapport généré avec succès', 'Excel');
     return response;
 };

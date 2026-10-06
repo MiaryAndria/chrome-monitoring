@@ -38,5 +38,6 @@ def insert_reseau(cur,valeur):
 def get_or_create_reseau(cur, valeur):
     existing = get_reseau_by_valeur(cur, valeur)
     if existing:
-        return existing
-    return insert_reseau(cur, valeur)
+        return existing[0]
+    inserted = insert_reseau(cur, valeur)
+    return inserted[0] if inserted else None

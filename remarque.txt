@@ -29,7 +29,6 @@ get_base -> main
 
 version chromeOs et chrome je ne sais pas si possible obtention 
 
-
 presentation
 ivelany miditra zany hoe ilay interface miditra hoe otranzao nanaovana anty 
 sujet mila azavaina tsara precisement izay azavaina mila ain'olona ny contexte rehetra dia ny valeur ajouterany hoe fa maninona no nanao aniny 
@@ -40,6 +39,37 @@ active aussi à preciser si possible active ou en activité que signifie le mots
 asina version liste aussi ny carte
 imprimante reseau et usb 
 cups 
-dans page detail stockage et cpu etc asina filtrage date 
 
-Hiérarchiser les fonctionnalités mvp et secondaire
+Recupération imprimante via compte satria izay imprimante miasa liée amn'compte 
+Dia avy amn'compte no angalana anle imprimante etc dia dcp zany liée compte ny imprimante 
+Dia dcp on va creer table imprimante compte ve zany sa imprimante device ?
+
+mila manana historique device et imprimante aussi nefa 
+je ne peux pas aussi aller sur admin.google.com 
+ à partir de ceci est ce qu'on peut extraire liste imprimante et realiser ceci Recupération imprimante via compte satria izay imprimante miasa liée amn'compte 
+Dia avy amn'compte no angalana anle imprimante etc dia dcp zany liée compte ny imprimante  historique device et imprimante  je crois oui car on peut faire en utilisant user genre user qui a fait document title chercher son pc mais juste pour recuperer nom imprimante
+
+et aussi comment on fait pour gerer cas ceci Top 5 utilisateurs non trouvés dans les devices :
+   • comptabilite3@taf.mg                            224 impressions  [inconnu]
+   • rrasamy@ppm.mg                                   65 impressions  [inconnu]
+   • nranaivoson@semad.mg                             63 impressions  [inconnu]
+   • eandriantiana@ppm.mg                             43 impressions  [inconnu]
+   • kramanantsoa@semad.mg                            43 impressions  [inconnu] 
+
+
+avoka anaty main 
+evenements = dernier utilisateur et temps de marche 
+
+etat_disque ko à recuperer = bon , mauvais ( etat izay azo alaina rehetra )
+
+API Chrome Audit Activity Events
+Récupération heure d'arret ana chromebook et chromebox
+creer ram t_device_ram
+dans tab stockage raha ohatra ka filtrerna anaky roa dia alaina ny stockage libre amniny dia ny somme anzay no apotra eo 
+
+🔴 Rouge	CRASH_TYPE_KERNEL	Crash du noyau Linux — le plus grave, souvent lié à un driver, un problème mémoire ou matériel
+🟡 Ambre	CRASH_TYPE_EMBEDDED_CONTROLLER	Crash du contrôleur embarqué (EC) — gère l'alimentation, la thermique, le firmware EC
+🟣 Violet	CRASH_TYPE_BROWSER / APP	Crash du navigateur Chrome ou d'une application — moins grave, souvent récupérable
+Badge cause	Signification
+ARRET_ANORMAL	La machine a été éteinte brutalement (coupure courant, arrêt forcé) — le crash de la session précédente est remonté au reboot suivant
+EN_SESSION	Le crash s'est produit pendant qu'un utilisateur était connecté et actif

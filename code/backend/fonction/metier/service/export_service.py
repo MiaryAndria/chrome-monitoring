@@ -199,13 +199,67 @@ def build_sections(onglet, reports):
 
 # ---------- 3. Générateurs ----------
 
-def generate_excel(sections, titre_doc):
+def generate_excel(sections, titre_doc, device_info=None):
     wb = Workbook()
     wb.remove(wb.active)
     title_fill = PatternFill("solid", fgColor="0F172A")
     header_fill = PatternFill("solid", fgColor="0E7490")
     header_font = Font(bold=True, color="FFFFFF")
-    subtitle_font = Font(bold=True, color="0F172A")
+    label_font = Font(bold=True, color="334155")
+    value_font = Font(bold=False, color="0F172A")
+
+    # Onglet Fiche Matériel si device_info est fourni
+    if device_info:
+        ws_info = wb.create_sheet(title="Fiche Matériel")
+        ws_info.sheet_view.showGridLines = True
+        ws_info.merge_cells("A1:D1")
+        ws_info["A1"] = "FICHE D'INFORMATION DU MATÉRIEL"
+        ws_info["A1"].font = Font(bold=True, size=14, color="FFFFFF")
+        ws_info["A1"].fill = title_fill
+        ws_info["A1"].alignment = Alignment(horizontal="center", vertical="center")
+        ws_info.row_dimensions[1].height = 28
+
+        recents_str = ", ".join(device_info.get("utilisateurs_recents") or []) or "Aucun"
+
+        info_data = [
+            ("Catégorie", "Propriété", "Valeur", ""),
+            ("Appareil", "Modèle", device_info.get("modele") or "Inconnu", ""),
+            ("", "N° de Série", device_info.get("serial_number") or "N/A", ""),
+            ("", "Filiale", device_info.get("filiale") or "Non attribuée", ""),
+            ("", "Version OS", device_info.get("chromeos_version") or "N/A", ""),
+            ("Composants", "Processeur", device_info.get("cpu_model") or "N/A", ""),
+            ("", "Architecture", device_info.get("cpu_architecture") or "N/A", ""),
+            ("", "Fréquence Max", device_info.get("cpu_freq_max_label") or "N/A", ""),
+            ("", "RAM Totale", device_info.get("ram_total_label") or "N/A", ""),
+            ("Stockage & Accès", "Modèle Disque", device_info.get("disk_model") or "N/A", ""),
+            ("", "Capacité Disque", device_info.get("disk_total_label") or "N/A", ""),
+            ("", "Utilisateurs Récents", recents_str, ""),
+        ]
+
+        ws_info.append([])
+        for row in info_data:
+            ws_info.append(list(row))
+
+        for r in range(3, 15):
+            cell_cat = ws_info.cell(row=r, column=1)
+            cell_prop = ws_info.cell(row=r, column=2)
+            cell_val = ws_info.cell(row=r, column=3)
+            
+            if r == 3:
+                for c in range(1, 4):
+                    cell = ws_info.cell(row=r, column=c)
+                    cell.fill = header_fill
+                    cell.font = header_font
+                    cell.alignment = Alignment(horizontal="center", vertical="center")
+            else:
+                cell_cat.font = label_font
+                cell_prop.font = label_font
+                cell_val.font = value_font
+                cell_val.alignment = Alignment(vertical="center")
+
+        ws_info.column_dimensions["A"].width = 20
+        ws_info.column_dimensions["B"].width = 24
+        ws_info.column_dimensions["C"].width = 45
 
     for title, cols, data in sections:
         ws = wb.create_sheet(title=title[:31])
@@ -234,7 +288,7 @@ def generate_excel(sections, titre_doc):
             )
 
         for row in data:
-            ws.append([str(cell) if cell is not None else "" for cell in row])
+            ws.append([str(cell) if (cell is not None and str(cell).strip() != "") else "-" for cell in row])
 
         for i, col in enumerate(cols, start=1):
             values = [str(col)] + [str(r[i - 1]) if r[i - 1] is not None else "" for r in data]
@@ -261,7 +315,7 @@ def generate_excel(sections, titre_doc):
     return buffer
 
 
-def generate_pdf(sections, titre_doc, sous_titre=""):
+def generate_pdf(sections, titre_doc, sous_titre="", device_info=None):
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(
         buffer,
@@ -274,9 +328,9 @@ def generate_pdf(sections, titre_doc, sous_titre=""):
     styles = getSampleStyleSheet()
     title_style = styles["Title"]
     title_style.fontName = "Helvetica-Bold"
-    title_style.fontSize = 18
+    title_style.fontSize = 16
     title_style.textColor = colors.HexColor("#0F172A")
-    title_style.leading = 20
+    title_style.leading = 18
 
     subtitle_style = styles["BodyText"]
     subtitle_style.fontName = "Helvetica"
@@ -286,14 +340,58 @@ def generate_pdf(sections, titre_doc, sous_titre=""):
     elements = [Paragraph(titre_doc, title_style)]
     if sous_titre:
         elements.append(Paragraph(sous_titre, subtitle_style))
-    elements.append(Spacer(1, 10))
+    elements.append(Spacer(1, 8))
+
+    # Bloc Fiche d'information Matériel en haut du PDF si device_info est présent
+    if device_info:
+        recents_str = ", ".join(device_info.get("utilisateurs_recents") or []) or "Aucun"
+        
+        info_table_data = [
+            [Paragraph("<b>FICHE D'INFORMATION DU MATÉRIEL</b>", styles["Normal"]), "", "", ""],
+            [
+                Paragraph(f"<b>Modèle :</b> {device_info.get('modele') or 'Inconnu'}", styles["Normal"]),
+                Paragraph(f"<b>Processeur :</b> {device_info.get('cpu_model') or 'N/A'}", styles["Normal"]),
+                Paragraph(f"<b>Modèle Disque :</b> {device_info.get('disk_model') or 'N/A'}", styles["Normal"]),
+                Paragraph(f"<b>RAM Totale :</b> {device_info.get('ram_total_label') or 'N/A'}", styles["Normal"]),
+            ],
+            [
+                Paragraph(f"<b>N° de Série :</b> {device_info.get('serial_number') or 'N/A'}", styles["Normal"]),
+                Paragraph(f"<b>Architecture :</b> {device_info.get('cpu_architecture') or 'N/A'}", styles["Normal"]),
+                Paragraph(f"<b>Capacité Disque :</b> {device_info.get('disk_total_label') or 'N/A'}", styles["Normal"]),
+                Paragraph(f"<b>Utilisateurs Récents :</b> {recents_str}", styles["Normal"]),
+            ],
+            [
+                Paragraph(f"<b>Filiale :</b> {device_info.get('filiale') or 'Non attribuée'}", styles["Normal"]),
+                Paragraph(f"<b>Fréquence Max :</b> {device_info.get('cpu_freq_max_label') or 'N/A'}", styles["Normal"]),
+                Paragraph(f"<b>Version OS :</b> {device_info.get('chromeos_version') or 'N/A'}", styles["Normal"]),
+                "",
+            ]
+        ]
+        info_table = Table(info_table_data, colWidths=[190, 200, 200, 190])
+        info_table.setStyle(TableStyle([
+            ("SPAN", (0, 0), (3, 0)),
+            ("BACKGROUND", (0, 0), (3, 0), colors.HexColor("#0F172A")),
+            ("TEXTCOLOR", (0, 0), (3, 0), colors.white),
+            ("ALIGN", (0, 0), (3, 0), "CENTER"),
+            ("BACKGROUND", (0, 1), (-1, -1), colors.HexColor("#F1F5F9")),
+            ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#CBD5E1")),
+            ("TOPPADDING", (0, 0), (-1, -1), 4),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+            ("LEFTPADDING", (0, 0), (-1, -1), 6),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 6),
+        ]))
+        elements.append(info_table)
+        elements.append(Spacer(1, 12))
 
     for _, (title, cols, data) in enumerate(sections):
         elements.append(Paragraph(title, styles["Heading2"]))
         if not data:
             elements.append(Paragraph("Aucune donnée disponible pour cette section.", styles["Italic"]))
         else:
-            table_data = [[str(c) for c in cols]] + [[str(c) for c in row] for row in data]
+            table_data = [[str(c) for c in cols]] + [
+                [str(c) if (c is not None and str(c).strip() != "") else "-" for c in row]
+                for row in data
+            ]
             table = Table(table_data, repeatRows=1, colWidths=[None] * len(cols))
             table.setStyle(TableStyle([
                 ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#0E7490")),

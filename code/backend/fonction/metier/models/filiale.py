@@ -8,7 +8,7 @@ class FilialeResponse(BaseModel):
     id: int
     org_unit_path: str
 
-class FilialeWithDevicesResponse(BaseModel):
-    id: int
-    org_unit_path: str
-    nombre_devices: Optional[int] = 0
+# class FilialeWithDevicesResponse(BaseModel):
+#     id: int
+#     org_unit_path: str
+#     nombre_devices: Optional[int] = 0

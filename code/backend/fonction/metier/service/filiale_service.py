@@ -1,7 +1,9 @@
 from backend.fonction.conn.connexion import get_connection, close_connection
 from backend.fonction.metier.repository.filiale import get_liste_filiale
 from backend.fonction.metier.repository.devices import (
-    get_device_by_filiale, get_utilisateurs_by_device, get_historique_utilisateurs_device
+    get_device_by_filiale,
+    get_utilisateurs_by_device,
+    get_historique_utilisateurs_device,
 )
 from backend.fonction.metier.repository.statut import get_status_actuel_device
 from backend.fonction.metier.repository.utilisateur_google import get_utilisateur_by_id

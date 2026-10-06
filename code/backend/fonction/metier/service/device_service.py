@@ -1,26 +1,28 @@
 import json
 from datetime import datetime
 from backend.fonction.conn.connexion import get_connection, close_connection
-from backend.google_api.devices import (get_credentials,get_devices,get_telemetry_devices,get_telemetry_events)
-from backend.fonction.metier.repository.filiale.filiale import get_or_create_filiale
-from backend.fonction.metier.repository.devices import (
-    insert_device, update_device, get_device_by_id, get_device_by_device_id,
-    insert_device_filiale, delete_all, get_liste_device, recherche_multicritere,
-    get_filiale_by_device,insert_device_utilisateur_recent, get_historique_utilisateurs_device, insert_device_utilisateur, get_utilisateurs_by_device,get_or_create_type_appareil, get_type_appareil_by_id
-)
-
-from backend.fonction.metier.repository.statut.statut import get_or_create_statut, get_status_actuel_device,insert_device_statut
-from backend.fonction.metier.repository.rapport import (
-    create_type_rapport,
-    create_rapport_device,
-    get_liste_type_rapport,
-    init_default_types_rapport,
-    get_or_create_type_rapport
-)
-from backend.fonction.metier.repository.evenement import (create_type_evenement, create_evenement_device)
-from backend.fonction.metier.repository.utilisateur_google import (get_or_create_filiale_utilisateur, get_or_create_utilisateur, get_utilisateur_by_id)
-from backend.fonction.metier.repository.reseau import (get_or_create_reseau, insert_into_reseau_filiale)
+from backend.google_api.devices import (extract_printers_from_telemetry, get_credential, get_credentials,get_devices,get_telemetry_devices,get_telemetry_events)
+from backend.fonction.metier.repository.devices import ( insert_device,update_device,insert_device_cpu,get_last_cpu_for_device,update_device_ram_total,get_device_by_id,
+    get_device_by_device_id,insert_device_filiale,get_liste_device,delete_all,
+    recherche_multicritere,insert_device_utilisateur_recent,
+    insert_device_utilisateur,get_or_create_type_appareil)
+from backend.fonction.metier.repository.filiale import get_or_create_filiale
+from backend.fonction.metier.repository.cpu import get_or_create_cpu
+from backend.fonction.metier.repository.disk import get_or_create_disk
+from backend.fonction.metier.repository.disk.disk_device import insert_disk_device
+from backend.fonction.metier.repository.statut import get_or_create_statut, insert_device_statut
+from backend.fonction.metier.repository.rapport import (create_type_rapport,create_rapport_device,get_liste_type_rapport,init_default_types_rapport,get_or_create_type_rapport,)
+from backend.fonction.metier.repository.evenement import get_or_create_type_evenement, create_evenement_device
+from backend.fonction.metier.repository.utilisateur_google import (get_or_create_filiale_utilisateur,get_or_create_utilisateur,)
+from backend.fonction.metier.repository.imprimante import insert_imprimante_device , get_or_create_imprimante,get_liste_imprimante_device_by_id_device_id_imprimante
+from backend.fonction.metier.repository.reseau import get_or_create_reseau, insert_into_reseau_filiale
+from backend.utils.format_valeur import _to_int, format_bytes
 from backend.utils.format_date import parse_date_safe
+from backend.utils.builder import _build_device_response
+from backend.fonction.metier.repository.imprimante.imprimante_user import insert_imprimante_user
+from backend.fonction.metier.repository.imprimante.imprimante import get_imprimante_by_vid
+from backend.fonction.metier.repository.devices.device_utilisateur_recent import _get_recent_users, get_utilisateur_recent_by_device
+from backend.google_api.event import get_crash_incidents
 
 
 
@@ -32,16 +34,14 @@ def insertion_device(cur, dvc_list):
         if not device_id:
             continue
         email_user = d.get("annotatedUser") or "non_assigne@domaine.com"
-        user_res = get_or_create_utilisateur(cur, email_user)
-        if not user_res or len(user_res) == 0:
+        utilisateur_id = get_or_create_utilisateur(cur, email_user)
+        if utilisateur_id is None:
             continue
-        utilisateur_id = user_res[0]
 
         model_nom = d.get("model", "Chromebook Inconnu")
-        type_res = get_or_create_type_appareil(cur, model_nom)
-        if not type_res or len(type_res) == 0:
+        type_appareil_id = get_or_create_type_appareil(cur, model_nom)
+        if type_appareil_id is None:
             continue
-        type_appareil_id = type_res[0]
 
         networks = d.get("lastKnownNetwork", [])
         ip_adresse = networks[0].get("ipAddress") if networks and isinstance(networks, list) and len(networks) > 0 else None
@@ -50,12 +50,13 @@ def insertion_device(cur, dvc_list):
 
 
         org_unit_path = d.get("orgUnitPath") or 'organisation de base'
-        filiale = get_or_create_filiale(cur, org_unit_path)
-        id_filiale = filiale[0] if filiale else None
+        id_filiale = get_or_create_filiale(cur, org_unit_path)
     
         status_google = d.get("status") or "UNKNOWN"
 
         try:
+            default_cpu_id = get_or_create_cpu(cur, "UNKNOWN", None, "UNKNOWN")
+
             existing = get_device_by_device_id(cur, device_id)
             if existing:
                 db_device_id = update_device(
@@ -68,6 +69,10 @@ def insertion_device(cur, dvc_list):
                     ip_adresse,
                     mac_adresse,
                 )
+                if db_device_id:
+                    last_cpu = get_last_cpu_for_device(cur, db_device_id)
+                    if not last_cpu:
+                        insert_device_cpu(cur, default_cpu_id, db_device_id)
             else:
                 db_device_id = insert_device(
                     cur,
@@ -81,6 +86,11 @@ def insertion_device(cur, dvc_list):
                     ip_adresse,
                     mac_adresse,
                 )
+                
+                if db_device_id:
+                    last_cpu = get_last_cpu_for_device(cur, db_device_id)
+                    if not last_cpu:
+                        insert_device_cpu(cur, default_cpu_id, db_device_id)
                     
             if db_device_id:
                 insert_device_utilisateur(cur, db_device_id, utilisateur_id)
@@ -88,22 +98,20 @@ def insertion_device(cur, dvc_list):
                     insert_device_filiale(cur, db_device_id, id_filiale)
                     get_or_create_filiale_utilisateur(cur, id_filiale, utilisateur_id)
                     if ip_adresse:
-                        reseau_res = get_or_create_reseau(cur, ip_adresse)
-                        if reseau_res:
-                            id_reseau = reseau_res[0]
+                        id_reseau = get_or_create_reseau(cur, ip_adresse)
+                        if id_reseau is not None:
                             insert_into_reseau_filiale(cur, id_reseau, id_filiale)
 
 
-                statut_res = get_or_create_statut(cur, status_google)
-                  
-                if statut_res:
-                    insert_device_statut(cur, db_device_id, statut_res[0])
+                id_statut = get_or_create_statut(cur, status_google)
+
+                if id_statut is not None:
+                    insert_device_statut(cur, db_device_id, id_statut)
                     
                 for user in d.get("recentUsers", []):
                     ru_email = user.get("email") or "email@gmail.com"
-                    ru_user = get_or_create_utilisateur(cur, ru_email)
-                    ru_user_id = ru_user[0]
-                    if ru_user:
+                    ru_user_id = get_or_create_utilisateur(cur, ru_email)
+                    if ru_user_id is not None:
                         insert_device_utilisateur_recent(cur, db_device_id, ru_user_id)
                         if id_filiale:
                             get_or_create_filiale_utilisateur(cur, id_filiale, ru_user_id)
@@ -111,6 +119,7 @@ def insertion_device(cur, dvc_list):
             print(f" Device synchronisé : {device_id} [{status_google}]")
         except Exception as err:
             print(f" Erreur device {device_id}: {err}")
+
 
 def insert_telemetry(cur, telemetry_devices_list):
     print("\n--- Ingestion de la télémétrie ---")
@@ -124,12 +133,140 @@ def insert_telemetry(cur, telemetry_devices_list):
         tel_device_id = tel.get("deviceId")
         if not tel_device_id:
             continue
-        
+
         device_by_id = get_device_by_device_id(cur, tel_device_id)
         if not device_by_id or len(device_by_id) == 0:
             continue
         db_device_id = device_by_id[0]
 
+        cpu_model = None
+        freq_max_proc = None
+        cpu_architecture = None
+        cpu_reports = tel.get("cpuInfo") or []
+        if cpu_reports and isinstance(cpu_reports, list):
+            cpu = cpu_reports[0] if isinstance(cpu_reports[0], dict) else {}
+            cpu_model = cpu.get("model") or cpu.get("name") or cpu.get("cpuModel")
+            freq_max_proc = _to_int(
+                cpu.get("maxClockSpeedKhz")
+                or cpu.get("maxClockSpeed")
+                or cpu.get("frequencyKhz")
+                or cpu.get("maxClockSpeedHz")
+            )
+            cpu_architecture = cpu.get("architecture") or cpu.get("architectureName")
+
+        ram_total = None
+        memory_info = tel.get("memoryInfo") or {}
+        if isinstance(memory_info, dict):
+            ram_total = _to_int(
+                memory_info.get("totalRamBytes")
+                or memory_info.get("totalMemoryBytes")
+                or memory_info.get("ramTotalBytes")
+            )
+            if ram_total is not None:
+                update_device_ram_total(cur, db_device_id, ram_total)
+
+        disk_model = None
+        disk_type = None
+        disk_size = None
+        disk_used = None
+        disk_available = None
+        disk_report_time = None
+        storage_info = tel.get("storageInfo") or {}
+        storage_reports = tel.get("storageStatusReport") or []
+        
+        if isinstance(storage_info, dict):
+            disk_size = _to_int(
+                storage_info.get("totalDiskBytes")
+                or storage_info.get("totalStorageBytes")
+                or storage_info.get("totalBytes")
+            )
+            disk_available = _to_int(
+                storage_info.get("availableDiskBytes")
+                or storage_info.get("freeDiskBytes")
+                or storage_info.get("freeBytes")
+            )
+            
+        if storage_reports and isinstance(storage_reports, list):
+            storage_data = storage_reports[0]
+            if isinstance(storage_data, dict):
+                disk_report_time = parse_date_safe(storage_data.get("reportTime"))
+                disks = storage_data.get("disk") or storage_data.get("disks") or []
+                disk = disks[0] if isinstance(disks, list) and disks else {}
+                if not disk_model:
+                    disk_model = disk.get("model") or disk.get("name")
+                if not disk_type:
+                    disk_type = disk.get("type") or disk.get("diskType")
+                if disk_size is None:
+                    disk_size = _to_int(disk.get("sizeBytes") or disk.get("totalBytes") or disk.get("size"))
+                if disk_used is None:
+                    disk_used = _to_int(disk.get("usedBytes") or disk.get("usedSpaceBytes") or disk.get("storageUsedBytes"))
+                if disk_available is None:
+                    disk_available = _to_int(
+                        disk.get("availableBytes")
+                        or disk.get("freeBytes")
+                        or disk.get("availableSpaceBytes")
+                    )
+
+        if cpu_model or cpu_architecture or freq_max_proc is not None:
+            cpu_id = get_or_create_cpu(cur, cpu_model or "UNKNOWN", freq_max_proc, cpu_architecture or "UNKNOWN")
+            if cpu_id:
+                last_cpu = get_last_cpu_for_device(cur, db_device_id)
+                if last_cpu != cpu_id:
+                    insert_device_cpu(cur, cpu_id, db_device_id)
+                    
+                # print("db_device_id:", db_device_id)
+                # print("ram_total à sauvegarder:", ram_total)
+                # update_device_ram_total(cur, db_device_id, ram_total)
+                # print("UPDATE ram fait")
+
+        if disk_model or disk_type or disk_size is not None:
+            disk_id = get_or_create_disk(cur, disk_model or "UNKNOWN", disk_type or "UNKNOWN")
+            if disk_id:
+                total_reel = disk_size if disk_size is not None else 0
+                total_formater = format_bytes(total_reel)
+
+                if disk_available is not None:
+                    disponible = max(disk_available, 0)
+
+                elif disk_used is not None and total_reel is not None:
+                    disponible = max(total_reel - disk_used, 0)
+
+                else:
+                    disponible = total_reel if total_reel is not None else None
+
+                if disk_used is not None:
+                    utiliser = max(disk_used, 0)
+
+                elif disponible is not None and total_reel is not None:
+                    utiliser = max(total_reel - disponible, 0)
+
+                else:
+                    utiliser = None
+                
+                total_utiliser_formater = (format_bytes(utiliser) if utiliser is not None 
+                    else None 
+                )
+                disponible_formater = (format_bytes(disponible)if disponible is not None
+                    else None
+                )
+
+                # memory_info = tel.get("memoryInfo") or {}
+                # print("memoryInfo keys:", list(memory_info.keys()))
+                # print("ram_total calculé:", ram_total)
+
+                insert_disk_device(
+                    cur,
+                    db_device_id,
+                    disk_id,
+                    disponible,
+                    disponible_formater,
+                    total_reel,
+                    total_formater,
+                    utiliser,
+                    total_utiliser_formater,
+                    disk_report_time or datetime.now()
+                )
+                
         for item in types_rapport:
             id_type_rapport, nom_type, cle_api = item[0], item[1], item[2]
             if not cle_api:
@@ -138,64 +275,96 @@ def insert_telemetry(cur, telemetry_devices_list):
             if liste_releve and isinstance(liste_releve, list):
                 for releve in liste_releve:
                     date_releve = parse_date_safe(releve.get("reportTime")) or datetime.now()
-                    create_rapport_device(
-                        cur,
-                        db_device_id,
-                        id_type_rapport,
-                        date_releve,
-                        json.dumps(releve)
-                    )
-                print(f" {len(liste_releve)} relevés '{nom_type}' insérés pour device : {tel_device_id}")
+                    if nom_type == 'MEMORY_STATUS' and ram_total is not None:
+                        releve = {**releve, 'totalRamBytes': ram_total}
+                    create_rapport_device(cur,db_device_id,id_type_rapport,date_releve,json.dumps(releve))
+                
+def insert_imprimante(cur, telemetry_devices_list):
+    printers = extract_printers_from_telemetry(telemetry_devices_list)
+    for p in printers:
+        vid       = p["vid"]
+        pid       = p["pid"]
+        vendor    = p["vendor"]
+        nom       = p["model"]
+        device_id = p["deviceId"]
+        date      = p["lastSeen"]
 
-
-def insert_event(cur, telemetry_events_list):
-    print("\n--- Ingestion des événements ---")
-    for evt in telemetry_events_list:
-        evt_device_id = evt.get("device", {}).get("deviceId")
-        if not evt_device_id:
+        device = get_device_by_device_id(cur, device_id)
+        if not device:
+            continue 
+        id_device = device[0]
+        imprimante = get_or_create_imprimante(cur, vid, pid, vendor, nom)
+        if not imprimante:
             continue
+        id_imprimante = imprimante[0][0]
+        insert_imprimante_device(cur, id_imprimante, id_device, date)
+        utilisateur = get_utilisateur_recent_by_device(cur, id_device)
+        if utilisateur:
+            id_user = utilisateur[0]
+            insert_imprimante_user(cur, id_imprimante, id_user, date)
 
-        device_by_id = get_device_by_device_id(cur, evt_device_id)
-        if not device_by_id or len(device_by_id) == 0:
+
+def insert_event(cur, crashes_data):
+    """
+    Insère la liste des incidents/crashs dans t_evenement_device.
+    crashes_data peut être soit la liste 'evenements', soit l'objet API complet.
+    """
+    evenements = crashes_data.get("evenements", []) if isinstance(crashes_data, dict) else crashes_data
+    
+    for crash in evenements:
+        device_id_uuid = crash.get("deviceId")
+        if not device_id_uuid:
             continue
-        db_device_id = device_by_id[0]
-
-        event_type_str = evt.get("eventType") or "OS_CRASH"
-        evt_type_res = create_type_evenement(cur, event_type_str)
-        if not evt_type_res or len(evt_type_res) == 0:
+            
+        # 1. Retrouver l'id_device en BDD locale
+        device = get_device_by_device_id(cur, device_id_uuid)
+        if not device:
             continue
-        id_type_evt = evt_type_res[0]
-
-        evt_date = parse_date_safe(evt.get("reportTime")) or datetime.now()
-        create_evenement_device(
-            cur,
-            db_device_id,
-            id_type_evt,
-            evt_date,
-            json.dumps(evt)
-        )
-        print(f" Événement inséré pour device : {evt_device_id}")
+        id_device = device[0]
+        
+        # 2. Type de crash (ex: CRASH_TYPE_KERNEL)
+        crash_type = crash.get("crashType", "UNKNOWN")
+        id_type_evenement = get_or_create_type_evenement(cur, crash_type)
+        
+        # 3. Date du crash
+        date_evenement = crash.get("time") or crash.get("last_event_time")
+        
+        # 4. Détails au format JSON
+        details_dict = {
+            "incident_key": crash.get("incident_key"),
+            "cause_class": crash.get("cause_class"),
+            "cause_hint": crash.get("cause_hint"),
+            "last_user": crash.get("lastUserBestGuess") or crash.get("lastUser"),
+            "minutes_since_boot": crash.get("minutes_since_boot"),
+            "activities_before_crash": crash.get("activities_before_crash"),
+            "raw_events": crash.get("raw_events"),
+            "crash_seq": crash.get("crash_seq")
+        }
+        details_json = json.dumps(details_dict, ensure_ascii=False)
+        
+        create_evenement_device(cur, id_device, id_type_evenement, date_evenement, details_json)
 
 def synchroniser_tout():
     print(" Démarrage de la synchronisation...")
-    credential = get_credentials()
+    credential = get_credential()
     dvc_list = get_devices(credential)
     telemetry_devices_list = get_telemetry_devices(credential)
-    telemetry_events_list = get_telemetry_events(credential)
-
-    print(f"-> Devices récupérés : {len(dvc_list)}")
-    print(f"-> Télémétrie récupérée : {len(telemetry_devices_list)}")
-    print(f"-> Événements récupérés : {len(telemetry_events_list)}")
 
     connexion = get_connection()
     if connexion is None:
         print(" Connexion BDD impossible")
         return None
     cur = connexion.cursor()
+    crashes_data = get_crash_incidents(credential)
     try:
+        print('Insertion device')
         insertion_device(cur, dvc_list)
+        print('Insertion telemetry')
         insert_telemetry(cur, telemetry_devices_list)
-        insert_event(cur, telemetry_events_list)
+        print('Insertion imprimante')
+        insert_imprimante(cur,telemetry_devices_list)
+        print('Insertion evenement')
+        insert_event(cur, crashes_data)
         connexion.commit()
         print("\n Synchronisation complète terminée et validée en BDD !")
     except Exception as e:
@@ -221,40 +390,7 @@ def getListeDevice():
     cur = connexion.cursor()
     try:
         devices = get_liste_device(cur)
-        result = []
-        for d in devices:
-            status = get_status_actuel_device(cur, d[0])
-            utilisateurs = get_utilisateurs_by_device(cur, d[0])
-            id_utilisateur = utilisateurs[0][0] if utilisateurs else None
-            utilisateur_email = utilisateurs[0][1] if utilisateurs else "N/A"
-            
-            utilisateurs_recents = []
-            historique = get_historique_utilisateurs_device(cur, d[0])
-            if historique:
-                for ur in historique:
-                    if ur[2]:
-                        ur_u = get_utilisateur_by_id(cur, ur[2])
-                        if ur_u and ur_u[1] not in utilisateurs_recents:
-                            utilisateurs_recents.append(ur_u[1])
-
-            result.append({
-                "id":               d[0],
-                "id_device":        d[1],
-                "serial_number":    d[2],
-                "modele":           d[3],
-                "id_type_appareil": d[4],
-                "chromeos_version": d[5],
-                "chrome_version":   d[6],
-                "mac_adress":       d[7],
-                "ip_adress":        d[8],
-                "date":             str(d[9]) if d[9] else None,
-                "id_utilisateur":   id_utilisateur,
-                "status":           status,
-                "utilisateur_email": utilisateur_email,
-                "utilisateurs_recents": utilisateurs_recents,
-            })
-        cur.close()
-        return result
+        return [payload for d in devices if (payload := _build_device_response(cur, d)) is not None]
     finally:
         close_connection(connexion)
 
@@ -266,50 +402,11 @@ def getDeviceDetail(id):
     try:
         cur = connexion.cursor()
         d = get_device_by_id(cur, id)
-        if not d:
-            return None
-
-        status = get_status_actuel_device(cur, d[0])
-        utilisateurs = get_utilisateurs_by_device(cur, d[0])
-        id_utilisateur = utilisateurs[0][0] if utilisateurs else None
-        utilisateur_email = utilisateurs[0][1] if utilisateurs else "N/A"
-
-        utilisateurs_recents = []
-        historique = get_historique_utilisateurs_device(cur, d[0])
-        if historique:
-            for ur in historique:
-                if ur[2]:
-                    ur_u = get_utilisateur_by_id(cur, ur[2])
-                    if ur_u and ur_u[1] not in utilisateurs_recents:
-                        utilisateurs_recents.append(ur_u[1])
-
-        filiale_res = get_filiale_by_device(cur, d[0])
-        filiale_nom = filiale_res[1] if filiale_res and filiale_res[1] else None
-
-        type_appareil_res = get_type_appareil_by_id(cur, d[4]) if d[4] else None
-        type_appareil_nom = type_appareil_res[1] if type_appareil_res else None
-
-        return {
-            "id":               d[0],
-            "id_device":        d[1],
-            "serial_number":    d[2],
-            "modele":           d[3],
-            "id_type_appareil": d[4],
-            "type_appareil":    type_appareil_nom,
-            "chromeos_version": d[5],
-            "chrome_version":   d[6],
-            "mac_adress":       d[7],
-            "ip_adress":        d[8],
-            "date":             str(d[9]) if d[9] else None,
-            "id_utilisateur":   id_utilisateur,
-            "status":           status,
-            "utilisateur_email": utilisateur_email,
-            "utilisateurs_recents": utilisateurs_recents,
-            "filiale":          filiale_nom,
-        }
+        return _build_device_response(cur, d)
     finally:
         close_connection(connexion)
-        
+
+
 def getDeviceFiltered(recherche):
     connexion = get_connection()
     if connexion is None:
@@ -320,39 +417,12 @@ def getDeviceFiltered(recherche):
         devices = recherche_multicritere(cur, recherche)
         if not devices:
             return []
-        
+
         result = []
         for d in devices:
-            status = get_status_actuel_device(cur, d[0])
-            utilisateurs = get_utilisateurs_by_device(cur, d[0])
-            id_utilisateur = utilisateurs[0][0] if utilisateurs else None
-            utilisateur_email = utilisateurs[0][1] if utilisateurs else "N/A"
-            
-            utilisateurs_recents = []
-            historique = get_historique_utilisateurs_device(cur, d[0])
-            if historique:
-                for ur in historique:
-                    if ur[2]:
-                        ur_u = get_utilisateur_by_id(cur, ur[2])
-                        if ur_u and ur_u[1] not in utilisateurs_recents:
-                            utilisateurs_recents.append(ur_u[1])
-
-            result.append({
-                "id":               d[0],
-                "id_device":        d[1],
-                "serial_number":    d[2],
-                "modele":           d[3],
-                "id_type_appareil": d[4],
-                "chromeos_version": d[5],
-                "chrome_version":   d[6],
-                "mac_adress":       d[7],
-                "ip_adress":        d[8],
-                "date":             str(d[9]) if d[9] else None,
-                "id_utilisateur":   id_utilisateur,
-                "status":           status,
-                "utilisateur_email": utilisateur_email,
-                "utilisateurs_recents": utilisateurs_recents,
-            })
+            payload = _build_device_response(cur, get_device_by_id(cur, d[0]))
+            if payload:
+                result.append(payload)
         return result
     finally:
         close_connection(connexion)

@@ -5,6 +5,8 @@ import ListeDevice from './page/device/liste'
 import ListeFiliale from './page/filiale/liste'
 import ListeDeviceFiliale from './page/filiale/liste_device'
 import DetailDevice from './page/device/detail_device'
+import ListeEvent from './page/event/liste'
+import ListeImprimante from './page/imprimante/liste'
 
 function App() {
   return (
@@ -17,6 +19,8 @@ function App() {
           <Route path="/filiale/:id_filiale/devices" element={<ListeDeviceFiliale />} />
           <Route path="/liste/device" element={<ListeDevice />} />
           <Route path="/device/:id" element={<DetailDevice />} />
+          <Route path="/liste/event" element={<ListeEvent />} />
+          <Route path="/imprimantes" element={<ListeImprimante />} />
         </Routes>
       </main>
   )

@@ -28,3 +28,14 @@ def parse_date_safe(date_str):
         return datetime.fromisoformat(str(date_str).replace("Z", "+00:00"))
     except (ValueError, TypeError):
         return None
+    
+def format_datetime_fr(iso_str):
+    if not iso_str:
+        return "—"
+    try:
+        s = iso_str.replace("Z", "+00:00")
+        dt = datetime.fromisoformat(s)
+        dt_local = dt.astimezone()
+        return dt_local.strftime("%d/%m/%Y %H:%M:%S")
+    except (ValueError, AttributeError):
+        return str(iso_str)

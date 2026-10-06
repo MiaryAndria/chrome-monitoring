@@ -27,8 +27,23 @@ class DeviceResponses(BaseModel):
     mac_adress: Optional[str] = None
     status: Optional[str] = None
     utilisateur_email: Optional[str] = None
-    utilisateurs_recents: Optional[list[str]] = []
+    utilisateurs_recents: Optional[list[str]] = None
     filiale: Optional[str] = None
+
+    ram_total: Optional[int] = None
+    ram_total_label: Optional[str] = None
+    disk_total: Optional[int] = None
+    disk_total_label: Optional[str] = None
+    disk_free: Optional[int] = None
+    disk_free_label: Optional[str] = None
+    disk_used: Optional[int] = None
+    disk_used_label: Optional[str] = None
+    disk_model: Optional[str] = None
+    disk_type: Optional[str] = None
+    cpu_model: Optional[str] = None
+    cpu_freq_max: Optional[int] = None
+    cpu_freq_max_label: Optional[str] = None
+    cpu_architecture: Optional[str] = None
 
 class StatistiquesResponse(BaseModel):
     total: int

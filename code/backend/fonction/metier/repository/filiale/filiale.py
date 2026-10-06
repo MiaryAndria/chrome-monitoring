@@ -26,7 +26,8 @@ def insert_filiale(cur, org_unit_path):
 def get_or_create_filiale(cur, org_unit_path):
     filiale = get_filiale_by_org_unit(cur, org_unit_path)
     if filiale:
-        return filiale
+        return filiale[0]
 
     insert_filiale(cur, org_unit_path)
-    return get_filiale_by_org_unit(cur, org_unit_path)
+    created = get_filiale_by_org_unit(cur, org_unit_path)
+    return created[0] if created else None

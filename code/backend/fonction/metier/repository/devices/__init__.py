@@ -14,6 +14,11 @@ from .devices import (
     insert_device_filiale,
     delete_all,
     recherche_multicritere,
+    insert_device_cpu,
+    get_last_cpu_for_device,
+    update_device_ram_total,
+    _get_last_disk_info,
+    _get_device_cpu_info,
 )
 
 from .type_appareil import (
@@ -31,4 +36,7 @@ from .device_utilisateur import (
 from .device_utilisateur_recent import (
     insert_device_utilisateur_recent,
     get_historique_utilisateurs_device,
+    get_dernier_utilisateur_device,
+    _get_recent_users,
+    get_utilisateur_recent_by_device,
 )

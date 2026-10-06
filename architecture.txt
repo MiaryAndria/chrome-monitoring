@@ -278,3 +278,5 @@ Même si Controller, Service, Repository et Model sont des composants internes, 
 
 Dans Modele userNonResponse(baseAdmin)  champs nécessaires lors requete post
             userResponse(baseAdmin) champs lors get
+
+Hiérarchiser les fonctionnalités mvp et secondaire

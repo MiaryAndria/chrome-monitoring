@@ -26,6 +26,5 @@ TRUNCATE TABLE
     t_cpu,
     t_statut,
     t_disk,
-    t_user
 RESTART IDENTITY CASCADE;
 -- TRUNCATE TABLE t_user RESTART IDENTITY CASCADE;

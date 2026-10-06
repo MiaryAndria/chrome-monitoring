@@ -1,7 +1,8 @@
 from backend.fonction.conn.connexion import get_connection, close_connection
 from backend.fonction.metier.repository.rapport import (
     get_id_by_type_name,
-    get_rapport_by_device_and_type,get_rapport_by_device_type_and_period
+    get_rapport_by_device_and_type,
+    get_rapport_by_device_type_and_period,
 )
 
 def serialize_rapport_rows(rows):

@@ -195,11 +195,11 @@ function DetailDevice() {
             case 'general':
                 return <GeneralTab generalData={generalData} device={device} onSelectTab={handleTabChange} deviceId={Number(id)} />;
             case 'cpu':
-                return <CpuTab reports={tabData.cpu} deviceId={Number(id)} />;
+                return <CpuTab reports={tabData.cpu} device={device} deviceId={Number(id)} />;
             case 'ram':
-                return <RamTab reports={tabData.ram} deviceId={Number(id)} />;
+                return <RamTab reports={tabData.ram} device={device} deviceId={Number(id)} />;
             case 'stockage':
-                return <StorageTab reports={tabData.stockage} deviceId={Number(id)} />;
+                return <StorageTab reports={tabData.stockage} device={device} deviceId={Number(id)} />;
             case 'batterie':
                 return <BatteryTab reports={tabData.batterie} deviceId={Number(id)} />;
             case 'reseau':

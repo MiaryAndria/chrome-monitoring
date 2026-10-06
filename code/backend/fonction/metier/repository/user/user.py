@@ -64,7 +64,7 @@ def insert_user(cur,nom,email,mdp):
     INSERT INTO t_user (nom,email,mdp,vrai_mdp ) VALUES(%s,%s,%s,%s)
     """,(nom,email,mot_de_passe,mdp)
     )
-    # connexion.commit()
+    
 
 def delete_all_user(cur):
     cur.execute(
@@ -79,4 +79,24 @@ def delete_user(cur,id):
     DELETE FROM TABLE t_user where id = %s
     """,(id,)
     )
-# insert_user(cur, 'administrateur', 'gtadmin@gmail.com', 'Gtadmin')
+    
+# def main():
+#     connexion = get_connection()
+#     cur = connexion.cursor()
+
+#     try:
+#         return insert_user(
+#             cur,
+#             'administrateur',
+#             'gtadmin@gmail.com',
+#             'Gtadmin'
+#         )
+        
+#     finally:
+#         connexion.commit()
+#         cur.close()
+#         connexion.close()
+
+
+# if __name__ == "__main__":
+#     main()

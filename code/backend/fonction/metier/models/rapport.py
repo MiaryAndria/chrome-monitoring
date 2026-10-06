@@ -9,7 +9,6 @@ class Rapport(BaseModel):
     report_time: datetime
     donnees: Dict[str, Any]
 
-
 class RapportResponse(BaseModel):
     cpu: List[Rapport]
     ram: List[Rapport]
