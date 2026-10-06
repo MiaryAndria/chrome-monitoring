@@ -73,3 +73,14 @@ dans tab stockage raha ohatra ka filtrerna anaky roa dia alaina ny stockage libr
 Badge cause	Signification
 ARRET_ANORMAL	La machine a été éteinte brutalement (coupure courant, arrêt forcé) — le crash de la session précédente est remonté au reboot suivant
 EN_SESSION	Le crash s'est produit pendant qu'un utilisateur était connecté et actif
+
+fotoana naha actif farany ny pc 
+ia integré dans le systeme d'evenement
+filtre liste deroulante 
+pagination 
+affichage lister 
+dashboard afficherna aussi nombre imprimante
+nombre evenement
+
+ao amn'event et device etc tsy atao en dur ilay zavatra reny 
+device_reseau 
