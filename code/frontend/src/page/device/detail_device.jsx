@@ -234,7 +234,11 @@ function DetailDevice() {
                             <span className="loading loading-infinity loading-lg text-cyan-500"></span>
                         </div>
                     ) : !device ? (
-                        <div className="telemetry-empty">Appareil introuvable.</div>
+                        <div className="empty-state mt-10">
+                            <Laptop className="empty-state-icon" />
+                            <p className="empty-state-title">Appareil introuvable</p>
+                            <p className="empty-state-subtitle">L'appareil sélectionné n'existe pas ou a été supprimé.</p>
+                        </div>
                     ) : (
                         <div className="detail-card space-y-6">
                             <div className="flex justify-between items-start border-b border-white/10 pb-5">

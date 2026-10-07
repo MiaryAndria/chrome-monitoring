@@ -23,3 +23,7 @@ class EvenementResponse(BaseModel):
 class ReponseEvenements(BaseModel):
     total: int
     evenements: List[EvenementResponse]
+    
+class ResponseTypeEvenements(BaseModel):
+    id:int
+    type:str

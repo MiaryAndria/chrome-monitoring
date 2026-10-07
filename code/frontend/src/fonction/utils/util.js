@@ -143,3 +143,9 @@ export const exportExcel = async ({ onglet, id, date_debut, date_fin } = {}) => 
     showExportSuccess('Rapport généré avec succès', 'Excel');
     return response;
 };
+
+export const toText = (value) => {
+    if (typeof value === "string") return value;
+    if (value == null) return "";
+    return String(value);
+};

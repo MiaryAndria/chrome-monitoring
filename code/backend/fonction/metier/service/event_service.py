@@ -1,6 +1,6 @@
 import json
 from backend.fonction.conn.connexion import get_connection, close_connection
-from backend.fonction.metier.repository.evenement import get_liste_evenement_avec_details
+from backend.fonction.metier.repository.evenement import get_liste_evenement_avec_details,get_liste_type_evenement
 
 
 def get_event():
@@ -14,7 +14,6 @@ def get_event():
 
         result = []
         for r in rows:
-            # Parser le JSON stocké dans details
             details_raw = r[2]
             details = {}
             if details_raw:
@@ -31,7 +30,6 @@ def get_event():
                 "serial_number":  r[5],
                 "modele":         r[6],
                 "filiale":        r[7],
-                # Champs extraits du JSON details
                 "cause_class":    details.get("cause_class"),
                 "cause_hint":     details.get("cause_hint"),
                 "last_user":      details.get("last_user"),
@@ -43,3 +41,22 @@ def get_event():
         return result
     finally:
         close_connection(connexion)
+        
+def get_type_evenement():
+    connexion = None        
+    try:
+        connexion = get_connection()
+        cur = connexion.cursor()
+        rows = get_liste_type_evenement(cur)
+        cur.close()
+        result = []
+        for r in rows:
+            result.append({
+                "id":   r[0],   
+                "type": r[1]   
+            })
+        return result           
+    finally:
+        if connexion:          
+            close_connection(connexion)
+        

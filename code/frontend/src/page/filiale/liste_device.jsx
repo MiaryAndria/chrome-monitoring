@@ -225,7 +225,7 @@ function ListeDeviceFiliale() {
                                 disabled={currentPage === 1}
                                 onClick={() => setCurrentPage(currentPage - 1)}
                             >
-                                Previous
+                                Précédent
                             </button>
                             <div className="pagination-indicator">
                                 {currentPage} <span className="pagination-separator">/</span> {totalPages}
@@ -235,7 +235,7 @@ function ListeDeviceFiliale() {
                                 disabled={currentPage === totalPages}
                                 onClick={() => setCurrentPage(currentPage + 1)}
                             >
-                                Next
+                                Suivant
                             </button>
                         </div>
                     )}

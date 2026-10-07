@@ -1,196 +1,58 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import {
-    Bell, Search, RefreshCw, Calendar, Monitor, User,
-    Zap, AlertTriangle, Cpu, Layers
+    Bell, Search, RefreshCw, Monitor,
+    Zap, AlertTriangle, Cpu, XCircle, ChevronDown, LayoutGrid, List
 } from "lucide-react";
 import Sidebar from "../../components/Sidebar";
 import Navbar from "../../components/Navbar";
 import MouseSpotlight from "../../components/MouseSpotlight";
-import { getListeEvenement } from "../../fonction/eventFonction";
+import GenericTable from "../../components/GenericTable";
+import { getListeEvenement, getListeTypeEvenement } from "../../fonction/eventFonction";
+import EventCard from "./component_event";
+import { getListeFiliale } from "../../fonction/filialeFonction";
+import { toText } from "../../fonction/utils/util";
+import '../../css/liste.css';
+import '../../css/filiale.css';
 
-/* ───────────────────────────────────────────
-   Styles selon type de crash / cause
-─────────────────────────────────────────── */
-const getStyle = (type, causeClass) => {
-    const t = (type || "").toUpperCase();
-    const c = (causeClass || "").toUpperCase();
-
-    if (t.includes("KERNEL"))
-        return {
-            card: "border-red-500/30 bg-red-500/5",
-            badge: "bg-red-500/15 text-red-400 border-red-500/30",
-            icon: "text-red-400",
-            dot: "bg-red-500",
-            label: "Crash noyau"
-        };
-    if (t.includes("EMBEDDED") || t.includes("CONTROLLER") || t.includes("EC"))
-        return {
-            card: "border-amber-500/30 bg-amber-500/5",
-            badge: "bg-amber-500/15 text-amber-400 border-amber-500/30",
-            icon: "text-amber-400",
-            dot: "bg-amber-500",
-            label: "Ctrl embarqué"
-        };
-    if (t.includes("BROWSER") || t.includes("APP"))
-        return {
-            card: "border-purple-500/30 bg-purple-500/5",
-            badge: "bg-purple-500/15 text-purple-400 border-purple-500/30",
-            icon: "text-purple-400",
-            dot: "bg-purple-500",
-            label: "App / Navigateur"
-        };
-    return {
-        card: "border-cyan-500/30 bg-cyan-500/5",
-        badge: "bg-cyan-500/15 text-cyan-400 border-cyan-500/30",
-        icon: "text-cyan-400",
-        dot: "bg-cyan-500",
-        label: "Autre"
-    };
-};
-
-const CAUSE_LABELS = {
-    "ARRET_ANORMAL": { label: "Arrêt anormal", desc: "Coupure courant / extinction forcée / plantage entre 2 sessions", color: "text-red-400" },
-    "EN_SESSION":    { label: "En session",    desc: "Crash survenu pendant qu'un utilisateur était connecté",       color: "text-amber-400" },
-};
-
-const formatDate = (str) => {
-    if (!str) return "—";
-    try {
-        return new Date(str).toLocaleString("fr-FR", {
-            day: "2-digit", month: "2-digit", year: "numeric",
-            hour: "2-digit", minute: "2-digit"
-        });
-    } catch { return str; }
-};
-
-/* ───────────────────────────────────────────
-   Composant carte événement
-─────────────────────────────────────────── */
-function EventCard({ ev }) {
-    const [open, setOpen] = useState(false);
-    const style = getStyle(ev.type_evenement, ev.cause_class);
-    const causeInfo = CAUSE_LABELS[ev.cause_class] || null;
-    const shortType = (ev.type_evenement || "INCONNU").replace("CRASH_TYPE_", "").replace(/_/g, " ");
-
-    return (
-        <div className={`rounded-2xl border transition-all duration-200 overflow-hidden ${style.card}`}>
-            {/* En-tête carte */}
-            <div className="p-4">
-                {/* Type + date */}
-                <div className="flex items-start justify-between gap-2 mb-3">
-                    <div className="flex items-center gap-2">
-                        <div className={`w-2 h-2 rounded-full ${style.dot} shadow-[0_0_6px_currentColor] flex-shrink-0 mt-1`} />
-                        <span className={`text-xs font-bold uppercase tracking-wide ${style.icon}`}>
-                            {shortType}
-                        </span>
-                    </div>
-                    <span className="text-[10px] text-zinc-500 whitespace-nowrap flex items-center gap-1">
-                        <Calendar className="w-3 h-3" />
-                        {formatDate(ev.date_evenement)}
-                    </span>
-                </div>
-
-                {/* Cause */}
-                {causeInfo && (
-                    <span className={`inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full border ${style.badge} mb-3`}>
-                        {causeInfo.label}
-                    </span>
-                )}
-
-                {/* Utilisateur */}
-                {ev.last_user && (
-                    <p className="text-xs text-zinc-300 flex items-center gap-1.5 mb-2 truncate">
-                        <User className="w-3 h-3 text-zinc-500 flex-shrink-0" />
-                        {ev.last_user}
-                    </p>
-                )}
-
-                {/* Appareil */}
-                <p className="text-xs font-medium text-zinc-400 flex items-center gap-1.5 truncate">
-                    <Monitor className="w-3 h-3 text-zinc-600 flex-shrink-0" />
-                    {ev.modele || ev.device_id || "—"}
-                </p>
-                {ev.serial_number && (
-                    <p className="text-[10px] font-mono text-zinc-600 mt-0.5 pl-4">
-                        {ev.serial_number}
-                    </p>
-                )}
-
-                {/* Filiale */}
-                {ev.filiale && (
-                    <p className="text-[10px] text-zinc-500 mt-1 flex items-center gap-1 pl-0.5">
-                        <Layers className="w-3 h-3" />
-                        {ev.filiale.replace(/^\//, "")}
-                    </p>
-                )}
-            </div>
-
-            {/* Bouton détail */}
-            <button
-                onClick={() => setOpen(o => !o)}
-                className="w-full px-4 py-2 border-t border-white/5 text-[10px] text-zinc-500 hover:text-zinc-300 hover:bg-white/5 transition-colors flex items-center justify-center gap-1"
-            >
-                {open ? "Masquer" : "Voir diagnostic"}
-                <span className={`transition-transform duration-200 ${open ? "rotate-180" : ""}`}>▼</span>
-            </button>
-
-            {/* Détail expandable */}
-            {open && (
-                <div className="px-4 py-3 border-t border-white/5 bg-black/20 space-y-2">
-                    {causeInfo && (
-                        <p className="text-[11px] text-zinc-400 leading-relaxed">{causeInfo.desc}</p>
-                    )}
-                    {ev.cause_hint && (
-                        <div className="bg-zinc-900/60 rounded-lg p-3">
-                            <p className="text-[10px] text-zinc-500 uppercase font-semibold mb-1 flex items-center gap-1">
-                                <Zap className="w-3 h-3" /> Analyse
-                            </p>
-                            <p className="text-[11px] text-zinc-300 leading-relaxed">{ev.cause_hint}</p>
-                        </div>
-                    )}
-                    <div className="grid grid-cols-3 gap-2">
-                        {ev.crash_seq != null && (
-                            <div className="bg-zinc-800/50 rounded-lg p-2 text-center">
-                                <p className="text-[10px] text-zinc-500">Seq.</p>
-                                <p className="text-sm font-bold text-zinc-200">#{ev.crash_seq}</p>
-                            </div>
-                        )}
-                        {ev.raw_events != null && (
-                            <div className="bg-zinc-800/50 rounded-lg p-2 text-center">
-                                <p className="text-[10px] text-zinc-500">Événements</p>
-                                <p className="text-sm font-bold text-zinc-200">{ev.raw_events}</p>
-                            </div>
-                        )}
-                        {ev.minutes_since_boot != null && (
-                            <div className="bg-zinc-800/50 rounded-lg p-2 text-center">
-                                <p className="text-[10px] text-zinc-500">Min/boot</p>
-                                <p className="text-sm font-bold text-zinc-200">{Number(ev.minutes_since_boot).toFixed(0)}</p>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            )}
-        </div>
-    );
-}
-
-/* ───────────────────────────────────────────
-   Page principale
-─────────────────────────────────────────── */
 function ListeEvent() {
     const [evenements, setEvenements] = useState([]);
+    const [listeTypes, setListeTypes] = useState([]);
+    const [listeFiliales, setListeFiliales] = useState([]);
     const [loading, setLoading] = useState(false);
     const [search, setSearch] = useState("");
     const [error, setError] = useState(null);
-    const [typeFilter, setTypeFilter] = useState("TOUS");
-    const [filialeFilter, setFilialeFilter] = useState("TOUS");
+    const [typeEvenement, setTypeEvenement] = useState("TOUS");
+    const [filiale, setFiliale] = useState("");
+    const [selectedExplanation, setSelectedExplanation] = useState(null);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [filialeDropdownOpen, setFilialeDropdownOpen] = useState(false);
+    const [filialeSearch, setFilialeSearch] = useState("");
+    const [viewMode, setViewMode] = useState('grid');
+    const dropdownRef = useRef(null);
+    const itemsPerPage = 24;
+
+    const eventColumns = [
+        { header: "Date", accessor: "date" },
+        { header: "Type d'Incident", render: (ev) => <span className="font-bold text-zinc-100">{ev.type_evenement}</span> },
+        { header: "Cause", render: (ev) => <span className="text-zinc-400">{ev.cause_class || '-'}</span> },
+        { header: "Utilisateur", render: (ev) => <span className="text-cyan-400 font-medium truncate max-w-[150px] inline-block" title={ev.last_user}>{ev.last_user || '-'}</span> },
+        { header: "Appareil", render: (ev) => <span className="font-mono text-zinc-300">{ev.serial_number || ev.modele || ev.device_id || '-'}</span> }
+    ];
 
     const charger = async () => {
         try {
             setLoading(true);
             setError(null);
-            const data = await getListeEvenement();
-            setEvenements(data || []);
+
+            const dataEvenements = await getListeEvenement();
+            setEvenements(dataEvenements || []);
+
+            const dataTypes = await getListeTypeEvenement();
+            setListeTypes(dataTypes || []);
+
+            const dataFiliales = await getListeFiliale();
+            setListeFiliales(dataFiliales || []);
+
         } catch (e) {
             console.error(e);
             setError("Impossible de charger les événements.");
@@ -199,25 +61,62 @@ function ListeEvent() {
         }
     };
 
-    useEffect(() => { charger(); }, []);
+    useEffect(() => {
+        charger();
+    }, []);
 
-    const types    = ["TOUS", ...new Set(evenements.map(e => e.type_evenement).filter(Boolean))];
-    const filiales = ["TOUS", ...new Set(evenements.map(e => e.filiale).filter(Boolean))];
+    useEffect(() => {
+        const handleClickOutside = (e) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+                setFilialeDropdownOpen(false);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
+
+    const reinitialiserFiltres = () => {
+        setSearch("");
+        setTypeEvenement("TOUS");
+        setFiliale("");
+        setFilialeSearch("");
+        setCurrentPage(1);
+    };
+
+    const filtresActifs = search !== "" || typeEvenement !== "TOUS" || filiale !== "";
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [search, typeEvenement, filiale]);
 
     const filtered = evenements.filter(ev => {
         const q = search.toLowerCase();
         const matchSearch = (
-            (ev.type_evenement || "").toLowerCase().includes(q) ||
-            (ev.cause_class || "").toLowerCase().includes(q) ||
-            (ev.last_user || "").toLowerCase().includes(q) ||
-            (ev.device_id || "").toLowerCase().includes(q) ||
-            (ev.serial_number || "").toLowerCase().includes(q) ||
-            (ev.modele || "").toLowerCase().includes(q)
+            toText(ev.type_evenement || "").toLowerCase().includes(q) ||
+            toText(ev.cause_class || "").toLowerCase().includes(q) ||
+            toText(ev.last_user || "").toLowerCase().includes(q) ||
+            toText(ev.device_id || "").toLowerCase().includes(q) ||
+            toText(ev.serial_number || "").toLowerCase().includes(q) ||
+            toText(ev.modele || "").toLowerCase().includes(q)
         );
-        const matchType    = typeFilter    === "TOUS" || ev.type_evenement === typeFilter;
-        const matchFiliale = filialeFilter === "TOUS" || ev.filiale === filialeFilter;
+        const matchType = typeEvenement === "TOUS" || ev.type_evenement === typeEvenement;
+        const matchFiliale = filiale === "" || ev.filiale === filiale;
         return matchSearch && matchType && matchFiliale;
     });
+
+    const totalPages = Math.ceil(filtered.length / itemsPerPage) || 1;
+    const indexOfLastItem = currentPage * itemsPerPage;
+    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+    const currentItems = filtered.slice(indexOfFirstItem, indexOfLastItem);
+
+    const filialeOptions = listeFiliales.filter(f => {
+        const path = f.org_unit_path || "";
+        return path.toLowerCase().includes(filialeSearch.toLowerCase());
+    });
+
+    const selectedFilialeLabel = filiale
+        ? (filiale.split("/").pop() || filiale)
+        : "";
 
     return (
         <div className="device-layout" data-theme="dark">
@@ -229,7 +128,7 @@ function ListeEvent() {
                 <div className="bg-glow-purple"></div>
                 <Navbar />
 
-                <div className="flex-1 overflow-y-auto p-6 lg:p-8 space-y-5 z-10">
+                <div className="flex-1 overflow-y-auto p-6 lg:p-8 space-y-8 z-10">
 
                     {/* Header */}
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -238,104 +137,303 @@ function ListeEvent() {
                                 <Bell className="w-8 h-8 text-cyan-400" />
                                 Événements
                             </h1>
-                            <p className="text-zinc-400 mt-1 font-medium tracking-wide">
+                            <p className="text-zinc-400 mt-2 font-medium tracking-wide">
                                 Journal des incidents système des appareils
                             </p>
                         </div>
-                        <button onClick={charger} disabled={loading}
-                            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-zinc-800/60 border border-white/10 text-zinc-300 text-sm font-medium hover:bg-zinc-700/60 transition-all disabled:opacity-50 self-start md:self-auto">
-                            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
-                            Actualiser
+                    </div>
+
+                    {/* Légende couleurs cliquables */}
+                    <div className="flex flex-wrap gap-3 text-xs">
+                        <button 
+                            onClick={() => setSelectedExplanation({
+                                label: "Crash noyau (KERNEL)", 
+                                color: "text-red-400", 
+                                explication: "Un Crash Kernel (Kernel Panic) est une erreur critique au niveau du cœur du système d'exploitation. L'OS n'a pas pu récupérer d'une erreur interne et s'est arrêté par sécurité.", 
+                                solution: "Généralement résolu par une mise à jour de ChromeOS. Si récurrent sur un même appareil, effectuez un Powerwash (réinitialisation d'usine). Si cela ne suffit pas, une réparation matérielle est nécessaire."
+                            })}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition-colors cursor-pointer"
+                        >
+                            <Cpu className="w-3 h-3" /> <strong>KERNEL</strong> — crash du noyau OS
+                        </button>
+                        <button 
+                            onClick={() => setSelectedExplanation({
+                                label: "Contrôleur embarqué (EC)", 
+                                color: "text-amber-400", 
+                                explication: "Le contrôleur embarqué (EC) est une puce qui gère le clavier, le pavé tactile, la batterie et l'alimentation. Un crash de l'EC signifie que cette puce a cessé de répondre et a redémarré.", 
+                                solution: "Ce type de crash est souvent lié à la batterie ou au chargeur. Essayez de réaliser un Hard Reset (Actualiser + Power). Si l'erreur se reproduit, la batterie ou la carte mère pourrait être défectueuse."
+                            })}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 hover:bg-amber-500/20 transition-colors cursor-pointer"
+                        >
+                            <Zap className="w-3 h-3" /> <strong>EC</strong> — contrôleur embarqué
+                        </button>
+                        <button 
+                            onClick={() => setSelectedExplanation({
+                                label: "App / Navigateur", 
+                                color: "text-purple-400", 
+                                explication: "Le navigateur Chrome ou une application web (ou Android) a crashé (Out Of Memory ou erreur fatale de rendu), forçant la session à se fermer.", 
+                                solution: "L'utilisateur avait probablement trop d'onglets ouverts simultanément, dépassant la capacité de la mémoire RAM de l'appareil. Demandez-lui de limiter le nombre d'onglets ou désactivez certaines extensions gourmandes."
+                            })}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-400 hover:bg-purple-500/20 transition-colors cursor-pointer"
+                        >
+                            <Monitor className="w-3 h-3" /> <strong>BROWSER/APP</strong> — crash navigateur
+                        </button>
+                        <button 
+                            onClick={() => setSelectedExplanation({
+                                label: "Arrêt Anormal / En Session", 
+                                color: "text-zinc-400", 
+                                explication: "L'appareil s'est éteint brusquement (coupure de courant, plantage) ou un crash est survenu pendant qu'un utilisateur était connecté.", 
+                                solution: "Vérifiez l'état de la batterie. Sensibilisez les utilisateurs à éteindre correctement. Vérifiez s'il y a un manque de RAM si c'est en session."
+                            })}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-zinc-700/40 border border-white/10 text-zinc-400 hover:bg-zinc-700/60 transition-colors cursor-pointer"
+                        >
+                            <AlertTriangle className="w-3 h-3" /> <strong>ARRET_ANORMAL</strong> | <strong>EN_SESSION</strong>
                         </button>
                     </div>
 
-                    {/* Légende couleurs */}
-                    <div className="flex flex-wrap gap-3 text-xs">
-                        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-red-500/10 border border-red-500/20 text-red-400">
-                            <Cpu className="w-3 h-3" /> <strong>KERNEL</strong> — crash du noyau Linux (grave)
-                        </div>
-                        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400">
-                            <Zap className="w-3 h-3" /> <strong>EC</strong> — contrôleur embarqué (alim/thermique)
-                        </div>
-                        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-400">
-                            <Monitor className="w-3 h-3" /> <strong>BROWSER/APP</strong> — crash navigateur ou application
-                        </div>
-                        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-zinc-700/40 border border-white/10 text-zinc-400">
-                            <AlertTriangle className="w-3 h-3" /> <strong>ARRET_ANORMAL</strong> — coupure courant / extinction forcée&nbsp;&nbsp;|&nbsp;&nbsp; <strong>EN_SESSION</strong> — crash pendant une session active
-                        </div>
-                    </div>
-
                     {/* Filtres */}
-                    <div className="space-y-3">
+                    <div className="glass-panel rounded-2xl p-5 space-y-4 relative z-50">
+                        {/* Recherche */}
                         <div className="relative max-w-md">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
                             <input type="text" placeholder="Rechercher par type, utilisateur, appareil..."
                                 value={search} onChange={e => setSearch(e.target.value)}
-                                className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-zinc-800/60 border border-white/10 text-zinc-200 text-sm placeholder-zinc-500 focus:outline-none focus:border-cyan-400/50 focus:ring-1 focus:ring-cyan-400/20 transition-all" />
+                                className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-zinc-900/60 border border-white/10 text-zinc-200 text-sm placeholder-zinc-500 focus:outline-none focus:border-cyan-400/50 focus:ring-1 focus:ring-cyan-400/20 transition-all" />
                         </div>
 
                         {/* Pills type */}
                         <div className="flex flex-wrap gap-2 items-center">
-                            <span className="text-[10px] text-zinc-500 uppercase font-semibold">Type :</span>
-                            {types.map(t => (
-                                <button key={t} onClick={() => setTypeFilter(t)}
-                                    className={`px-3 py-1 rounded-full text-xs font-semibold border transition-all ${
-                                        typeFilter === t
-                                            ? "bg-cyan-500/20 text-cyan-300 border-cyan-500/40"
-                                            : "bg-zinc-800/60 text-zinc-400 border-white/10 hover:bg-zinc-700/60"
-                                    }`}>
-                                    {(t).replace("CRASH_TYPE_", "")}
-                                </button>
-                            ))}
+                            <span className="text-[10px] text-zinc-500 uppercase font-semibold tracking-wider">Type :</span>
+                            {["TOUS", ...listeTypes].map((t) => {
+                                const typeValue = typeof t === "string" ? t : t?.type ?? "";
+                                const typeLabel = typeValue === "TOUS" ? "Tous" : typeValue.replace("CRASH_TYPE_", "");
+
+                                return (
+                                    <button
+                                        key={typeof t === "string" ? t : t.id}
+                                        onClick={() => setTypeEvenement(typeValue)}
+                                        className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all duration-200 cursor-pointer ${typeEvenement === typeValue
+                                            ? "bg-cyan-500/15 text-cyan-300 border-cyan-500/40 shadow-[0_0_12px_rgba(6,182,212,0.15)]"
+                                            : "bg-zinc-900/60 text-zinc-400 border-white/8 hover:bg-zinc-800/80 hover:text-zinc-300 hover:border-white/15"
+                                            }`}
+                                    >
+                                        {typeLabel}
+                                    </button>
+                                );
+                            })}
                         </div>
 
-                        {/* Pills filiale */}
-                        {filiales.length > 1 && (
-                            <div className="flex flex-wrap gap-2 items-center">
-                                <span className="text-[10px] text-zinc-500 uppercase font-semibold">Filiale :</span>
-                                {filiales.map(f => (
-                                    <button key={f} onClick={() => setFilialeFilter(f)}
-                                        className={`px-3 py-1 rounded-full text-xs font-semibold border transition-all ${
-                                            filialeFilter === f
-                                                ? "bg-purple-500/20 text-purple-300 border-purple-500/40"
-                                                : "bg-zinc-800/60 text-zinc-400 border-white/10 hover:bg-zinc-700/60"
-                                        }`}>
-                                        {f === "TOUS" ? "Toutes" : (f || "").replace(/^\//, "")}
-                                    </button>
-                                ))}
+                        {/* Filiale autocomplete dropdown + Réinitialiser */}
+                        <div className="flex flex-wrap items-center gap-3">
+                            <span className="text-[10px] text-zinc-500 uppercase font-semibold tracking-wider">Filiale :</span>
+
+                            {/* Custom autocomplete dropdown */}
+                            <div className="relative" ref={dropdownRef}>
+                                <button
+                                    type="button"
+                                    onClick={() => setFilialeDropdownOpen(!filialeDropdownOpen)}
+                                    className={`flex items-center gap-2 min-w-[200px] px-3 py-1.5 rounded-xl text-sm border transition-all duration-200 cursor-pointer ${filiale
+                                        ? "bg-purple-500/15 text-purple-300 border-purple-500/40 shadow-[0_0_12px_rgba(168,85,247,0.15)]"
+                                        : "bg-zinc-900/60 text-zinc-400 border-white/8 hover:bg-zinc-800/80 hover:border-white/15"
+                                        }`}
+                                >
+                                    <span className="flex-1 text-left truncate">
+                                        {selectedFilialeLabel || "Toutes les filiales"}
+                                    </span>
+                                    <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${filialeDropdownOpen ? "rotate-180" : ""}`} />
+                                </button>
+
+                                {filialeDropdownOpen && (
+                                    <div className="absolute top-full left-0 mt-2 w-72 max-h-64 rounded-xl bg-zinc-900/95 backdrop-blur-xl border border-white/10 shadow-[0_20px_50px_-10px_rgba(0,0,0,0.8),0_0_30px_rgba(168,85,247,0.1)] z-[100] overflow-hidden"
+                                        style={{ animation: "modalScaleUp 150ms cubic-bezier(0.16,1,0.3,1)" }}>
+                                        {/* Search input */}
+                                        <div className="p-2 border-b border-white/5">
+                                            <input
+                                                type="text"
+                                                value={filialeSearch}
+                                                onChange={e => setFilialeSearch(e.target.value)}
+                                                placeholder="Rechercher une filiale..."
+                                                autoFocus
+                                                className="w-full px-3 py-1.5 rounded-lg bg-zinc-800/60 border border-white/5 text-zinc-200 text-xs placeholder-zinc-500 focus:outline-none focus:border-purple-400/40 transition-all"
+                                            />
+                                        </div>
+                                        {/* Options */}
+                                        <div className="max-h-48 overflow-y-auto p-1 relative z-[100]">
+                                            {/* Option "Toutes" */}
+                                            <button
+                                                onClick={() => { setFiliale(""); setFilialeDropdownOpen(false); setFilialeSearch(""); }}
+                                                className={`w-full text-left px-3 py-2 rounded-lg text-xs transition-all cursor-pointer ${filiale === ""
+                                                    ? "bg-purple-500/15 text-purple-300"
+                                                    : "text-zinc-400 hover:bg-white/5 hover:text-zinc-200"
+                                                    }`}
+                                            >
+                                                Toutes les filiales
+                                            </button>
+                                            {filialeOptions.map((f, idx) => {
+                                                const path = f.org_unit_path || "";
+                                                const label = path.split("/").pop() || path;
+                                                return (
+                                                    <button
+                                                        key={f.id ?? idx}
+                                                        onClick={() => { setFiliale(path); setFilialeDropdownOpen(false); setFilialeSearch(""); }}
+                                                        className={`w-full text-left px-3 py-2 rounded-lg text-xs transition-all cursor-pointer ${filiale === path
+                                                            ? "bg-purple-500/15 text-purple-300"
+                                                            : "text-zinc-400 hover:bg-white/5 hover:text-zinc-200"
+                                                            }`}
+                                                    >
+                                                        <span className="font-medium">{label}</span>
+                                                        <span className="block text-[10px] text-zinc-600 font-mono mt-0.5 truncate">{path}</span>
+                                                    </button>
+                                                );
+                                            })}
+                                            {filialeOptions.length === 0 && (
+                                                <p className="text-xs text-zinc-600 text-center py-3">Aucune filiale trouvée</p>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
-                        )}
+
+                            {/* Bouton réinitialiser filtres */}
+                            {filtresActifs && (
+                                <button
+                                    onClick={reinitialiserFiltres}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-semibold hover:bg-red-500/20 hover:border-red-500/30 transition-all cursor-pointer"
+                                >
+                                    <XCircle className="w-3.5 h-3.5" />
+                                    Réinitialiser
+                                </button>
+                            )}
+                        </div>
                     </div>
 
                     {/* Contenu */}
                     {loading ? (
-                        <div className="flex justify-center items-center py-20">
-                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-400" />
+                        <div className="flex justify-center p-12">
+                            <span className="loading loading-infinity loading-lg text-cyan-500"></span>
                         </div>
                     ) : error ? (
-                        <div className="glass-panel p-8 text-center rounded-2xl border border-red-500/20">
-                            <AlertTriangle className="w-12 h-12 text-red-400 mx-auto mb-3 opacity-50" />
-                            <p className="text-red-400 font-medium">{error}</p>
+                        <div className="empty-state">
+                            <AlertTriangle className="empty-state-icon" />
+                            <p className="empty-state-title">{error}</p>
                         </div>
                     ) : filtered.length === 0 ? (
-                        <div className="glass-panel p-12 text-center rounded-2xl border border-white/5">
-                            <Bell className="w-14 h-14 text-zinc-600 mx-auto mb-4" />
-                            <p className="text-zinc-400 text-lg font-medium">Aucun événement trouvé</p>
-                            <p className="text-zinc-600 text-sm mt-1">
-                                {search || typeFilter !== "TOUS" || filialeFilter !== "TOUS"
-                                    ? "Modifiez vos filtres" : "Aucune donnée enregistrée"}
+                        <div className="empty-state">
+                            <Bell className="empty-state-icon" />
+                            <p className="empty-state-title">Aucun événement trouvé</p>
+                            <p className="empty-state-subtitle">
+                                {filtresActifs ? "Modifiez vos filtres" : "Aucune donnée enregistrée"}
                             </p>
                         </div>
                     ) : (
                         <>
-                            <p className="text-sm text-zinc-500">
-                                <span className="font-semibold text-zinc-300">{filtered.length}</span> événement{filtered.length > 1 ? "s" : ""}
-                            </p>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                                {filtered.map((ev, idx) => (
-                                    <EventCard key={ev.id ?? idx} ev={ev} />
-                                ))}
+                            <div className="section-header flex justify-between items-center">
+                                <div>
+                                    <h2 className="section-title">
+                                        Incidents détectés
+                                    </h2>
+                                    <span className="section-count">
+                                        {filtered.length} événement{filtered.length > 1 ? "s" : ""} — Page {currentPage}/{totalPages}
+                                    </span>
+                                </div>
+                                <div className="flex bg-zinc-900 rounded-lg p-1 border border-white/10">
+                                    <button 
+                                        onClick={() => setViewMode('grid')}
+                                        className={`p-1.5 rounded-md transition-colors ${viewMode === 'grid' ? 'bg-cyan-500/20 text-cyan-400' : 'text-zinc-500 hover:text-zinc-300'}`}
+                                        title="Vue en grille"
+                                    >
+                                        <LayoutGrid className="w-4 h-4" />
+                                    </button>
+                                    <button 
+                                        onClick={() => setViewMode('table')}
+                                        className={`p-1.5 rounded-md transition-colors ${viewMode === 'table' ? 'bg-cyan-500/20 text-cyan-400' : 'text-zinc-500 hover:text-zinc-300'}`}
+                                        title="Vue en tableau"
+                                    >
+                                        <List className="w-4 h-4" />
+                                    </button>
+                                </div>
                             </div>
+
+                            {viewMode === 'table' ? (
+                                <GenericTable columns={eventColumns} data={currentItems} />
+                            ) : (
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                                    {currentItems.map((ev, idx) => (
+                                        <EventCard key={ev.id ?? idx} ev={ev} />
+                                    ))}
+                                </div>
+                            )}
+
+                            {/* Modal d'explication */}
+                            {selectedExplanation && (
+                                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+                                     style={{ animation: "fadeIn 200ms ease-out" }}
+                                     onClick={() => setSelectedExplanation(null)}>
+                                    <div 
+                                        className="relative w-full max-w-md bg-zinc-900 border border-white/10 rounded-2xl shadow-2xl overflow-hidden"
+                                        style={{ animation: "modalScaleUp 300ms cubic-bezier(0.16,1,0.3,1)" }}
+                                        onClick={e => e.stopPropagation()}
+                                    >
+                                        <div className="p-6 border-b border-white/5 bg-white/5">
+                                            <div className="flex justify-between items-start gap-4">
+                                                <h3 className="text-lg font-bold text-zinc-100 flex items-center gap-2">
+                                                    <AlertTriangle className={`w-5 h-5 ${selectedExplanation.color || 'text-cyan-400'}`} />
+                                                    {selectedExplanation.label}
+                                                </h3>
+                                                <button onClick={() => setSelectedExplanation(null)} className="text-zinc-500 hover:text-zinc-300 transition-colors">
+                                                    <XCircle className="w-5 h-5" />
+                                                </button>
+                                            </div>
+                                            {selectedExplanation.desc && (
+                                                <p className="mt-2 text-sm text-zinc-400 font-medium">
+                                                    {selectedExplanation.desc}
+                                                </p>
+                                            )}
+                                        </div>
+                                        <div className="p-6 space-y-5">
+                                            <div>
+                                                <h4 className="text-xs uppercase font-bold tracking-wider text-zinc-500 mb-2">Explication</h4>
+                                                <p className="text-sm text-zinc-300 leading-relaxed">
+                                                    {selectedExplanation.explication}
+                                                </p>
+                                            </div>
+                                            {selectedExplanation.solution && (
+                                                <div>
+                                                    <h4 className="text-xs uppercase font-bold tracking-wider text-zinc-500 mb-2">Pistes / Solutions</h4>
+                                                    <div className="bg-cyan-500/10 border border-cyan-500/20 rounded-xl p-4">
+                                                        <p className="text-sm text-cyan-100 leading-relaxed">
+                                                            {selectedExplanation.solution}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Pagination */}
+                            {totalPages > 1 && (
+                                <div className="flex justify-center items-center gap-4 mt-8 pb-4">
+                                    <button
+                                        className="pagination-btn"
+                                        disabled={currentPage === 1}
+                                        onClick={() => setCurrentPage(currentPage - 1)}
+                                    >
+                                        Précédent
+                                    </button>
+                                    <div className="pagination-indicator">
+                                        {currentPage} <span className="pagination-separator">/</span> {totalPages}
+                                    </div>
+                                    <button
+                                        className="pagination-btn"
+                                        disabled={currentPage === totalPages}
+                                        onClick={() => setCurrentPage(currentPage + 1)}
+                                    >
+                                        Suivant
+                                    </button>
+                                </div>
+                            )}
                         </>
                     )}
                 </div>

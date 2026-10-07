@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import ScrollableChart from '../../../utils/ScrollableChart';
+import ScrollableChart from '../../../styles/utils/ScrollableChart';
 import { Gauge, Thermometer, TrendingUp } from 'lucide-react';
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid,

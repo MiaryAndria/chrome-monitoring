@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { Server, Laptop, Network, User, Users, X, Copy, Check } from 'lucide-react';
+import { Server, Laptop, Network, User, Users, X, Copy, Check, LayoutGrid, List } from 'lucide-react';
 import Sidebar from "../../components/Sidebar";
 import Navbar from "../../components/Navbar";
 import MouseSpotlight from "../../components/MouseSpotlight";
+import GenericTable from "../../components/GenericTable";
 import '../../css/liste.css';
 import '../../css/filiale.css';
 import { getListeDevice, getBadgeClass, searchDevices } from "../../fonction/deviceFonction";
@@ -20,6 +21,23 @@ function ListeDevice() {
     const [currentPage, setCurrentPage] = useState(1);
     const [selectedDevice, setSelectedDevice] = useState(null);
     const [copiedSN, setCopiedSN] = useState(null);
+    const [viewMode, setViewMode] = useState('grid');
+
+    const deviceColumns = [
+        { header: "Modèle", accessor: "modele" },
+        { header: "N° Série", render: (d) => <span className="font-mono text-zinc-300">{d.serial_number}</span> },
+        { header: "Statut", render: (d) => <span className={`badge badge-sm ${getBadgeClass(d.status || d.nom_statut || 'UNKNOWN')}`}>{d.status || d.nom_statut || 'UNKNOWN'}</span> },
+        { header: "Adresse IP", render: (d) => <span className="font-mono text-zinc-400">{d.ip_adress || 'N/A'}</span> },
+        { header: "OS", accessor: "chromeos_version" },
+        { header: "Assigné à", accessor: "utilisateur_email" },
+        { header: "Actions", render: (d) => (
+            <div className="flex gap-2">
+                <button onClick={() => navigate(`/device/${d.id || d.id_device}`)} className="px-3 py-1.5 text-xs font-semibold text-zinc-300 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 rounded-xl transition-all">
+                    Détails
+                </button>
+            </div>
+        ) }
+    ];
 
     const deviceParPage = 8;
 
@@ -80,16 +98,49 @@ function ListeDevice() {
 
                 <Navbar />
 
-                <div className="flex-1 overflow-y-auto p-6 lg:p-8 space-y-8 z-10">
-                    <div>
-                        <div className="flex justify-between items-center mb-6">
-                            <h2 className="text-lg font-medium text-zinc-100">Monitored Infrastructure</h2>
+                <div className="flex-1 overflow-y-auto p-6 lg:p-8 space-y-6 z-10">
+                    
+                    {/* En-tête avec bouton de vue */}
+                    <div className="flex justify-between items-center bg-zinc-900/40 p-4 rounded-xl border border-white/5">
+                        <div>
+                            <h1 className="text-xl font-bold text-zinc-100 flex items-center gap-2">
+                                <Laptop className="w-5 h-5 text-cyan-400" />
+                                Appareils
+                            </h1>
                         </div>
+                        <div className="flex bg-zinc-900 rounded-lg p-1 border border-white/10">
+                            <button 
+                                onClick={() => setViewMode('grid')}
+                                className={`p-1.5 rounded-md transition-colors ${viewMode === 'grid' ? 'bg-cyan-500/20 text-cyan-400' : 'text-zinc-500 hover:text-zinc-300'}`}
+                                title="Vue en grille"
+                            >
+                                <LayoutGrid className="w-4 h-4" />
+                            </button>
+                            <button 
+                                onClick={() => setViewMode('table')}
+                                className={`p-1.5 rounded-md transition-colors ${viewMode === 'table' ? 'bg-cyan-500/20 text-cyan-400' : 'text-zinc-500 hover:text-zinc-300'}`}
+                                title="Vue en tableau"
+                            >
+                                <List className="w-4 h-4" />
+                            </button>
+                        </div>
+                    </div>
 
+                    <div>
                         {loading && device.length === 0 ? (
                             <div className="flex justify-center p-12">
                                 <span className="loading loading-infinity loading-lg text-cyan-500"></span>
                             </div>
+                        ) : currentDevices.length === 0 ? (
+                            <div className="empty-state">
+                                <Laptop className="empty-state-icon" />
+                                <p className="empty-state-title">Aucun appareil trouvé</p>
+                                <p className="empty-state-subtitle">
+                                    {filterSearch || filterStatus || filterType ? "Modifiez vos filtres" : "Aucune donnée disponible"}
+                                </p>
+                            </div>
+                        ) : viewMode === 'table' ? (
+                            <GenericTable columns={deviceColumns} data={currentDevices} />
                         ) : (
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                                 {currentDevices.map((d) => {
@@ -171,27 +222,27 @@ function ListeDevice() {
                         )}
                     </div>
 
-                    <div className="flex justify-center items-center gap-4 mt-8 pb-4">
-                        <button
-                            className="px-4 py-2 text-xs font-semibold tracking-wide rounded-xl bg-zinc-900/80 border border-white/10 text-zinc-300 hover:bg-cyan-500/20 hover:text-cyan-300 hover:border-cyan-500/40 disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-md cursor-pointer"
-                            disabled={currentPage === 1}
-                            onClick={() => setCurrentPage(currentPage - 1)}
-                        >
-                            Previous
-                        </button>
-
-                        <div className="px-4 py-1.5 rounded-xl bg-zinc-900/90 border border-cyan-500/30 text-cyan-400 font-mono text-sm tracking-widest shadow-[0_0_12px_rgba(6,182,212,0.2)]">
-                            {currentPage} <span className="text-zinc-600">/</span> {totalPages}
+                    {totalPages > 1 && (
+                        <div className="flex justify-center items-center gap-4 mt-8 pb-4">
+                            <button
+                                className="pagination-btn"
+                                disabled={currentPage === 1}
+                                onClick={() => setCurrentPage(currentPage - 1)}
+                            >
+                                Précédent
+                            </button>
+                            <div className="pagination-indicator">
+                                {currentPage} <span className="pagination-separator">/</span> {totalPages}
+                            </div>
+                            <button
+                                className="pagination-btn"
+                                disabled={currentPage === totalPages}
+                                onClick={() => setCurrentPage(currentPage + 1)}
+                            >
+                                Suivant
+                            </button>
                         </div>
-                        {/* <button onClick={synchData}>Synchroniser donnée</button> */}
-                        <button
-                            className="px-4 py-2 text-xs font-semibold tracking-wide rounded-xl bg-zinc-900/80 border border-white/10 text-zinc-300 hover:bg-cyan-500/20 hover:text-cyan-300 hover:border-cyan-500/40 disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-md cursor-pointer"
-                            disabled={currentPage === totalPages}
-                            onClick={() => setCurrentPage(currentPage + 1)}
-                        >
-                            Next
-                        </button>
-                    </div>
+                    )}
 
                 </div>
             </div>

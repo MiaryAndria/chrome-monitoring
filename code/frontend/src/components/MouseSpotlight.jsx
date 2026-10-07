@@ -1,5 +1,5 @@
 import React from 'react';
-import { useMouseSpotlight } from '../utils/useMouseSpotlight';
+import { useMouseSpotlight } from '../styles/utils/useMouseSpotlight';
 
 export default function MouseSpotlight() {
     const { style } = useMouseSpotlight();

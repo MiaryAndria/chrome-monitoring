@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import { Building2, Laptop, ChevronRight, Server, Activity } from 'lucide-react';
+import { Building2, Laptop, ChevronRight, Server, Activity, LayoutGrid, List } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Sidebar from "../../components/Sidebar";
 import Navbar from "../../components/Navbar";
 import MouseSpotlight from "../../components/MouseSpotlight";
+import GenericTable from "../../components/GenericTable";
 import '../../css/liste.css';
 import '../../css/filiale.css';
 import { getListeFiliale } from "../../fonction/filialeFonction";
@@ -24,7 +25,20 @@ function getOrgDepth(path) {
 function ListeFiliale() {
     const [filiales, setFiliales] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [viewMode, setViewMode] = useState('grid');
     const navigate = useNavigate();
+
+    const filialeColumns = [
+        { header: "ID", accessor: "id" },
+        { header: "Nom", render: (f) => <span className="font-bold text-zinc-100">{getOrgLabel(f.org_unit_path)}</span> },
+        { header: "Chemin Complet", render: (f) => <span className="text-zinc-400 text-xs font-mono">{f.org_unit_path}</span> },
+        { header: "Niveau", render: (f) => getOrgDepth(f.org_unit_path) > 1 ? <span className="badge badge-sm badge-outline text-emerald-400 border-emerald-500/30">Niveau {getOrgDepth(f.org_unit_path)}</span> : '-' },
+        { header: "Actions", render: (f) => (
+            <button onClick={() => navigate(`/filiale/${f.id}/devices`)} className="px-3 py-1.5 text-xs font-semibold text-zinc-300 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 rounded-xl transition-all flex items-center gap-1">
+                Voir devices <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+        ) }
+    ];
 
     const recupererFiliales = async () => {
         try {
@@ -82,9 +96,27 @@ function ListeFiliale() {
 
                     {/* Liste filiales */}
                     <div>
-                        <div className="section-header">
-                            <h2 className="section-title">Filiales &amp; Unités Organisationnelles</h2>
-                            <span className="section-count">{filiales.length} unité(s)</span>
+                        <div className="section-header flex justify-between items-center">
+                            <div>
+                                <h2 className="section-title">Filiales &amp; Unités Organisationnelles</h2>
+                                <span className="section-count">{filiales.length} unité(s)</span>
+                            </div>
+                            <div className="flex bg-zinc-900 rounded-lg p-1 border border-white/10">
+                                <button 
+                                    onClick={() => setViewMode('grid')}
+                                    className={`p-1.5 rounded-md transition-colors ${viewMode === 'grid' ? 'bg-cyan-500/20 text-cyan-400' : 'text-zinc-500 hover:text-zinc-300'}`}
+                                    title="Vue en grille"
+                                >
+                                    <LayoutGrid className="w-4 h-4" />
+                                </button>
+                                <button 
+                                    onClick={() => setViewMode('table')}
+                                    className={`p-1.5 rounded-md transition-colors ${viewMode === 'table' ? 'bg-cyan-500/20 text-cyan-400' : 'text-zinc-500 hover:text-zinc-300'}`}
+                                    title="Vue en tableau"
+                                >
+                                    <List className="w-4 h-4" />
+                                </button>
+                            </div>
                         </div>
 
                         {loading ? (
@@ -97,6 +129,8 @@ function ListeFiliale() {
                                 <p className="empty-state-title">Aucune filiale trouvée.</p>
                                 <p className="empty-state-subtitle">Lancez une synchronisation pour importer les données.</p>
                             </div>
+                        ) : viewMode === 'table' ? (
+                            <GenericTable columns={filialeColumns} data={filiales} />
                         ) : (
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                                 {filiales.map((f, index) => {

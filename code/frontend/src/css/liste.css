@@ -10,6 +10,17 @@
   font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   overflow: hidden;
   position: relative;
+  transition: filter 0.5s ease;
+}
+
+.device-layout[data-theme="light"] {
+  filter: invert(1) hue-rotate(180deg);
+}
+
+.device-layout[data-theme="light"] img,
+.device-layout[data-theme="light"] .avatar,
+.device-layout[data-theme="light"] .mouse-spotlight {
+  filter: invert(1) hue-rotate(180deg);
 }
 
 .device-layout::before {
@@ -182,7 +193,7 @@
   content: "";
   position: absolute;
   inset: 0;
-  background: radial-gradient(circle at top right, rgba(6, 182, 212, 0.08), transparent 70%);
+  background: var(--card-glow, radial-gradient(circle at top right, rgba(6, 182, 212, 0.08), transparent 70%));
   opacity: 0;
   transition: opacity 300ms ease;
   pointer-events: none;
@@ -190,8 +201,8 @@
 
 .device-card:hover {
   transform: translateY(-4px) scale(1.015);
-  border-color: rgba(6, 182, 212, 0.5);
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 0 20px rgba(6, 182, 212, 0.2);
+  border-color: var(--card-border-hover, rgba(6, 182, 212, 0.5)) !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 0 20px var(--card-shadow, rgba(6, 182, 212, 0.2));
 }
 
 .device-card:hover::after {

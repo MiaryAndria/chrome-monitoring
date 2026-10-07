@@ -76,11 +76,14 @@ EN_SESSION	Le crash s'est produit pendant qu'un utilisateur était connecté et 
 
 fotoana naha actif farany ny pc 
 ia integré dans le systeme d'evenement
-filtre liste deroulante 
-pagination 
-affichage lister 
-dashboard afficherna aussi nombre imprimante
-nombre evenement
-
-ao amn'event et device etc tsy atao en dur ilay zavatra reny 
-device_reseau 
+filtre dans page liste_device
+filtre liste deroulante par type_device dans page liste_device
+filtre depuis backend dans page liste_evenement
+ohatra ka miditra page ram dia raha atao filtre 6 et 7 dia somme ny valeur aniny no afficherna
+filtre par date liste_evenement
+ao amn'event et device etc dans python ao amn'google_api tsy atao en dur ilay zavatra reny 
+creation table device_reseau 
+mise à jour receuille device et imprimante si possible asina intervalle aussi comme ça afaka recupererna ny taloha
+intervalle de recuperation atao anaty base 
+intervalle de synchronisation ko 
+pk 1.20 dans graph ram pas max
