@@ -23,7 +23,7 @@ import StorageTab from './detail/storage_tab';
 import BatteryTab from './detail/battery_tab';
 import NetworkTab from './detail/network_tab';
 import PeripheriquesTab from './detail/peripherique_tab';
-import DateFilter from "./detail/dateFilter";
+import DateFilter from "../component/dateFilter";
 
 const TYPE_RAPPORT_NAME = {
     cpu: 'CPU_STATUS',

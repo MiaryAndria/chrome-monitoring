@@ -28,23 +28,7 @@ const STATUS_STYLES = [
 
 export const getStatusStyle = (index) => STATUS_STYLES[index % STATUS_STYLES.length];
 
-export const synchData = async () => {
-    try {
-        const response = await api_service.post('/device/synch');
-        return response;
-    } catch (e) {
-        console.log(e)
-    }
-};
 
-export const resetData = async () => {
-    try {
-        const response = await api_service.post('/device/reset');
-        return response;
-    } catch (e) {
-        console.log(e)
-    }
-};
 
 export const getListeDevice = async () => {
     try {

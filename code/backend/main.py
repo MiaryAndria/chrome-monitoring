@@ -1,5 +1,5 @@
 # from backend.google_api.devices import get_credentials, get_devices
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 # from backend.google_api.devices import get_devices,get_credentials,get_telemetry_devices,get_telemetry_events
 from backend.fonction.metier.controller.user_controller import router as user_router
@@ -10,7 +10,8 @@ from backend.fonction.metier.controller.statut_controller import router as statu
 from backend.fonction.metier.controller.rapport_controller import router as rapport_router
 from backend.fonction.metier.controller.imprimante_controller import router as imprimante_router
 from backend.fonction.metier.controller.evenement_controller import router as evenement_router
-
+from backend.fonction.metier.service.import_service import synchroniser_tout
+from backend.fonction.metier.service.reset_service import reset_data
 
 app = FastAPI()
 
@@ -35,6 +36,22 @@ def accueil():
     return {
         "message": "Bienvenue sur mon API"
     }
+
+@app.post("/synch")
+def synchDevices():
+    try:
+        synchroniser_tout()
+        return {"message": "Synchronisation terminée avec succès"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/reset")
+def resetAll():
+    try:
+        reset_data()
+        return {"message": "Suppression terminée avec succès"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
     
 # @app.get("/liste/device")
 # def getListe():

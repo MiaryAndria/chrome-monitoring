@@ -1,13 +1,17 @@
 import { useEffect, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { Server, Laptop, Network, User, Users, X, Copy, Check, LayoutGrid, List } from 'lucide-react';
-import Sidebar from "../../components/Sidebar";
-import Navbar from "../../components/Navbar";
-import MouseSpotlight from "../../components/MouseSpotlight";
+import { Laptop, Network, User, Users, X, Copy, Check } from 'lucide-react';
 import GenericTable from "../../components/GenericTable";
+import PageLayout from "../../components/PageLayout";
+import EmptyState from "../../components/EmptyState";
+import FilialeDropdown from "../component/FilialeDropdown";
+import StatutDropdown from "../component/StatutDropdown";
+import ResetFiltreButton from "../component/ResetFiltreButton";
+import ViewModeToggle from "../component/ViewModeToggle";
 import '../../css/liste.css';
 import '../../css/filiale.css';
-import { getListeDevice, getBadgeClass, searchDevices } from "../../fonction/deviceFonction";
+import { getListeDevice, getBadgeClass, searchDevices, getListeStatut } from "../../fonction/deviceFonction";
+import { getListeFiliale } from "../../fonction/filialeFonction";
 
 function ListeDevice() {
     const navigate = useNavigate();
@@ -15,13 +19,21 @@ function ListeDevice() {
     const filterStatus = searchParams.get("status");
     const filterType = searchParams.get("type");
     const filterSearch = searchParams.get("search");
-
+    
     const [device, setDevice] = useState([]);
     const [loading, setLoading] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
     const [selectedDevice, setSelectedDevice] = useState(null);
     const [copiedSN, setCopiedSN] = useState(null);
     const [viewMode, setViewMode] = useState('grid');
+
+    // Filtre filiale
+    const [listeFiliales, setListeFiliales] = useState([]);
+    const [filiale, setFiliale] = useState("");
+
+    // Filtre statut
+    const [listeStatuts, setListeStatuts] = useState([]);
+    const [statut, setStatut] = useState("");
 
     const deviceColumns = [
         { header: "Modèle", accessor: "modele" },
@@ -30,16 +42,54 @@ function ListeDevice() {
         { header: "Adresse IP", render: (d) => <span className="font-mono text-zinc-400">{d.ip_adress || 'N/A'}</span> },
         { header: "OS", accessor: "chromeos_version" },
         { header: "Assigné à", accessor: "utilisateur_email" },
-        { header: "Actions", render: (d) => (
-            <div className="flex gap-2">
-                <button onClick={() => navigate(`/device/${d.id || d.id_device}`)} className="px-3 py-1.5 text-xs font-semibold text-zinc-300 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 rounded-xl transition-all">
-                    Détails
-                </button>
-            </div>
-        ) }
+        {
+            header: "Actions", render: (d) => (
+                <div className="flex gap-2">
+                    <button onClick={() => navigate(`/device/${d.id || d.id_device}`)} className="px-3 py-1.5 text-xs font-semibold text-zinc-300 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 rounded-xl transition-all">
+                        Détails
+                    </button>
+                </div>
+            )
+        }
     ];
 
     const deviceParPage = 8;
+
+    const getStatut = async () => {
+        try {
+            const data = await getListeStatut();
+            setListeStatuts(data || []);
+        } catch (e) {
+            console.log(e);
+        }
+    };
+
+    const getFiliale = async () => {
+        try {
+            const data = await getListeFiliale();
+            setListeFiliales(data || []);
+        } catch (e) {
+            console.log(e);
+        }
+    };
+
+    useEffect(() => {
+        getFiliale();
+        getStatut();
+    }, []);
+
+    // Revenir à la page 1 quand un filtre change
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [filiale, statut]);
+
+    const filtresActifs = filiale !== "" || statut !== "";
+
+    const reinitialiserFiltres = () => {
+        setFiliale("");
+        setStatut("");
+        setCurrentPage(1);
+    };
 
     const filteredDevices = device.filter(d => {
         if (filterStatus) {
@@ -50,6 +100,10 @@ function ListeDevice() {
             const t = (d.type_appareil || d.nom_type || d.modele || '').toUpperCase();
             if (!t.includes(filterType.toUpperCase())) return false;
         }
+        // Filtre filiale (adapte le nom du champ si besoin)
+        if (filiale && (d.filiale ?? d.org_unit_path) !== filiale) return false;
+        // AJOUT : filtre statut
+        if (statut && (d.status || d.nom_statut || '').toUpperCase() !== statut.toUpperCase()) return false;
         return true;
     });
 
@@ -69,7 +123,7 @@ function ListeDevice() {
         try {
             setLoading(true);
             let d;
-            
+
             if (filterSearch) {
                 d = await searchDevices(filterSearch);
             } else {
@@ -87,42 +141,34 @@ function ListeDevice() {
     }, [filterSearch, filterStatus, filterType]);
 
     return (
-        <div className="device-layout" data-theme="dark">
-            <MouseSpotlight />
+        <PageLayout
+            title="Appareils"
+            subtitle="Parc informatique et statuts associés"
+            titleIcon={Laptop}
+            contentClassName="space-y-6"
+            headerRight={<ViewModeToggle viewMode={viewMode} setViewMode={setViewMode} />}
+        >
 
-            <Sidebar />
+                    {/* Filtres : filiale + statut */}
+                    <div className="glass-panel rounded-2xl p-5 relative z-50">
+                        <div className="flex flex-wrap items-center gap-3">
+                            <span className="text-[10px] text-zinc-500 uppercase font-semibold tracking-wider">Filiale :</span>
 
-            <div className="flex-1 flex flex-col h-screen overflow-hidden relative z-10">
-                <div className="bg-glow-cyan"></div>
-                <div className="bg-glow-purple"></div>
+                            <FilialeDropdown
+                                listeFiliales={listeFiliales}
+                                filiale={filiale}
+                                setFiliale={setFiliale}
+                            />
 
-                <Navbar />
+                            <span className="text-[10px] text-zinc-500 uppercase font-semibold tracking-wider ml-2">Statut :</span>
 
-                <div className="flex-1 overflow-y-auto p-6 lg:p-8 space-y-6 z-10">
-                    
-                    {/* En-tête avec bouton de vue */}
-                    <div className="flex justify-between items-center bg-zinc-900/40 p-4 rounded-xl border border-white/5">
-                        <div>
-                            <h1 className="text-xl font-bold text-zinc-100 flex items-center gap-2">
-                                <Laptop className="w-5 h-5 text-cyan-400" />
-                                Appareils
-                            </h1>
-                        </div>
-                        <div className="flex bg-zinc-900 rounded-lg p-1 border border-white/10">
-                            <button 
-                                onClick={() => setViewMode('grid')}
-                                className={`p-1.5 rounded-md transition-colors ${viewMode === 'grid' ? 'bg-cyan-500/20 text-cyan-400' : 'text-zinc-500 hover:text-zinc-300'}`}
-                                title="Vue en grille"
-                            >
-                                <LayoutGrid className="w-4 h-4" />
-                            </button>
-                            <button 
-                                onClick={() => setViewMode('table')}
-                                className={`p-1.5 rounded-md transition-colors ${viewMode === 'table' ? 'bg-cyan-500/20 text-cyan-400' : 'text-zinc-500 hover:text-zinc-300'}`}
-                                title="Vue en tableau"
-                            >
-                                <List className="w-4 h-4" />
-                            </button>
+                            <StatutDropdown
+                                listeStatuts={listeStatuts}
+                                statut={statut}
+                                setStatut={setStatut}
+                            />
+
+                            <ResetFiltreButton actif={filtresActifs} onClick={reinitialiserFiltres} />
                         </div>
                     </div>
 
@@ -132,13 +178,11 @@ function ListeDevice() {
                                 <span className="loading loading-infinity loading-lg text-cyan-500"></span>
                             </div>
                         ) : currentDevices.length === 0 ? (
-                            <div className="empty-state">
-                                <Laptop className="empty-state-icon" />
-                                <p className="empty-state-title">Aucun appareil trouvé</p>
-                                <p className="empty-state-subtitle">
-                                    {filterSearch || filterStatus || filterType ? "Modifiez vos filtres" : "Aucune donnée disponible"}
-                                </p>
-                            </div>
+                            <EmptyState
+                                icon={Laptop}
+                                title="Aucun appareil trouvé"
+                                subtitle={filterSearch || filterStatus || filterType || filtresActifs ? "Modifiez vos filtres" : "Aucune donnée disponible"}
+                            />
                         ) : viewMode === 'table' ? (
                             <GenericTable columns={deviceColumns} data={currentDevices} />
                         ) : (
@@ -183,12 +227,28 @@ function ListeDevice() {
                                                     </div>
                                                 </div>
                                                 <div className="flex justify-between">
+                                                    <span>Filiale</span>
+                                                    <span className="text-zinc-300 font-mono">{d.filiale}</span>
+                                                </div>
+                                                <div className="flex justify-between">
                                                     <span>Création/Synchro</span>
                                                     <span className="text-zinc-300 font-mono">{d.date}</span>
                                                 </div>
                                                 <div className="flex justify-between">
                                                     <span>OS</span>
                                                     <span className="text-zinc-300">{d.chromeos_version}</span>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                    <span>Chrome</span>
+                                                    <span className="text-zinc-300">{d.chrome_version || 'N/A'}</span>
+                                                </div>
+                                                <div className="flex justify-between mt-2 pt-2 border-t border-white/5">
+                                                    <span className="flex items-center gap-1">
+                                                        <Network className="w-3 h-3" /> MAC
+                                                    </span>
+                                                    <span className="text-zinc-300 font-mono truncate max-w-[140px]">
+                                                        {d.mac_adress || 'N/A'}
+                                                    </span>
                                                 </div>
                                                 <div className="flex justify-between mt-2 pt-2 border-t border-white/5">
                                                     <span className="flex items-center gap-1"><User className="w-3 h-3" /> Assigné</span>
@@ -243,9 +303,6 @@ function ListeDevice() {
                             </button>
                         </div>
                     )}
-
-                </div>
-            </div>
 
             {selectedDevice && (
                 <div className="modal-overlay" onClick={() => setSelectedDevice(null)}>
@@ -317,7 +374,7 @@ function ListeDevice() {
                     </div>
                 </div>
             )}
-        </div>
+        </PageLayout>
     );
 }
 

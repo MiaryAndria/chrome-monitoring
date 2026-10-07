@@ -5,6 +5,9 @@ import Sidebar from "../../components/Sidebar";
 import Navbar from "../../components/Navbar";
 import MouseSpotlight from "../../components/MouseSpotlight";
 import '../../css/liste.css';
+import StatutDropdown from "../component/StatutDropdown";
+import ResetFiltreButton from "../component/ResetFiltreButton";
+import { getListeStatut } from "../../fonction/deviceFonction";
 import '../../css/filiale.css';
 import { getDevicesByFiliale, getListeFiliale } from "../../fonction/filialeFonction";
 import { getBadgeClass } from "../../fonction/deviceFonction";
@@ -12,7 +15,8 @@ import { getBadgeClass } from "../../fonction/deviceFonction";
 function ListeDeviceFiliale() {
     const { id_filiale } = useParams();
     const navigate = useNavigate();
-
+    const [listeStatuts, setListeStatuts] = useState([]);
+    const [statut, setStatut] = useState("");
     const [devices, setDevices] = useState([]);
     const [filialeInfo, setFilialeInfo] = useState(null);
     const [loading, setLoading] = useState(false);
@@ -20,10 +24,35 @@ function ListeDeviceFiliale() {
     const [selectedDevice, setSelectedDevice] = useState(null);
     const [copiedSN, setCopiedSN] = useState(null);
 
+    const getStatut = async () => {
+        try {
+            const data = await getListeStatut();
+            setListeStatuts(data || []);
+        } catch (e) {
+            console.log(e);
+        }
+    };
+
+    useEffect(() => {
+        getStatut();
+    }, []);
+
+    const filtresActifs = statut !== "";
+
+    const reinitialiserFiltres = () => {
+        setStatut("");
+        setCurrentPage(1);
+    };
+
+    const filteredDevices = devices.filter(d => {
+        if (statut && (d.status || d.nom_statut || '').toUpperCase() !== statut.toUpperCase()) return false;
+        return true;
+    });
+
     const deviceParPage = 8;
     const indexLastDevice = currentPage * deviceParPage;
     const indexFirstDevice = indexLastDevice - deviceParPage;
-    const currentDevices = devices.slice(indexFirstDevice, indexLastDevice);
+    const currentDevices = filteredDevices.slice(indexFirstDevice, indexLastDevice);
     const totalPages = Math.ceil(devices.length / deviceParPage) || 1;
 
     const handleCopySN = (serialNumber) => {
@@ -41,7 +70,6 @@ function ListeDeviceFiliale() {
                 const current = filiales.find(f => f.id === parseInt(id_filiale));
                 if (current) setFilialeInfo(current);
             }
-
             const data = await getDevicesByFiliale(id_filiale);
             setDevices(data || []);
         } catch (e) {
@@ -92,6 +120,19 @@ function ListeDeviceFiliale() {
                             ) : (
                                 `Filiale #${id_filiale}`
                             )}
+                        </div>
+                    </div>
+
+                    <div className="glass-panel rounded-2xl p-5 relative z-50">
+                        <div className="flex flex-wrap items-center gap-3">
+                            <span className="text-[10px] text-zinc-500 uppercase font-semibold tracking-wider">Statut :</span>
+                            <StatutDropdown
+                                listeStatuts={listeStatuts}
+                                statut={statut}
+                                setStatut={setStatut}
+                            />
+
+                            <ResetFiltreButton actif={filtresActifs} onClick={reinitialiserFiltres} />
                         </div>
                     </div>
 

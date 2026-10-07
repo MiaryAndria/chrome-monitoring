@@ -7,7 +7,8 @@ from .imprimante import (
 
 from .imprimante_device import (
     insert_imprimante_device,
-    get_liste_imprimante_device_by_id_device_id_imprimante
+    get_liste_imprimante_device_by_id_device_id_imprimante,
+    get_imprimante_device_by_id_imprimante
 )   
 
 from .imprimante_user import (

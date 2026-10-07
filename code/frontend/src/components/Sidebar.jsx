@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useLocation, Link } from 'react-router-dom';
-import { resetData, synchData } from '../fonction/deviceFonction';
+import { resetData,synchData } from '../fonction/importResetFonction';
 import {
 Building2,
     Laptop,

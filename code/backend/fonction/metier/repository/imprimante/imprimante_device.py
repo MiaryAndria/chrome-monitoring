@@ -26,6 +26,15 @@ def get_devices_by_imprimante(cur,id_imprimante):
     result = cur.fetchall()
     return result
 
+def get_imprimante_device_by_id_imprimante(cur,id_imprimante):
+    cur.execute (
+    """
+    SELECT * FROM t_imprimante_device where id_imprimante =%s
+    """,(id_imprimante)
+    )
+    result = cur.fetchone()
+    return result
+
 def get_imprimantes_by_device(cur,id_device):
     cur.execute(
         """
@@ -79,11 +88,12 @@ def get_historique_imprimante_device(cur,id_imprimante,id_device):
     result = cur.fetchall()
     return result
 
-def insert_imprimante_device(cur,id_imprimante,id_device,date):
-    cur.execute(
-    """
-    INSERT INTO t_imprimante_device (id_imprimante,id_device,date)
-    VALUES (%s, %s, %s)
-    """,(id_imprimante,id_device,date)
-    )
+def insert_imprimante_device(cur, id_imprimante, id_device, date):
+    cur.execute("""
+        INSERT INTO t_imprimante_device (id_imprimante, id_device, date)
+        VALUES (%s, %s, %s)
+        ON CONFLICT (id_imprimante, id_device, date) DO NOTHING
+        RETURNING id
+    """, (id_imprimante, id_device, date))
+    return cur.fetchone() is not None  
 

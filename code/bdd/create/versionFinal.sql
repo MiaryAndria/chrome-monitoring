@@ -137,7 +137,8 @@ CREATE TABLE t_rapport_device (
     id_device INT NOT NULL REFERENCES t_device(id),
     id_type_rapport INT NOT NULL REFERENCES t_type_rapport(id),
     report_time TIMESTAMPTZ NOT NULL,
-    donnees JSONB NOT NULL
+    donnees JSONB NOT NULL 
+    UNIQUE(id_device,id_type_rapport,report_time)
 );
 
 -- CREATE TABLE t_version_report (
@@ -174,7 +175,7 @@ CREATE TABLE t_imprimante_device (
     id_imprimante INT NOT NULL REFERENCES t_imprimante(id),
     id_device INT NOT NULL REFERENCES t_device(id),
     date TIMESTAMPTZ DEFAULT NOW()
-    UNIQUE (id_imprimante, id_device)
+    UNIQUE (id_imprimante, id_device,date)
 );
 
 CREATE TABLE t_imprimante_user(
@@ -182,7 +183,7 @@ CREATE TABLE t_imprimante_user(
     id_imprimante INT NOT NULL REFERENCES t_imprimante(id),
     id_utilisateur INT NOT NULL REFERENCES t_utilisateur(id),
     date TIMESTAMPTZ DEFAULT NOW(),
-    UNIQUE(id_imprimante,id_utilisateur)
+    UNIQUE(id_imprimante,id_utilisateur,date)
 );
 
 CREATE TABLE t_alerte (
@@ -249,3 +250,8 @@ alter table t_imprimante_device drop column date_premiere_detection;
 alter table t_imprimante_device add column date TIMESTAMPTZ DEFAULT NOW();
 ALTER TABLE t_device_historique drop column date_mise_a_jour;
 ALTER TABLE t_rapport_device ADD CONSTRAINT uq_rapport_device_type_time UNIQUE (id_device, id_type_rapport, report_time);
+ALTER TABLE t_imprimante_device
+ALTER TABLE t_imprimante_device ADD CONSTRAINT uq_imprimante_device_date UNIQUE (id_imprimante, id_device, date);
+ALTER TABLE t_imprimante_user ADD CONSTRAINT uq_imprimante_user UNIQUE (id_imprimante, id_utilisateur, date);
+ALTER TABLE t_imprimante_device DROP CONSTRAINT t_imprimante_device_id_imprimante_id_device_key;
+ALTER TABLE t_imprimante_user DROP CONSTRAINT t_imprimante_user_id_imprimante_id_utilisateur_key;

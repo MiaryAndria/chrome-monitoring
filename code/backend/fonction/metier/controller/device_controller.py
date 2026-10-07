@@ -1,32 +1,10 @@
 from typing import List
 from fastapi import APIRouter, HTTPException,Query
 from backend.fonction.metier.models.device import DeviceResponses
-from backend.fonction.metier.service.device_service import synchroniser_tout,reset_data,getListeDevice,getDeviceFiltered
-from backend.fonction.metier.service.device_service import getDeviceDetail
+from backend.fonction.metier.service.device_service import getListeDevice,getDeviceFiltered,getDeviceDetail
 import traceback
 
 router = APIRouter()
-
-@router.post("/synch")
-def synchDevices():
-    try:
-        synchroniser_tout()
-        return {"message": "Synchronisation terminée avec succès"}
-    except Exception as e:
-        print('Erreur synchronisation')
-        print('cause:',str(e))
-        traceback.print_exc
-        raise HTTPException(status_code=500, detail=str(e))
-
-    
-@router.post("/reset")
-def resetAll():
-    try:
-        reset_data()
-        return {"message": "Suppression terminée avec succès"}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
 
 @router.get("/liste", response_model=List[DeviceResponses])
 def getListe():

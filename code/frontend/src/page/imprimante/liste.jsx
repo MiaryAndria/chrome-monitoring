@@ -1,11 +1,10 @@
 import { useEffect, useState } from "react";
-import { Printer, Search, RefreshCw, LayoutGrid, List } from "lucide-react";
-import Sidebar from "../../components/Sidebar";
-import Navbar from "../../components/Navbar";
-import MouseSpotlight from "../../components/MouseSpotlight";
+import { Printer, Search, LayoutGrid, List } from "lucide-react";
 import GenericTable from "../../components/GenericTable";
+import PageLayout from "../../components/PageLayout";
+import EmptyState from "../../components/EmptyState";
 import { getListeImprimante } from "../../fonction/imprimanteFonction";
-import ImprimanteCard from "./component_imprimante";
+import ImprimanteCard from "../component/component_imprimante";
 import '../../css/liste.css';
 import '../../css/filiale.css';
 
@@ -62,31 +61,14 @@ function ListeImprimante() {
     const currentItems = filtered.slice(indexOfFirstItem, indexOfLastItem);
 
     return (
-        <div className="device-layout" data-theme="dark">
-            <MouseSpotlight />
-            <Sidebar />
-
-            <div className="flex-1 flex flex-col h-screen overflow-hidden relative z-10">
-                <div className="bg-glow-cyan"></div>
-                <div className="bg-glow-purple"></div>
-                <Navbar />
-
-                <div className="flex-1 overflow-y-auto p-6 lg:p-8 space-y-8 z-10">
-                    {/* Header */}
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                        <div>
-                            <h1 className="text-3xl font-bold tracking-tight text-zinc-100 flex items-center gap-3">
-                                <Printer className="w-8 h-8 text-amber-400" />
-                                Imprimantes
-                            </h1>
-                            <p className="text-zinc-400 mt-2 font-medium tracking-wide">
-                                Périphériques d'impression détectés sur le parc
-                            </p>
-                        </div>
-                    </div>
-
-                    {/* Recherche */}
-                    <div className="glass-panel rounded-2xl p-5">
+        <PageLayout
+            title="Imprimantes"
+            subtitle="Périphériques d'impression détectés sur le parc"
+            titleIcon={Printer}
+            contentClassName="space-y-8"
+        >
+            {/* Recherche */}
+            <div className="glass-panel rounded-2xl p-5">
                         <div className="relative max-w-md">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
                             <input type="text" placeholder="Rechercher par fabricant, nom, VID, PID..."
@@ -101,18 +83,13 @@ function ListeImprimante() {
                             <span className="loading loading-infinity loading-lg text-amber-500"></span>
                         </div>
                     ) : error ? (
-                        <div className="empty-state">
-                            <Printer className="empty-state-icon" />
-                            <p className="empty-state-title">{error}</p>
-                        </div>
+                        <EmptyState icon={Printer} title={error} />
                     ) : filtered.length === 0 ? (
-                        <div className="empty-state">
-                            <Printer className="empty-state-icon" />
-                            <p className="empty-state-title">Aucune imprimante trouvée</p>
-                            <p className="empty-state-subtitle">
-                                {search ? "Modifiez votre recherche" : "Aucune donnée disponible"}
-                            </p>
-                        </div>
+                        <EmptyState
+                            icon={Printer}
+                            title="Aucune imprimante trouvée"
+                            subtitle={search ? "Modifiez votre recherche" : "Aucune donnée disponible"}
+                        />
                     ) : (
                         <>
                             <div className="section-header flex justify-between items-center">
@@ -174,9 +151,7 @@ function ListeImprimante() {
                             )}
                         </>
                     )}
-                </div>
-            </div>
-        </div>
+            </PageLayout>
     );
 }
 
