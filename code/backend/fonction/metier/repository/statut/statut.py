@@ -52,3 +52,7 @@ def get_status_actuel_device(cur, id_device):
     )
     result = cur.fetchone()
     return result[0] if result else "UNKNOWN"
+
+def get_statut_id_by_nom(cur, nom):
+    cur.execute("SELECT id FROM t_statut WHERE nom = %s", (nom,))
+    return cur.fetchone()[0]

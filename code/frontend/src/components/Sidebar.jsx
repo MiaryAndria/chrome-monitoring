@@ -29,22 +29,25 @@ export default function Sidebar() {
         // { path: '/dashboard', label: 'Alertes', icon: Bell },
         // { path: '/dashboard', label: 'Statistiques', icon: TrendingUp },
         // { path: '/dashboard', label: 'Comparaison', icon: GitCompare },
-        // { path: '/dashboard', label: 'Configuration', icon: Settings },
+        { path: '/liste/configuration', label: 'Configuration', icon: Settings },
+        { path: '/creer/configuration', label: 'Configuration Creer', icon: Settings },
+        { path: '/liste/configuration/archive', label: 'Configuration Archiver', icon: Settings },
+
     ];
 
-    const synch = async () => {
-        try {
-            setLoading(true);
-            setMessage("Synchronisation des données en cours...");
-            await synchData();
-            window.location.reload();
-        } catch (e) {
-            console.log(e);
-        } finally {
-            setLoading(false);
-            setMessage("");
-        }
-    };
+    // const synch = async () => {
+    //     try {
+    //         setLoading(true);
+    //         setMessage("Synchronisation des données en cours...");
+    //         await synchData();
+    //         window.location.reload();
+    //     } catch (e) {
+    //         console.log(e);
+    //     } finally {
+    //         setLoading(false);
+    //         setMessage("");
+    //     }
+    // };
 
     const resetAll = async () => {
         if (!window.confirm("Êtes-vous sûr de vouloir réinitialiser toutes les données ?")) return;
@@ -97,7 +100,7 @@ export default function Sidebar() {
                 </div>
 
                 <div className="p-3 border-t border-white/5 space-y-2">
-                    <button
+                    {/* <button
                         onClick={synch}
                         disabled={loading}
                         className="w-full px-3 py-2 text-xs font-semibold text-cyan-400 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 hover:border-cyan-500/50 rounded-xl transition-all flex items-center justify-center lg:justify-start gap-2 cursor-pointer disabled:opacity-50"
@@ -105,7 +108,7 @@ export default function Sidebar() {
                     >
                         <RefreshCw className={`w-4 h-4 text-cyan-400 ${loading ? 'animate-spin' : ''}`} />
                         <span className="hidden lg:block truncate">Synchroniser données</span>
-                    </button>
+                    </button> */}
 
                     <button
                         onClick={resetAll}

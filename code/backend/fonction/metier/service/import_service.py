@@ -1,10 +1,18 @@
 import json
+import time
+from concurrent.futures import ThreadPoolExecutor
+from contextlib import contextmanager
 from datetime import datetime
+from backend.utils.chrono import chrono
+
+def _appel_chrono(etapes, label, callback, *args):
+    with chrono(label, etapes):
+        return callback(*args)
 
 from backend.fonction.conn.connexion import get_connection, close_connection
 from backend.google_api.devices import get_credential, get_devices, get_telemetry_devices
 from backend.google_api.print import extract_printers_from_telemetry
-from backend.google_api.event import get_crash_incidents
+from backend.google_api.event import fetch_crash_sources, build_crash_incidents
 from backend.fonction.metier.repository.devices import (
     insert_device,
     update_device,
@@ -38,6 +46,19 @@ from backend.fonction.metier.repository.reseau import get_or_create_reseau, inse
 from backend.utils.format_valeur import _to_int, format_bytes
 from backend.utils.format_date import parse_date_safe
 from backend.fonction.metier.repository.devices.device_utilisateur_recent import get_utilisateur_recent_by_device
+
+
+# @contextmanager
+# def chrono(label):
+#     start = time.perf_counter()
+#     yield
+#     elapsed = time.perf_counter() - start
+#     print(f"[{label}] {elapsed:.2f}s")
+
+
+# def _appel_chrono(label, callback, *args, **kwargs):
+#     with chrono(label):
+#         return callback(*args, **kwargs)
 
 
 def insertion_device(cur, dvc_list):
@@ -331,31 +352,109 @@ def insert_event(cur, crashes_data):
         create_evenement_device(cur, id_device, id_type_evenement, date_evenement, details_json)
 
 
-def synchroniser_tout():
+# def synchroniser_tout(debut=None, fin=None):
+#     print(" Démarrage de la synchronisation...")
+#     credential = get_credential()
+
+#     connexion = get_connection()
+#     if connexion is None:
+#         print(" Connexion BDD impossible")
+#         return 0
+
+#     try:
+#         with chrono("Google TOTAL (parallèle)"):
+#             with ThreadPoolExecutor(max_workers=3) as pool:
+#                 f_dev = pool.submit(_appel_chrono, "Google devices", get_devices, credential)
+#                 f_tel = pool.submit(_appel_chrono, "Google télémétrie", get_telemetry_devices, credential)
+#                 f_crash = pool.submit(_appel_chrono, "Google crashs + contexte",
+#                                       fetch_crash_sources, credential, debut)
+#                 dvc_list = f_dev.result()
+#                 telemetry_devices_list = f_tel.result()
+#                 events, ctx = f_crash.result()
+
+#         with chrono("Enrichissement crashs"):
+#             crashes_data = build_crash_incidents(events, ctx, dvc_list, telemetry_devices_list, debut)
+
+#         cur = connexion.cursor()
+#         nb_lignes = 0
+
+#         print('Insertion device')
+#         insertion_device(cur, dvc_list)
+#         nb_lignes += len(dvc_list) if isinstance(dvc_list, list) else 0
+
+#         print('Insertion telemetry')
+#         insert_telemetry(cur, telemetry_devices_list)
+#         nb_lignes += len(telemetry_devices_list) if isinstance(telemetry_devices_list, list) else 0
+
+#         print('Insertion imprimante')
+#         insert_imprimante(cur, telemetry_devices_list)
+
+#         print('Insertion evenement')
+#         insert_event(cur, crashes_data)
+#         if isinstance(crashes_data, dict):
+#             nb_lignes += len(crashes_data.get('evenements', []))
+#         elif isinstance(crashes_data, list):
+#             nb_lignes += len(crashes_data)
+
+#         connexion.commit()
+#         print("\n Synchronisation complète terminée et validée en BDD !")
+#         return nb_lignes
+#     except Exception as e:
+#         connexion.rollback()
+#         print(f"\n Erreur pendant la synchronisation : {e}")
+#         return 0
+#     finally:
+#         close_connection(connexion)
+
+def synchroniser_tout(debut=None, fin=None, suivi=None):
+    suivi = suivi if suivi is not None else {}
+    etapes = suivi.setdefault("etapes_s", {})
+    compteurs = suivi.setdefault("compteurs", {})
+
     print(" Démarrage de la synchronisation...")
-    credential = get_credential()
-    dvc_list = get_devices(credential)
-    telemetry_devices_list = get_telemetry_devices(credential)
+    with chrono("google_credential", etapes):
+        credential = get_credential()
 
     connexion = get_connection()
     if connexion is None:
-        print(" Connexion BDD impossible")
-        return None
-    cur = connexion.cursor()
-    crashes_data = get_crash_incidents(credential)
+        raise RuntimeError("Connexion BDD impossible")
+
     try:
-        print('Insertion device')
-        insertion_device(cur, dvc_list)
-        print('Insertion telemetry')
-        insert_telemetry(cur, telemetry_devices_list)
-        print('Insertion imprimante')
-        insert_imprimante(cur, telemetry_devices_list)
-        print('Insertion evenement')
-        insert_event(cur, crashes_data)
-        connexion.commit()
+        with chrono("google_total_parallele", etapes):
+            with ThreadPoolExecutor(max_workers=3) as pool:
+                f_dev = pool.submit(_appel_chrono, etapes, "google_devices", get_devices, credential)
+                f_tel = pool.submit(_appel_chrono, etapes, "google_telemetrie", get_telemetry_devices, credential)
+                f_crash = pool.submit(_appel_chrono, etapes, "google_crashs",
+                                      fetch_crash_sources, credential, debut)
+                dvc_list = f_dev.result()
+                telemetry_devices_list = f_tel.result()
+                events, ctx = f_crash.result()
+
+        with chrono("enrichissement_crashs", etapes):
+            crashes_data = build_crash_incidents(events, ctx, dvc_list, telemetry_devices_list, debut)
+
+        cur = connexion.cursor()
+
+        nb_dev = len(dvc_list) if isinstance(dvc_list, list) else 0
+        nb_tel = len(telemetry_devices_list) if isinstance(telemetry_devices_list, list) else 0
+        evenements = crashes_data.get("evenements", []) if isinstance(crashes_data, dict) else (crashes_data or [])
+        compteurs.update({"devices": nb_dev, "telemetrie": nb_tel, "evenements": len(evenements)})
+
+        with chrono("db_devices", etapes):
+            insertion_device(cur, dvc_list)
+        with chrono("db_telemetrie", etapes):
+            insert_telemetry(cur, telemetry_devices_list)
+        with chrono("db_imprimantes", etapes):
+            insert_imprimante(cur, telemetry_devices_list)
+        with chrono("db_evenements", etapes):
+            insert_event(cur, crashes_data)
+        with chrono("db_commit", etapes):
+            connexion.commit()
+
         print("\n Synchronisation complète terminée et validée en BDD !")
-    except Exception as e:
+        return nb_dev + nb_tel + len(evenements)
+    except Exception:
         connexion.rollback()
-        print(f"\n Erreur pendant la synchronisation : {e}")
+        raise
     finally:
         close_connection(connexion)

@@ -6,3 +6,6 @@ from .statut import (
     insert_device_statut,
     get_status_actuel_device,
 )
+
+# Compatibilité avec anciens imports
+get_statut_id_by_nom = get_or_create_statut

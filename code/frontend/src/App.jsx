@@ -7,6 +7,9 @@ import ListeDeviceFiliale from './page/filiale/liste_device'
 import DetailDevice from './page/device/detail_device'
 import ListeEvent from './page/event/liste'
 import ListeImprimante from './page/imprimante/liste'
+import ConfigurationCreate from './page/configuration/create'
+import ConfigurationListe from './page/configuration/liste'
+import archivedConfiguration from './page/configuration/archived'
 
 function App() {
   return (
@@ -21,6 +24,9 @@ function App() {
           <Route path="/device/:id" element={<DetailDevice />} />
           <Route path="/liste/event" element={<ListeEvent />} />
           <Route path="/imprimantes" element={<ListeImprimante />} />
+          <Route path="/creer/configuration" element={<createConfiguration />} />
+          <Route path="/liste/configuration" element={<getListeConfiguration/>} />
+          <Route path="/liste/configuration/archive" element={<archivedConfiguration/>} />
         </Routes>
       </main>
   )

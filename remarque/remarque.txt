@@ -84,4 +84,9 @@ mise à jour receuille device et imprimante si possible asina intervalle aussi c
 
 intervalle de recuperation atao anaty base 
 intervalle de synchronisation ko 
-pk 1.20 dans graph ram pas max
+dans graph ram ça devrait etre max 
+filtre atao de côté backend daholo dia chargerna par 10 ou par 5 par page ny donnée comme ça efa misy donnée mipotra eo pendant donnée sasany micharge
+fonctionnalité export liste utilisateur chromebox ou chromebook en utilisant id_device
+get_devices et get_telemetry_devices ne reçoivent pas debut. Ils récupèrent tous les appareils à chaque tour (d’où ~1160 lignes constantes)
+mettre toutes les filtres dans backend pour rapidité 
+

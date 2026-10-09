@@ -75,3 +75,4 @@ En résumé :
 La Navbar ne fait que passer le relais en écrivant la recherche dans l'URL. C'est la page liste.jsx qui attrape le mot clé dans l'URL et appelle votre fonction searchDevices !
 
 4:24 PM
+

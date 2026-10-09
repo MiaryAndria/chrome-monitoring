@@ -1,7 +1,3 @@
-from backend.fonction.conn.connexion import get_connection
-
-
-
 def get_liste_utilisateur(cur):
 
     cur.execute("""

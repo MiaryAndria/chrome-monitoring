@@ -1,7 +1,3 @@
-from backend.fonction.conn.connexion import get_connection
-connexion = get_connection()
-cur=connexion.cursor()
-
 def get_liste_filiale_utilisateur (cur):
     cur.execute(
     """

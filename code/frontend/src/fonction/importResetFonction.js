@@ -1,3 +1,4 @@
+import api_service from "../api/api_service";
 export const synchData = async () => {
     try {
         const response = await api_service.post('/synch');

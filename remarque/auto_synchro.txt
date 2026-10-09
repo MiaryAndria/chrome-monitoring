@@ -1,0 +1,69 @@
+Ces deux commandes préparent ta table à la nouvelle logique : une seule ligne par synchro, créée au lancement et complétée à la fin.
+
+1. ALTER COLUMN date_fin DROP NOT NULL
+
+Avant, date_fin était obligatoire (NOT NULL) parce qu'on la connaissait dès le début : c'était le now() pris au lancement.
+
+Avec ta nouvelle logique, date_fin devient l'heure de fin réelle (12:05). Or au moment où tu crées la ligne (12:02), la synchro n'est pas finie, donc tu ne connais pas encore cette date. Si la colonne restait NOT NULL, l'INSERT du lancement échouerait, car on n'a pas de valeur à y mettre.
+
+Cette commande autorise donc date_fin à être vide le temps que la synchro tourne. Elle sera remplie par l'UPDATE à la fin.
+
+Un bonus : une ligne dont date_fin reste vide est une synchro qui n'a jamais fini (plantage, arrêt brutal), ce qui est facile à repérer :
+
+sql
+SELECT * FROM t_synchronisation_historique WHERE date_fin IS NULL;
+2. UPDATE ... SET date_debut = date_fin
+
+Tes 4 lignes de test ont été créées avec l'ancienne logique :
+
+date_debut = le début de la fenêtre de données (90 jours en arrière, par exemple 2026-07-10)
+date_fin = l'heure de lancement (2026-10-08 12:02)
+
+Dans la nouvelle logique, le repère de la prochaine synchro est date_debut, et il doit contenir l'heure de lancement. Si tu avais laissé les anciennes valeurs, la requête du repère aurait lu 2026-07-10 comme dernier lancement réussi, et la prochaine synchro aurait de nouveau demandé 90 jours de données.
+
+La commande copie donc l'heure de lancement (qui était dans date_fin) dans date_debut, pour que ces anciennes lignes aient le même sens que les nouvelles.
+
+Ce que ça change concrètement
+	Avant	Après
+date_debut	début de la fenêtre de données	heure de lancement (le repère)
+date_fin	heure de lancement	heure de fin réelle, vide pendant la synchro
+
+Et la fenêtre de données demandée à Google n'est plus stockée : elle se recalcule à chaque fois (date_debut du dernier TERMINER moins la marge).
+
+Attention à un détail
+
+Seule la ligne 4 est passée à TERMINER (les lignes 2 et 3 ont planté). Le repère ne regardera donc que celle-là, ce qui est bien l'effet voulu. Pour ces 4 lignes, date_fin contient encore l'heure de lancement et non l'heure de fin réelle. Ce n'est pas grave pour des lignes de test, mais si tu veux un historique propre, tu peux les supprimer :
+
+sql
+DELETE FROM t_statut_synchronisation;
+DELETE FROM t_synchronisation_historique;
+
+Dans ce cas, la prochaine synchro refera les 90 jours, comme une première synchro.
+
+UPDATE t_synchronisation_historique SET date_debut = date_fin; 
+Cette commande servait à corriger tes 4 anciennes lignes de test, créées avec l'ancien sens des colonnes.
+
+Le problème
+
+Ton repère de la prochaine synchro est maintenant date_debut de la dernière synchro TERMINER. Mais tes anciennes lignes avaient été créées avec la logique d'avant :
+
+Colonne	Ancien sens	Exemple (ta ligne 4)
+date_debut	début de la fenêtre de données (90 jours en arrière)	2026-07-10 12:05
+date_fin	heure de lancement	2026-10-08 12:05
+
+La ligne 4 était la seule en statut TERMINER. Sans correction, la requête du repère aurait lu date_debut = 2026-07-10, et la prochaine synchro serait repartie de juillet : 90 jours retéléchargés au lieu de quelques minutes. Le repère aurait été faux.
+
+Ce que faisait la commande
+
+SET date_debut = date_fin copiait l'heure de lancement (dans date_fin) vers date_debut. Pour la ligne 4, le repère est ainsi devenu 2026-10-08 12:05, et la fenêtre suivante 12:05 - 2h, ce qui est correct.
+
+Ne la relance surtout pas maintenant
+
+C'était une correction unique, pour les lignes à l'ancien format. Toutes les lignes créées depuis ont déjà la bonne valeur dans date_debut (l'heure de lancement). Si tu la relançais :
+
+sur une synchro terminée, date_debut deviendrait l'heure de fin et tu perdrais les événements arrivés pendant la synchro ;
+sur une synchro encore en cours, date_fin est vide, donc date_debut deviendrait NULL (ou la commande échouerait à cause du NOT NULL).
+
+Si tu repars de zéro avec une base propre ou une recréation des tables, elle n'a aucune utilité : tout est créé directement avec la bonne logique.
+
+Ça reste léger : 3 jours de NETWORK_STATE_CHANGE, c'est ~3 000 événements, soit 3 pages. Si ton parc est éteint plus longtemps (vacances), relance une synchro complète à la main avec debut=None.

@@ -12,8 +12,23 @@ from backend.fonction.metier.controller.imprimante_controller import router as i
 from backend.fonction.metier.controller.evenement_controller import router as evenement_router
 from backend.fonction.metier.service.import_service import synchroniser_tout
 from backend.fonction.metier.service.reset_service import reset_data
+import logging
+import threading
+from contextlib import asynccontextmanager
+from backend.google_api.auto_synch import (demarrer_auto_synchronisation,arreter_auto_synchronisation)
 
-app = FastAPI()
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(name)s : %(message)s",
+)
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    demarrer_auto_synchronisation()
+    yield
+    arreter_auto_synchronisation()
+
+app = FastAPI(lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -22,6 +37,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 app.include_router(dashboard_router,prefix="/dashboard",tags=["dashboard"])
 app.include_router(user_router,prefix="/user",tags=["user"])
 app.include_router(device_router,prefix="/device",tags=["device"])

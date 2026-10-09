@@ -12,7 +12,7 @@ from backend.fonction.metier.service.import_service import (
 )
 
 # Pause (en secondes) entre chaque requête/étape
-PAUSE_SECONDS = 30  # mets 45 si tu veux 45s
+PAUSE_SECONDS = 60  # mets 45 si tu veux 45s
 
 
 @contextmanager

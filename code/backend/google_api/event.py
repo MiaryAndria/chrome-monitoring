@@ -16,6 +16,17 @@ from backend.utils.parser import as_list, parse_dur, parse_ts, safe_ts, flatten,
 def get_credential():
     return get_credentials(TOKEN_FILE, SCOPES)
 
+CONTEXT_LOOKBACK = timedelta(hours=24)   # le "dernier utilisateur" regarde jusqu'à 24 h avant
+def _z(dt):
+    return dt.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def _event_filter(et, cutoff, use_ts=True):
+    f = f"event_type={et}"
+    if use_ts and cutoff:
+        f += f' AND timestamp>="{cutoff}"'
+    return f
+
 BASE_DIR = Path(__file__).resolve().parents[3]
 OUTPUT_DIR = BASE_DIR / "output"
 HISTORY_FILE = OUTPUT_DIR / "history_event" / "crash_history.csv"
@@ -136,17 +147,59 @@ def device_info(directory, device_id):
 # ------------------------------------------------------------------
 # Telemetry : événements de crash
 # ------------------------------------------------------------------
-def fetch_os_crash_events(creds, directory, cutoff):
+# def fetch_os_crash_events(creds, directory, cutoff):
 
+#     svc = build("chromemanagement", "v1", credentials=creds, cache_discovery=False)
+#     out, raw = [], []
+#     for ev in paginate(
+#         svc.customers().telemetry().events().list, "telemetryEvents",
+#         parent=f"customers/{CUSTOMER_ID}",
+#         filter="event_type=OS_CRASH",
+#         readMask="name,device,user,reportTime,eventType,osCrashEvent",
+#         pageSize=100,
+#     ):
+#         t = ev.get("reportTime", "")
+#         if t < cutoff:
+#             continue
+#         raw.append(ev)
+#         dev = ev.get("device") or {}
+#         user = ev.get("user") or {}
+#         crash = ev.get("osCrashEvent") or {}
+#         out.append({
+#             "time": t,
+#             "eventName": ev.get("name"),
+#             "crashType": crash.get("crashType") or "UNKNOWN",
+#             "eventUserEmail": user.get("userEmail"),
+#             "eventUserId": user.get("userId"),
+#             "machine": dev.get("machine"),
+#             # tout autre champ renvoyé par l'API dans osCrashEvent (sessionType, etc.)
+#             **{f"crash.{k}": v for k, v in flatten(crash).items() if k != "crashType"},
+#             **device_info(directory, dev.get("deviceId")),
+#         })
+#     return out, raw
+
+def fetch_os_crash_events(creds, directory, cutoff):
     svc = build("chromemanagement", "v1", credentials=creds, cache_discovery=False)
+
+    def lister(use_ts):
+        return list(paginate(
+            svc.customers().telemetry().events().list, "telemetryEvents",
+            parent=f"customers/{CUSTOMER_ID}",
+            filter=_event_filter("OS_CRASH", cutoff, use_ts),
+            readMask="name,device,user,reportTime,eventType,osCrashEvent",
+            pageSize=100,
+        ))
+
+    try:
+        evenements = lister(True)
+    except HttpError as e:
+        if e.resp.status != 400:
+            raise
+        print("  ⚠️ filtre timestamp refusé -> repli sans filtre de date")
+        evenements = lister(False)
+
     out, raw = [], []
-    for ev in paginate(
-        svc.customers().telemetry().events().list, "telemetryEvents",
-        parent=f"customers/{CUSTOMER_ID}",
-        filter="event_type=OS_CRASH",
-        readMask="name,device,user,reportTime,eventType,osCrashEvent",
-        pageSize=100,
-    ):
+    for ev in evenements:
         t = ev.get("reportTime", "")
         if t < cutoff:
             continue
@@ -161,26 +214,71 @@ def fetch_os_crash_events(creds, directory, cutoff):
             "eventUserEmail": user.get("userEmail"),
             "eventUserId": user.get("userId"),
             "machine": dev.get("machine"),
-            # tout autre champ renvoyé par l'API dans osCrashEvent (sessionType, etc.)
             **{f"crash.{k}": v for k, v in flatten(crash).items() if k != "crashType"},
             **device_info(directory, dev.get("deviceId")),
         })
     return out, raw
 
 
+# def _fetch_one_context_type(creds, et, cutoff):
+
+#     svc = build("chromemanagement", "v1", credentials=creds, cache_discovery=False)  # 1 service par thread
+#     payload_key = EVENT_PAYLOAD_FIELD.get(et)
+#     mask = "name,device,user,reportTime,eventType" + (f",{payload_key}" if payload_key else "")
+#     out, token, prev_max = [], None, None
+#     try:
+#         while True:
+#             resp = svc.customers().telemetry().events().list(
+#                 parent=f"customers/{CUSTOMER_ID}", filter=f"event_type={et}",
+#                 readMask=mask, pageSize=1000, pageToken=token,        # 1000 au lieu de 100
+#             ).execute()
+#             evs = resp.get("telemetryEvents", [])
+#             for ev in evs:
+#                 t = ev.get("reportTime", "")
+#                 dt = safe_ts(t)
+#                 dev_id = (ev.get("device") or {}).get("deviceId")
+#                 if t < cutoff or not dt or not dev_id:
+#                     continue
+#                 payload = ev.get(payload_key) if payload_key else None
+#                 out.append({
+#                     "deviceId": dev_id, "t": dt, "type": et,
+#                     "user": (ev.get("user") or {}).get("userEmail"),
+#                     "detail": json.dumps(payload, ensure_ascii=False, separators=(",", ":"))[:150] if payload else "",
+#                 })
+#             # arrêt anticipé : si l'API renvoie du plus récent au plus ancien et que toute
+#             # la page est avant le cutoff, la suite sera encore plus ancienne
+#             if evs:
+#                 page_max = max(e.get("reportTime", "") for e in evs)
+#                 if page_max < cutoff and prev_max is not None and page_max < prev_max:
+#                     break
+#                 prev_max = page_max
+#             token = resp.get("nextPageToken")
+#             if not token:
+#                 break
+#     except HttpError as e:
+#         return et, [], f"ignoré (HTTP {e.resp.status})"
+#     return et, out, None
+
 def _fetch_one_context_type(creds, et, cutoff):
-
-
-    svc = build("chromemanagement", "v1", credentials=creds, cache_discovery=False)  # 1 service par thread
+    svc = build("chromemanagement", "v1", credentials=creds, cache_discovery=False)
     payload_key = EVENT_PAYLOAD_FIELD.get(et)
     mask = "name,device,user,reportTime,eventType" + (f",{payload_key}" if payload_key else "")
     out, token, prev_max = [], None, None
+    use_ts = True
     try:
         while True:
-            resp = svc.customers().telemetry().events().list(
-                parent=f"customers/{CUSTOMER_ID}", filter=f"event_type={et}",
-                readMask=mask, pageSize=1000, pageToken=token,        # 1000 au lieu de 100
-            ).execute()
+            try:
+                resp = svc.customers().telemetry().events().list(
+                    parent=f"customers/{CUSTOMER_ID}",
+                    filter=_event_filter(et, cutoff, use_ts),
+                    readMask=mask, pageSize=1000, pageToken=token,
+                ).execute(num_retries=3)
+            except HttpError as e:
+                if use_ts and e.resp.status == 400:
+                    use_ts = False                      # repli : filtre date refusé
+                    out, token, prev_max = [], None, None
+                    continue
+                raise
             evs = resp.get("telemetryEvents", [])
             for ev in evs:
                 t = ev.get("reportTime", "")
@@ -208,7 +306,6 @@ def _fetch_one_context_type(creds, et, cutoff):
         return et, [], f"ignoré (HTTP {e.resp.status})"
     return et, out, None
 
-
 def fetch_context_events(creds, types, cutoff):
     """Types d'événements récupérés en parallèle -> deviceId -> [{t, type, user, detail}] triés."""
     ctx = defaultdict(list)
@@ -225,19 +322,26 @@ def fetch_context_events(creds, types, cutoff):
 # ------------------------------------------------------------------
 # Telemetry : appareils (boot/arrêt + états)
 # ------------------------------------------------------------------
+_TEL_FIELDS = None
+
 def fetch_device_telemetry(creds):
+    global _TEL_FIELDS
     svc = build("chromemanagement", "v1", credentials=creds, cache_discovery=False)
     api = svc.customers().telemetry().devices()
     parent = f"customers/{CUSTOMER_ID}"
 
-    fields = ["bootPerformanceReport"]
-    for f in TELEMETRY_OPTIONAL_FIELDS:
-        try:
-            api.list(parent=parent, readMask=f"name,deviceId,{f}", pageSize=1).execute()
-            fields.append(f)
-        except HttpError as e:
-            print(f"  champ télémétrie indisponible : {f} (HTTP {e.resp.status})")
-    print("  champs utilisés : " + ", ".join(fields))
+    if _TEL_FIELDS is None:
+        fields = ["bootPerformanceReport"]
+        for f in TELEMETRY_OPTIONAL_FIELDS:
+            try:
+                api.list(parent=parent, readMask=f"name,deviceId,{f}", pageSize=1).execute(num_retries=3)
+                fields.append(f)
+            except HttpError as e:
+                if e.resp.status not in (400, 403, 404):
+                    raise
+                print(f"  champ télémétrie indisponible : {f} (HTTP {e.resp.status})")
+        _TEL_FIELDS = fields
+    fields = _TEL_FIELDS
 
     mask = "name,deviceId,serialNumber,orgUnitId," + ",".join(fields)
     return {
@@ -245,7 +349,6 @@ def fetch_device_telemetry(creds):
         for t in paginate(api.list, "devices", parent=parent, readMask=mask, pageSize=100)
         if t.get("deviceId")
     }
-
 
 def build_boot_index(tel_by_dev):
     """deviceId -> (liste triée des heures de boot, lignes)."""
@@ -836,29 +939,112 @@ def main(credentials):
     # if not args.no_history and not args.search:
     #     merge_history(incidents)
         
-def get_crash_incidents(creds=None, days=90, window=300, tz=3,
-                    context_minutes=60, context_count=5,
-                    report_max_age=180, with_context=True):
-    creds = creds
+# def _directory_puis_crashs(creds, cutoff):
+#     directory, activity = load_directory(creds)
+#     events, _raw = fetch_os_crash_events(creds, directory, cutoff)
+#     return directory, activity, events
+
+
+# def get_crash_incidents(creds=None, debut=None, fin=None, days=90, window=300, tz=3,
+#                         context_minutes=60, context_count=5,
+#                         report_max_age=180, with_context=True):
+#     # `fin` n'est pas utilisée : lire un peu plus récent est sans risque (doublons ignorés)
+#     args = SimpleNamespace(
+#         days=days, window=window, tz=tz, context_minutes=context_minutes,
+#         context_count=context_count, report_max_age=report_max_age,
+#     )
+#     if debut is None:
+#         debut = datetime.now(timezone.utc) - timedelta(days=days)
+#     debut_z = _z(debut)
+#     cutoff = _z(debut - timedelta(seconds=window))     # évite de couper un incident en deux
+#     lookback = max(CONTEXT_LOOKBACK, timedelta(minutes=context_minutes))
+#     cutoff_ctx = _z(debut - lookback)
+
+#     with ThreadPoolExecutor(max_workers=3) as ex:
+#         f_dir = ex.submit(_directory_puis_crashs, creds, cutoff)
+#         f_tel = ex.submit(fetch_device_telemetry, creds)
+#         f_ctx = (ex.submit(fetch_context_events, creds, CONTEXT_EVENT_TYPES, cutoff_ctx)
+#                  if with_context else None)
+#         directory, activity, events = f_dir.result()
+#         tel_by_dev = f_tel.result()
+#         ctx = f_ctx.result() if f_ctx else {}
+
+#     incidents = cluster_incidents(events, window)
+#     add_sequence(incidents)
+#     incidents = [i for i in incidents if i["time"] >= debut_z]   # garde seulement la fenêtre
+
+#     boot_idx = build_boot_index(tel_by_dev)
+#     status_idx = build_status_index(tel_by_dev)
+#     ctx_idx = build_context_index(ctx)
+#     for inc in incidents:
+#         enrich(inc, boot_idx, ctx_idx, status_idx, tel_by_dev, activity, args)
+#     return incidents
+
+def directory_from_devices(dvc_list):
+    """Reconstruit l'index 'directory' à partir de la liste déjà téléchargée par get_devices."""
+    index = {}
+    for d in dvc_list:
+        dev_id = d.get("deviceId")
+        if not dev_id:
+            continue
+        recent = d.get("recentUsers") or []
+        index[dev_id] = {
+            "deviceId": dev_id,
+            "serial": d.get("serialNumber"),
+            "model": d.get("model"),
+            "osVersion": d.get("osVersion"),
+            "orgUnit": d.get("orgUnitPath"),
+            "status": d.get("status"),
+            "lastUser": recent[0].get("email") if recent else None,
+        }
+    return index
+
+
+def fetch_crash_sources(creds, debut=None, days=90, window=300,
+                        context_minutes=60, with_context=True):
+    """Appels Google des crashs et du contexte. Ne dépend pas des devices."""
+    if debut is None:
+        debut = datetime.now(timezone.utc) - timedelta(days=days)
+    cutoff = _z(debut - timedelta(seconds=window))      # évite de couper un incident en deux
+    lookback = max(CONTEXT_LOOKBACK, timedelta(minutes=context_minutes))
+    cutoff_ctx = _z(debut - lookback)
+
+    with ThreadPoolExecutor(max_workers=2) as ex:
+        f_crash = ex.submit(fetch_os_crash_events, creds, {}, cutoff)   # directory vide ici
+        f_ctx = (ex.submit(fetch_context_events, creds, CONTEXT_EVENT_TYPES, cutoff_ctx)
+                 if with_context else None)
+        events, _raw = f_crash.result()
+        ctx = f_ctx.result() if f_ctx else {}
+    return events, ctx
+
+
+def build_crash_incidents(events, ctx, dvc_list, telemetry_list, debut=None, days=90,
+                          window=300, tz=3, context_minutes=60, context_count=5,
+                          report_max_age=180):
+    """Fusion, enrichissement et filtrage : aucun appel réseau."""
+    if debut is None:
+        debut = datetime.now(timezone.utc) - timedelta(days=days)
+    debut_z = _z(debut)
     args = SimpleNamespace(
         days=days, window=window, tz=tz, context_minutes=context_minutes,
         context_count=context_count, report_max_age=report_max_age,
     )
-    cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).strftime("%Y-%m-%dT%H:%M:%SZ")
 
-    directory, activity = load_directory(creds)
-    events, _raw = fetch_os_crash_events(creds, directory, cutoff)
-    tel_by_dev = fetch_device_telemetry(creds)
-    ctx = fetch_context_events(creds, CONTEXT_EVENT_TYPES, cutoff) if with_context else {}
+    directory = directory_from_devices(dvc_list)
+    tel_by_dev = {t["deviceId"]: t for t in telemetry_list if t.get("deviceId")}
+
+    for e in events:                                    # même résultat que device_info(directory, ...)
+        e.update(directory.get(e.get("deviceId")) or {})
 
     incidents = cluster_incidents(events, window)
     add_sequence(incidents)
+    incidents = [i for i in incidents if i["time"] >= debut_z]   # garde seulement la fenêtre
 
     boot_idx = build_boot_index(tel_by_dev)
     status_idx = build_status_index(tel_by_dev)
     ctx_idx = build_context_index(ctx)
     for inc in incidents:
-        enrich(inc, boot_idx, ctx_idx, status_idx, tel_by_dev, activity, args)
+        enrich(inc, boot_idx, ctx_idx, status_idx, tel_by_dev, {}, args)   # {} = pas d'activité Directory
     return incidents
 
 # if __name__ == "__main__":
