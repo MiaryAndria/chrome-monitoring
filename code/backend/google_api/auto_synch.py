@@ -2,8 +2,7 @@ import logging
 import threading
 from datetime import datetime, timedelta, timezone
 import time
-
-from backend.utils.save_to_json import save_to_json
+# from backend.utils.save_to_json import save_to_json
 from backend.utils.chrono import chrono
 
 from backend.fonction.conn.connexion import get_connection, close_connection
@@ -27,12 +26,12 @@ _verrou = threading.Lock()           # empêche deux synchros en même temps
 _arret = threading.Event()           # pour arrêter proprement la boucle
 _thread = None
 
-def _sauver_suivi(suivi):
-    """Écrit le suivi en JSON (output/synchro_<id>_<timestamp>.json) sans jamais faire planter la synchro."""
-    try:
-        save_to_json(suivi, f"synchro_{suivi.get('id_sync') or 'sans_id'}")
-    except Exception:
-        logger.exception("Impossible d'écrire le suivi JSON")
+# def _sauver_suivi(suivi):
+#     """Écrit le suivi en JSON (output/synchro_<id>_<timestamp>.json) sans jamais faire planter la synchro."""
+#     try:
+#         save_to_json(suivi, f"synchro_{suivi.get('id_sync') or 'sans_id'}")
+#     except Exception:
+#         logger.exception("Impossible d'écrire le suivi JSON")
         
 def _changer_statut(conn, cur, id_sync, nom_statut):
     id_statut = get_or_create_statut(cur, nom_statut)
@@ -192,7 +191,7 @@ def executer_synchronisation():
         if suivi["nb_lignes"] and duree > 0:
             suivi["lignes_par_seconde"] = round(suivi["nb_lignes"] / duree, 1)
         logger.info("Durées par étape : %s | total %.1fs", etapes, duree)
-        _sauver_suivi(suivi)
+        # _sauver_suivi(suivi)
 
         if cur is not None:
             cur.close()

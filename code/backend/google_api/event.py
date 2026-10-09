@@ -16,7 +16,7 @@ from backend.utils.parser import as_list, parse_dur, parse_ts, safe_ts, flatten,
 def get_credential():
     return get_credentials(TOKEN_FILE, SCOPES)
 
-CONTEXT_LOOKBACK = timedelta(hours=24)   # le "dernier utilisateur" regarde jusqu'à 24 h avant
+CONTEXT_LOOKBACK = timedelta(hours=2)   # le "dernier utilisateur" regarde jusqu'à 24 h avant
 def _z(dt):
     return dt.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
@@ -48,7 +48,6 @@ SCOPES = [
 ]
 
 credentials = get_credential()
-
 # Crash rapporté <= N minutes après un démarrage : très probablement un crash de la SESSION
 # PRÉCÉDENTE, remonté au reboot (le rapport est envoyé au boot suivant).
 BOOT_REPORT_MIN = 15
@@ -90,7 +89,6 @@ _DIR_EXTRA = ("bootMode,annotatedUser,annotatedLocation,annotatedAssetId,notes,l
               "supportEndDate,autoUpdateExpiration,manufactureDate,systemRamTotal,"
               "lastKnownNetwork(ipAddress,wanIpAddress),recentUsers(email,type),"
               "activeTimeRanges(date,activeTime)")
-
 
 def load_directory(creds):
     """Retourne (index deviceId->infos, activité deviceId->{date: minutes actives})."""
@@ -187,7 +185,7 @@ def fetch_os_crash_events(creds, directory, cutoff):
             parent=f"customers/{CUSTOMER_ID}",
             filter=_event_filter("OS_CRASH", cutoff, use_ts),
             readMask="name,device,user,reportTime,eventType,osCrashEvent",
-            pageSize=100,
+            pageSize=1000,
         ))
 
     try:

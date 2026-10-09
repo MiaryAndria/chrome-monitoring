@@ -36,6 +36,8 @@ passlib[bcrypt]	                Hashage des mots de passe
 python-multipart	            Formulaires et données multipart
 pip install "pwdlib[argon2]"        Haschage mdp
 pip install openpyxl reportlab      Bibliothèque pour export 
+from datetime import datetime, timezone
+from psycopg2.extras import execute_values
 
 
 ## synchronisation toutes les 30 minutes 

@@ -1,3 +1,4 @@
+from psycopg2.extras import execute_values
 def get_liste_rapport_device(cur):
     cur.execute(
         """
@@ -142,3 +143,18 @@ def create_rapport_device(cur, device_id, id_type_rapport, date_releve, data):
     (device_id, id_type_rapport, date_releve, data)
     )
     
+    
+def insert_rapport_lot(cur, lignes):
+    if not lignes:
+        return
+    execute_values(
+        cur,
+        """
+        INSERT INTO t_rapport_device (id_device, id_type_rapport, report_time, donnees)
+        VALUES %s
+        ON CONFLICT ON CONSTRAINT uq_rapport_device_type_time DO NOTHING
+        """,
+        lignes,
+        template="(%s, %s, %s, %s::jsonb)",
+        page_size=1000,
+    )

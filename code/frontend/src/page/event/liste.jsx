@@ -269,7 +269,6 @@ function ListeEvent() {
                                 {filtered.length} événement{filtered.length > 1 ? "s" : ""} — Page {currentPage}/{totalPages}
                             </span>
                         </div>
-                        <ViewModeToggle viewMode={viewMode} setViewMode={setViewMode} />
                     </div>
 
                     {viewMode === 'table' ? (

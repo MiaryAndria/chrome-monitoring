@@ -1,9 +1,10 @@
 import json
-import time
+from datetime import datetime, timezone,timedelta
+
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
 from datetime import datetime
-from backend.utils.chrono import chrono
+from backend.utils.chrono import _aware, chrono, memo
 
 def _appel_chrono(etapes, label, callback, *args):
     with chrono(label, etapes):
@@ -24,6 +25,7 @@ from backend.fonction.metier.repository.devices import (
     insert_device_utilisateur_recent,
     insert_device_utilisateur,
     get_or_create_type_appareil,
+    get_map_devices
 )
 from backend.fonction.metier.repository.filiale import get_or_create_filiale
 from backend.fonction.metier.repository.cpu import get_or_create_cpu
@@ -34,6 +36,7 @@ from backend.fonction.metier.repository.rapport import (
     create_type_rapport,
     create_rapport_device,
     get_liste_type_rapport,
+    insert_rapport_lot,
     init_default_types_rapport,
 )
 from backend.fonction.metier.repository.evenement import get_or_create_type_evenement, create_evenement_device
@@ -152,7 +155,148 @@ def insertion_device(cur, dvc_list):
             print(f" Erreur device {device_id}: {err}")
 
 
-def insert_telemetry(cur, telemetry_devices_list):
+# def insert_telemetry(cur, telemetry_devices_list):
+#     print("\n--- Ingestion de la télémétrie ---")
+#     init_default_types_rapport(cur)
+#     types_rapport = get_liste_type_rapport(cur)
+#     if not types_rapport:
+#         print(" Aucun type de rapport disponible en base.")
+#         return
+
+#     for tel in telemetry_devices_list:
+#         tel_device_id = tel.get("deviceId")
+#         if not tel_device_id:
+#             continue
+
+#         device_by_id = get_device_by_device_id(cur, tel_device_id)
+#         if not device_by_id or len(device_by_id) == 0:
+#             continue
+#         db_device_id = device_by_id[0]
+
+#         cpu_model = None
+#         freq_max_proc = None
+#         cpu_architecture = None
+#         cpu_reports = tel.get("cpuInfo") or []
+#         if cpu_reports and isinstance(cpu_reports, list):
+#             cpu = cpu_reports[0] if isinstance(cpu_reports[0], dict) else {}
+#             cpu_model = cpu.get("model") or cpu.get("name") or cpu.get("cpuModel")
+#             freq_max_proc = _to_int(
+#                 cpu.get("maxClockSpeedKhz")
+#                 or cpu.get("maxClockSpeed")
+#                 or cpu.get("frequencyKhz")
+#                 or cpu.get("maxClockSpeedHz")
+#             )
+#             cpu_architecture = cpu.get("architecture") or cpu.get("architectureName")
+
+#         ram_total = None
+#         memory_info = tel.get("memoryInfo") or {}
+#         if isinstance(memory_info, dict):
+#             ram_total = _to_int(
+#                 memory_info.get("totalRamBytes")
+#                 or memory_info.get("totalMemoryBytes")
+#                 or memory_info.get("ramTotalBytes")
+#             )
+#             if ram_total is not None:
+#                 update_device_ram_total(cur, db_device_id, ram_total)
+
+#         disk_model = None
+#         disk_type = None
+#         disk_size = None
+#         disk_used = None
+#         disk_available = None
+#         disk_report_time = None
+#         storage_info = tel.get("storageInfo") or {}
+#         storage_reports = tel.get("storageStatusReport") or []
+
+#         if isinstance(storage_info, dict):
+#             disk_size = _to_int(
+#                 storage_info.get("totalDiskBytes")
+#                 or storage_info.get("totalStorageBytes")
+#                 or storage_info.get("totalBytes")
+#             )
+#             disk_available = _to_int(
+#                 storage_info.get("availableDiskBytes")
+#                 or storage_info.get("freeDiskBytes")
+#                 or storage_info.get("freeBytes")
+#             )
+
+#         if storage_reports and isinstance(storage_reports, list):
+#             storage_data = storage_reports[0]
+#             if isinstance(storage_data, dict):
+#                 disk_report_time = parse_date_safe(storage_data.get("reportTime"))
+#                 disks = storage_data.get("disk") or storage_data.get("disks") or []
+#                 disk = disks[0] if isinstance(disks, list) and disks else {}
+#                 if not disk_model:
+#                     disk_model = disk.get("model") or disk.get("name")
+#                 if not disk_type:
+#                     disk_type = disk.get("type") or disk.get("diskType")
+#                 if disk_size is None:
+#                     disk_size = _to_int(disk.get("sizeBytes") or disk.get("totalBytes") or disk.get("size"))
+#                 if disk_used is None:
+#                     disk_used = _to_int(disk.get("usedBytes") or disk.get("usedSpaceBytes") or disk.get("storageUsedBytes"))
+#                 if disk_available is None:
+#                     disk_available = _to_int(
+#                         disk.get("availableBytes")
+#                         or disk.get("freeBytes")
+#                         or disk.get("availableSpaceBytes")
+#                     )
+
+#         if cpu_model or cpu_architecture or freq_max_proc is not None:
+#             cpu_id = get_or_create_cpu(cur, cpu_model or "UNKNOWN", freq_max_proc, cpu_architecture or "UNKNOWN")
+#             if cpu_id:
+#                 last_cpu = get_last_cpu_for_device(cur, db_device_id)
+#                 if last_cpu != cpu_id:
+#                     insert_device_cpu(cur, cpu_id, db_device_id)
+
+#         if disk_model or disk_type or disk_size is not None:
+#             disk_id = get_or_create_disk(cur, disk_model or "UNKNOWN", disk_type or "UNKNOWN")
+#             if disk_id:
+#                 total_reel = disk_size if disk_size is not None else 0
+#                 total_formater = format_bytes(total_reel)
+
+#                 if disk_available is not None:
+#                     disponible = max(disk_available, 0)
+#                 elif disk_used is not None and total_reel is not None:
+#                     disponible = max(total_reel - disk_used, 0)
+#                 else:
+#                     disponible = total_reel if total_reel is not None else None
+
+#                 if disk_used is not None:
+#                     utiliser = max(disk_used, 0)
+#                 elif disponible is not None and total_reel is not None:
+#                     utiliser = max(total_reel - disponible, 0)
+#                 else:
+#                     utiliser = None
+
+#                 total_utiliser_formater = format_bytes(utiliser) if utiliser is not None else None
+#                 disponible_formater = format_bytes(disponible) if disponible is not None else None
+
+#                 insert_disk_device(
+#                     cur,
+#                     db_device_id,
+#                     disk_id,
+#                     disponible,
+#                     disponible_formater,
+#                     total_reel,
+#                     total_formater,
+#                     utiliser,
+#                     total_utiliser_formater,
+#                     disk_report_time or datetime.now(),
+#                 )
+
+#         for item in types_rapport:
+#             id_type_rapport, nom_type, cle_api = item[0], item[1], item[2]
+#             if not cle_api:
+#                 continue
+#             liste_releve = tel.get(cle_api, [])
+#             if liste_releve and isinstance(liste_releve, list):
+#                 for releve in liste_releve:
+#                     date_releve = parse_date_safe(releve.get("reportTime")) or datetime.now()
+#                     if nom_type == 'MEMORY_STATUS' and ram_total is not None:
+#                         releve = {**releve, 'totalRamBytes': ram_total}
+#                     create_rapport_device(cur, db_device_id, id_type_rapport, date_releve, json.dumps(releve))
+
+def insert_telemetry(cur, telemetry_devices_list, debut=None):
     print("\n--- Ingestion de la télémétrie ---")
     init_default_types_rapport(cur)
     types_rapport = get_liste_type_rapport(cur)
@@ -160,15 +304,26 @@ def insert_telemetry(cur, telemetry_devices_list):
         print(" Aucun type de rapport disponible en base.")
         return
 
+    debut = _aware(debut)
+
+    # Caches valables pour cette synchro seulement
+    get_cpu = memo(get_or_create_cpu)
+    get_disk = memo(get_or_create_disk)
+
+    # Tous les appareils en une requête
+    # ADAPTE : nom de la table et des colonnes (device_id = identifiant Google, id = clé interne)
+    map_devices = get_map_devices(cur)
+
+    lignes = []   # relevés à insérer en lot
+
     for tel in telemetry_devices_list:
         tel_device_id = tel.get("deviceId")
         if not tel_device_id:
             continue
 
-        device_by_id = get_device_by_device_id(cur, tel_device_id)
-        if not device_by_id or len(device_by_id) == 0:
+        db_device_id = map_devices.get(tel_device_id)
+        if db_device_id is None:
             continue
-        db_device_id = device_by_id[0]
 
         cpu_model = None
         freq_max_proc = None
@@ -239,14 +394,14 @@ def insert_telemetry(cur, telemetry_devices_list):
                     )
 
         if cpu_model or cpu_architecture or freq_max_proc is not None:
-            cpu_id = get_or_create_cpu(cur, cpu_model or "UNKNOWN", freq_max_proc, cpu_architecture or "UNKNOWN")
+            cpu_id = get_cpu(cur, cpu_model or "UNKNOWN", freq_max_proc, cpu_architecture or "UNKNOWN")
             if cpu_id:
                 last_cpu = get_last_cpu_for_device(cur, db_device_id)
                 if last_cpu != cpu_id:
                     insert_device_cpu(cur, cpu_id, db_device_id)
 
         if disk_model or disk_type or disk_size is not None:
-            disk_id = get_or_create_disk(cur, disk_model or "UNKNOWN", disk_type or "UNKNOWN")
+            disk_id = get_disk(cur, disk_model or "UNKNOWN", disk_type or "UNKNOWN")
             if disk_id:
                 total_reel = disk_size if disk_size is not None else 0
                 total_formater = format_bytes(total_reel)
@@ -289,11 +444,18 @@ def insert_telemetry(cur, telemetry_devices_list):
             if liste_releve and isinstance(liste_releve, list):
                 for releve in liste_releve:
                     date_releve = parse_date_safe(releve.get("reportTime")) or datetime.now()
+
+                    # Relevé plus ancien que la fenêtre : déjà inséré par une synchro précédente
+                    if debut is not None and _aware(date_releve) < debut:
+                        continue
+
                     if nom_type == 'MEMORY_STATUS' and ram_total is not None:
                         releve = {**releve, 'totalRamBytes': ram_total}
-                    create_rapport_device(cur, db_device_id, id_type_rapport, date_releve, json.dumps(releve))
+                    lignes.append((db_device_id, id_type_rapport, date_releve, json.dumps(releve)))
 
-
+    if lignes:
+        insert_rapport_lot(cur,lignes)
+    
 def insert_imprimante(cur, telemetry_devices_list):
     printers = extract_printers_from_telemetry(telemetry_devices_list)
     for p in printers:
@@ -443,7 +605,7 @@ def synchroniser_tout(debut=None, fin=None, suivi=None):
         with chrono("db_devices", etapes):
             insertion_device(cur, dvc_list)
         with chrono("db_telemetrie", etapes):
-            insert_telemetry(cur, telemetry_devices_list)
+            insert_telemetry(cur, telemetry_devices_list, debut-timedelta(hours=24))
         with chrono("db_imprimantes", etapes):
             insert_imprimante(cur, telemetry_devices_list)
         with chrono("db_evenements", etapes):

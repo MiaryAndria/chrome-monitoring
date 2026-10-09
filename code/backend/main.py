@@ -10,25 +10,11 @@ from backend.fonction.metier.controller.statut_controller import router as statu
 from backend.fonction.metier.controller.rapport_controller import router as rapport_router
 from backend.fonction.metier.controller.imprimante_controller import router as imprimante_router
 from backend.fonction.metier.controller.evenement_controller import router as evenement_router
-from backend.fonction.metier.service.import_service import synchroniser_tout
+from backend.fonction.metier.controller.configuration_controller import router as configuration_router
+# from backend.fonction.metier.service.import_service import synchroniser_tout
 from backend.fonction.metier.service.reset_service import reset_data
-import logging
-import threading
-from contextlib import asynccontextmanager
-from backend.google_api.auto_synch import (demarrer_auto_synchronisation,arreter_auto_synchronisation)
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s %(levelname)s %(name)s : %(message)s",
-)
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    demarrer_auto_synchronisation()
-    yield
-    arreter_auto_synchronisation()
-
-app = FastAPI(lifespan=lifespan)
+app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
@@ -46,6 +32,7 @@ app.include_router(statut_router,prefix="/statut",tags=["statut"])
 app.include_router(rapport_router,prefix="/rapport",tags=["rapport"])
 app.include_router(imprimante_router,prefix="/imprimante",tags=["imprimante"])
 app.include_router(evenement_router,prefix="/evenement",tags=["evenement"])
+app.include_router(configuration_router,prefix="/configuration",tags=["configuration"])
 
 @app.get("/")
 def accueil():
@@ -53,13 +40,13 @@ def accueil():
         "message": "Bienvenue sur mon API"
     }
 
-@app.post("/synch")
-def synchDevices():
-    try:
-        synchroniser_tout()
-        return {"message": "Synchronisation terminée avec succès"}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+# @app.post("/synch")
+# def synchDevices():
+#     try:
+#         synchroniser_tout()
+#         return {"message": "Synchronisation terminée avec succès"}
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/reset")
 def resetAll():

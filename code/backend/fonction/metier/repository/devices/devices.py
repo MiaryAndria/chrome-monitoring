@@ -543,3 +543,8 @@ def _get_device_cpu_info(cur, device_id):
         (device_id,),
     )
     return cur.fetchone()
+
+def get_map_devices(cur):
+    cur.execute("SELECT device_id, id FROM t_device")
+    map_devices = dict(cur.fetchall())
+    return map_devices

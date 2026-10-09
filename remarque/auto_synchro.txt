@@ -67,3 +67,6 @@ sur une synchro encore en cours, date_fin est vide, donc date_debut deviendrait 
 Si tu repars de zéro avec une base propre ou une recréation des tables, elle n'a aucune utilité : tout est créé directement avec la bonne logique.
 
 Ça reste léger : 3 jours de NETWORK_STATE_CHANGE, c'est ~3 000 événements, soit 3 pages. Si ton parc est éteint plus longtemps (vacances), relance une synchro complète à la main avec debut=None.
+
+correction dans base depart derniere date_debut car aussi c'est date_debut repere pas date_fin car si date_fin c'est date_fin action dcp il aura des données non reperer 
+old date_debut - 1 ou 72(debut_receuil) -> date_debut reel(fin_receuil) 

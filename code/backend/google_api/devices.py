@@ -1,11 +1,11 @@
 import os
 import time
 from pathlib import Path
-
+import threading
 from dotenv import load_dotenv
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
-
+from google.auth.transport.requests import Request
 from backend.utils.format_date import format_date
 from backend.utils.format_org import format_org_unit
 from backend.utils.get_credential import get_credentials
@@ -54,9 +54,21 @@ FIELDS = (
 # ==============================================================
 # AUTHENTIFICATION
 # ==============================================================
+_cred_lock = threading.Lock()
+_cred_cache = None
 
-def get_credential():
-    return get_credentials(TOKEN_FILE, SCOPES)
+def get_credential(force=False):
+    """Crée le credential une fois, puis le réutilise. Rafraîchit seulement s'il a expiré."""
+    global _cred_cache
+    with _cred_lock:
+        if force or _cred_cache is None:
+            _cred_cache = get_credentials(TOKEN_FILE, SCOPES)
+        elif not _cred_cache.valid:
+            try:
+                _cred_cache.refresh(Request())
+            except Exception:
+                _cred_cache = get_credentials(TOKEN_FILE, SCOPES)
+        return _cred_cache
 
 
 credentials = get_credential()
@@ -93,7 +105,7 @@ def get_devices(credentials):
         response = _execute_with_retry(
             lambda: service.chromeosdevices().list(
                 customerId=CUSTOMER_ID,
-                maxResults=100,
+                maxResults=250,
                 pageToken=page_token,
                 projection="FULL",
                 fields=FIELDS,
@@ -149,7 +161,7 @@ def get_telemetry_devices(credentials):
                     "appReport,"
                     "runtimeCountersReport"
                 ),
-                pageSize=100,
+                pageSize=1000,
                 pageToken=page_token,
             ).execute()
         )

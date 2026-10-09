@@ -2,7 +2,6 @@ import json
 from backend.fonction.conn.connexion import get_connection, close_connection
 from backend.fonction.metier.repository.evenement import get_liste_evenement_avec_details,get_liste_type_evenement
 
-
 def get_event():
     connexion = get_connection()
     if connexion is None:

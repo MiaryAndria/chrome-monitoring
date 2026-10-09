@@ -7,13 +7,19 @@ function ConfigurationListe() {
     const [loading, setLoading] = useState(false);
     const navigate= useNavigate();
 
+    const updateConfiguration = async (id) => {
+        try {
+            navigate(`/update/configuration/${id}`)
+        } catch (e) {
+            console.log(e)
+        }
+    }
     const getConfiguration = async () => {
         try {
             setLoading(true);
-
             const response = await getListeConfiguration();
-
-            setConf(response.data);
+            console.log(response)
+            setConf(Array.isArray(response.data) ? response.data : []);
         } catch (e) {
             console.log("Erreur récupération configuration :", e);
         } finally {
@@ -41,7 +47,7 @@ function ConfigurationListe() {
         );
     }
 
-    if (conf.length === 0) {
+    if (!conf || conf.length === 0) {
         return (
             <div className="empty-state">
                 <p className="empty-state-title">
@@ -74,12 +80,15 @@ function ConfigurationListe() {
                             <tr key={configuration.id}>
                                 <td>{configuration.type}</td>
                                 <td>{configuration.valeur}</td>
+                                <td>
+                                    <button onClick={() => updateConfiguration(configuration.id)}>Mettre à jour</button>
+                                </td>
                             </tr>
                         ))}
                     </tbody>
                 </table>
             </div>
-            <button onClick={creerConfiguration}></button>
+            <button onClick={creerConfiguration}>Creer configuration</button>
         </div>
     );
 }

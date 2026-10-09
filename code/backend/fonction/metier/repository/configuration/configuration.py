@@ -1,8 +1,3 @@
-from backend.fonction.conn.connexion import get_connection
-
-connexion = get_connection()
-cur=connexion.cursor()
-
 def get_liste_configuration(cur):
     cur.execute(
         """
@@ -38,3 +33,22 @@ def get_valeur_configuration(cur,type):
     )
     result = cur.fetchone()
     return result
+
+def insert_configuration(cur, type, valeur, date):
+    cur.execute(
+        """
+        INSERT INTO t_configuration (type, valeur, date)
+        VALUES (%s, %s, %s)
+        """,
+        (type, valeur, date),
+    )
+    
+def update_configuration(cur, type, valeur, date, id):
+    cur.execute(
+        """
+        UPDATE t_configuration
+        SET type = %s, valeur = %s, date = %s
+        WHERE id = %s
+        """,
+        (type, valeur, date, id)
+    )
