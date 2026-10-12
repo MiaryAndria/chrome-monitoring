@@ -1,5 +1,5 @@
 CREATE DATABASE gt,
-\c gt,
+\c gt
 
 CREATE TABLE t_user (
     id SERIAL PRIMARY KEY ,
@@ -137,17 +137,9 @@ CREATE TABLE t_rapport_device (
     id_device INT NOT NULL REFERENCES t_device(id),
     id_type_rapport INT NOT NULL REFERENCES t_type_rapport(id),
     report_time TIMESTAMPTZ NOT NULL,
-    donnees JSONB NOT NULL 
+    donnees JSONB NOT NULL ,
     UNIQUE(id_device,id_type_rapport,report_time)
 );
-
--- CREATE TABLE t_version_report (
---     id SERIAL PRIMARY KEY,
---     id_device INT NOT NULL REFERENCES t_device(id),
---     chromeos_version VARCHAR(100),
---     chrome_version VARCHAR(100),
---     date_observation TIMESTAMPTZ DEFAULT NOW()
--- );
 
 CREATE TABLE t_type_evenement (
     id SERIAL PRIMARY KEY,
@@ -162,6 +154,12 @@ CREATE TABLE t_evenement_device (
     details JSONB
 );
 
+CREATE TABLE t_device_reseau(
+    id SERIAL PRIMARY KEY ,
+    id_device INT NOT NULL REFERENCES t_device(id),
+    id_reseau INT NOT NULL REFERENCES t_reseau(id)
+);
+
 CREATE TABLE t_imprimante (
     id SERIAL PRIMARY KEY,
     vid INT,
@@ -174,7 +172,7 @@ CREATE TABLE t_imprimante_device (
     id SERIAL PRIMARY KEY,
     id_imprimante INT NOT NULL REFERENCES t_imprimante(id),
     id_device INT NOT NULL REFERENCES t_device(id),
-    date TIMESTAMPTZ DEFAULT NOW()
+    date TIMESTAMPTZ DEFAULT NOW(),
     UNIQUE (id_imprimante, id_device,date)
 );
 
@@ -196,8 +194,13 @@ CREATE TABLE t_device_alerte (
     id SERIAL PRIMARY KEY,
     id_device INT NOT NULL REFERENCES t_device(id),
     id_alerte INT NOT NULL REFERENCES t_alerte(id),
-    date TIMESTAMPTZ DEFAULT NOW(),
-    date_resolution TIMESTAMPTZ
+    date TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE t_seuil(
+    id SERIAL PRIMARY KEY ,
+    cle VARCHAR(100),
+    valeur INT
 );
 
 CREATE TABLE t_configuration (
@@ -205,6 +208,20 @@ CREATE TABLE t_configuration (
     type VARCHAR(100),
     valeur VARCHAR(255) NOT NULL,
     date TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE t_configuration_statut (
+    id SERIAL PRIMARY KEY,
+    id_configuration INT NOT NULL REFERENCES t_configuration(id),
+    id_statut INT NOT NULL REFERENCES t_statut(id),
+    date TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE t_seuil_statut (
+    id SERIAL PRIMARY KEY,
+    id_seuil INT NOT NULL REFERENCES t_seuil(id),
+    id_statut INT NOT NULL REFERENCES t_statut(id),
+    date TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE t_synchronisation_historique (
@@ -234,6 +251,20 @@ CREATE TABLE t_comparaison (
     date_comparaison TIMESTAMPTZ DEFAULT NOW(),
     resultat JSONB,
     commentaires TEXT
+);
+
+CREATE TABLE t_statut_comparaison(
+    id SERIAL PRIMARY KEY ,
+    id_comparaison INT NOT NULL REFERNCES t_comparaison(id),
+    id_statut INT NOT NULL REFERENCES t_statut(id),
+    date TIMESTAMPTZ NOT NULL 
+);
+
+CREATE TABLE t_device_alerte_statut(
+    id SERIAL PRIMARY KEY,
+    id_device_alerte INT NOT NULL REFERENCES t_device_alerte(id),
+    id_statut INT NOT NULL REFERENCES t_statut(id),
+    date TIMESTAMPTZ NOT NULL 
 );
 
 CREATE TABLE t_device_cpu (

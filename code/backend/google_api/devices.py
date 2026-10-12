@@ -58,7 +58,6 @@ _cred_lock = threading.Lock()
 _cred_cache = None
 
 def get_credential(force=False):
-    """Crée le credential une fois, puis le réutilise. Rafraîchit seulement s'il a expiré."""
     global _cred_cache
     with _cred_lock:
         if force or _cred_cache is None:

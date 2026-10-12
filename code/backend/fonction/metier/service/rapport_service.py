@@ -3,6 +3,7 @@ from backend.fonction.metier.repository.rapport import (
     get_id_by_type_name,
     get_rapport_by_device_and_type,
     get_rapport_by_device_type_and_period,
+    get_liste_rapport_device
 )
 
 def serialize_rapport_rows(rows):
@@ -176,3 +177,10 @@ def getReportsForExport(onglet, id_device, date_debut=None, date_fin=None):
         return fetch(types[onglet])
     finally:
         close_connection(connexion)
+        
+def getListeReport():
+    connexion = get_connection()
+    cur = connexion.cursor()
+    rows = get_liste_rapport_device(cur)
+    return rows
+    

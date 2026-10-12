@@ -77,16 +77,21 @@ EN_SESSION	Le crash s'est produit pendant qu'un utilisateur était connecté et 
 fotoana naha actif farany ny pc 
 ia integré dans le systeme d'evenement
 ohatra ka miditra page ram dia raha atao filtre 6 et 7 dia somme ny valeur aniny no afficherna
-ao amn'event et device etc dans python ao amn'google_api tsy atao en dur ilay zavatra reny 
 creation table device_reseau 
 
 mise à jour receuille device et imprimante si possible asina intervalle aussi comme ça afaka recupererna ny taloha
 
-intervalle de recuperation atao anaty base 
-intervalle de synchronisation ko 
 dans graph ram ça devrait etre max 
 filtre atao de côté backend daholo dia chargerna par 10 ou par 5 par page ny donnée comme ça efa misy donnée mipotra eo pendant donnée sasany micharge
 fonctionnalité export liste utilisateur chromebox ou chromebook en utilisant id_device
 get_devices et get_telemetry_devices ne reçoivent pas debut. Ils récupèrent tous les appareils à chaque tour (d’où ~1160 lignes constantes)
 mettre toutes les filtres dans backend pour rapidité 
+
+
+todo 
+intervalle de recuperation atao anaty base 
+intervalle de synchronisation ko 
+configuration insertion et suppression et retour 
+modification des codes backend pour utiliser les parametres depuis base ao amn'event et device etc dans python ao amn'google_api tsy atao en dur ilay zavatra reny 
+page detail imprimante avec liste utilisateur et liste device connécté 
 

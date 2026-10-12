@@ -11,7 +11,8 @@ from backend.fonction.metier.service.rapport_service import (
     getConnectedPerRaportById,
     getDeviceRaportGeneral,
     filterRapportDeviceByDate,
-    idByName,getReportsForExport
+    idByName,getReportsForExport,
+    getListeReport
 )
 from backend.fonction.metier.service.export_service import (
     build_sections, generate_excel, generate_pdf, TABLE_BUILDERS,
@@ -153,5 +154,14 @@ def exportPdf(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    
+ 
   
+@router.get("/liste")
+def getReport():
+    try:
+        report = getListeReport()
+        if report is None:
+            raise HTTPException(status_code=404, detail="Rapport non trouvé pour ce device")
+        return report
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

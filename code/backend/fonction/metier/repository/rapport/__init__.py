@@ -5,7 +5,8 @@ from .rapport_device import (
     get_rapport_by_device_and_type,
     create_rapport_device,
     get_rapport_by_device_type_and_period,
-    insert_rapport_lot
+    insert_rapport_lot,
+    get_liste_rapport_device
 )
 
 from .type_rapport import (
