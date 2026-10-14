@@ -3,7 +3,14 @@ connexion = get_connection()
 cur=connexion.cursor()
 
 def get_liste_statut(cur):
-    cur.execute("SELECT * FROM t_statut;")
+    cur.execute(
+        """
+        SELECT *
+        FROM t_statut
+        WHERE nom IN ('ACTIVE', 'DELINQUENT', 'DISABLED', 'DEPROVISIONED')
+        ORDER BY id ASC
+        """
+    )
     return cur.fetchall()
 
 def get_statut_by_id(cur, id):
@@ -37,6 +44,19 @@ def insert_device_statut(cur, id_device, id_statut):
         """,
         (id_device, id_statut)
     )
+
+
+# def get_statut_stat_device(cur):
+#     cur.execute(
+#         """
+#         SELECT *
+#         FROM t_statut
+#         WHERE nom IN ('ACTIVE', 'DELINQUENT', 'DISABLED', 'DEPROVISIONED')
+#         """
+#     )
+#     result = cur.fetchall()
+#     return result
+
 
 def get_status_actuel_device(cur, id_device):
     cur.execute(

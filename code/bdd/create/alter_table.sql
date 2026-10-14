@@ -29,6 +29,8 @@ ALTER TABLE t_imprimante_device ADD CONSTRAINT uq_imprimante_device_date UNIQUE 
 ALTER TABLE t_imprimante_user ADD CONSTRAINT uq_imprimante_user UNIQUE (id_imprimante, id_utilisateur, date);
 ALTER TABLE t_imprimante_device DROP CONSTRAINT t_imprimante_device_id_imprimante_id_device_key;
 ALTER TABLE t_imprimante_user DROP CONSTRAINT t_imprimante_user_id_imprimante_id_utilisateur_key;
+ALTER TABLE t_device_ram ADD CONSTRAINT uq_device_ram_device_date UNIQUE (id_device, date);
+ALTER TABLE t_device_cpu ADD CONSTRAINT uq_device_cpu_device_date UNIQUE (id_device, date);
 ALTER TABLE t_configuration ADD COLUMN date TIMESTAMPTZ NOT NULL DEFAULT now();
 ALTER TABLE t_configuration DROP CONSTRAINT t_configuration_type_key;
 ALTER TABLE t_synchronisation_historique DROP COLUMN message_erreur;
@@ -39,3 +41,62 @@ UPDATE t_synchronisation_historique SET date_debut = date_fin;
 ALTER TABLE t_synchronisation_historique
     ADD COLUMN fenetre_debut timestamptz,
     ADD COLUMN fenetre_fin   timestamptz;
+ALTER TABLE t_device_alerte   ADD COLUMN message text;
+
+ALTER TABLE t_statut ADD CONSTRAINT uq_statut_nom UNIQUE (nom);
+ALTER TABLE t_reseau ADD CONSTRAINT uq_reseau_valeur UNIQUE (valeur);
+ALTER TABLE t_device_reseau ADD CONSTRAINT uq_device_reseau UNIQUE (id_device, id_reseau);
+ALTER TABLE t_comparaison ADD CHECK (id_device_a <> id_device_b);
+ALTER TABLE t_user DROP COLUMN vrai_mdp;
+ALTER TABLE t_type_rapport
+    ADD CONSTRAINT uq_type_rapport_cle_api UNIQUE (cle_api);
+
+ALTER TABLE t_cpu
+    ADD CONSTRAINT uq_cpu_model UNIQUE (cpu_model);
+
+ALTER TABLE t_device_filiale
+    ADD CONSTRAINT uq_device_filiale UNIQUE (id_device, id_filiale);
+
+ALTER TABLE t_reseau
+    ADD CONSTRAINT uq_reseau_valeur UNIQUE (valeur);
+
+ALTER TABLE t_device_reseau
+    ADD CONSTRAINT uq_device_reseau UNIQUE (id_device, id_reseau);
+
+ALTER TABLE t_seuil
+    ADD CONSTRAINT uq_seuil_cle UNIQUE (cle),
+    ALTER COLUMN cle SET NOT NULL,
+    ALTER COLUMN valeur SET NOT NULL;
+ALTER TABLE t_configuration drop column date
+ALTER TABLE t_comparaison
+    ADD CONSTRAINT ck_comparaison_devices_diff CHECK (id_device_a <> id_device_b);
+alter table t_device_alerte drop column date_resolution;
+ALTER TABLE t_device_alerte
+    ADD COLUMN date TIMESTAMPTZ NOT NULL DEFAULT NOW();
+
+-- ============================================================
+-- Migration : t_device_cpu  +  nouvelle table t_device_ram
+-- ============================================================
+
+ALTER TABLE t_device_cpu add column cpu_libre BIGINT,
+
+ALTER TABLE t_device_cpu
+    DROP COLUMN IF EXISTS valeur;
+
+ALTER TABLE t_device_cpu
+    DROP COLUMN IF EXISTS total;
+
+-- Ajouter les nouvelles colonnes
+ALTER TABLE t_device_cpu
+    ADD COLUMN IF NOT EXISTS cpu_utiliser NUMERIC(5,2),
+    ADD COLUMN IF NOT EXISTS cpu_total BIGINT,
+    ADD COLUMN IF NOT EXISTS date TIMESTAMPTZ NOT NULL DEFAULT NOW();
+
+-- 2) Créer t_device_ram (nouvelle table)
+ALTER TABLE t_device_cpu DROP COLUMN IF EXISTS cpu_utiliser;
+ALTER TABLE t_device_cpu ADD COLUMN cpu_utiliser NUMERIC(5,2);
+ALTER TABLE t_device_ram
+ADD CONSTRAINT uq_device_ram_device_date UNIQUE (id_device, date);
+
+ALTER TABLE t_device_cpu
+ADD CONSTRAINT uq_device_cpu_device_date UNIQUE (id_device, date);

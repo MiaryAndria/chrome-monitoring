@@ -1,53 +1,54 @@
 from typing import List
 from datetime import datetime
-from fastapi import APIRouter, HTTPException,Query
-from backend.fonction.metier.models.configuration import ConfigurationResponse,ConfigurationData
-from backend.fonction.metier.service.configuration_service import getListeConfiguration,getDetailConfiguration,InsertConfiguration,UpdateConfiguration
-import traceback
+from fastapi import APIRouter, HTTPException
+
+from backend.fonction.metier.models.configuration import ConfigurationResponse, ConfigurationData
+from backend.fonction.metier.service.configuration_service import (
+    InsertConfiguration as insert_config_service,
+    UpdateConfiguration as update_config_service,
+    deleteConfiguration as delete_config_service,
+    getListeArchiveConfiguration,
+    getListeConfiguration,
+    reStaurer as restore_config_service,
+)
 
 router = APIRouter()
 
 @router.get("/liste", response_model=List[ConfigurationResponse])
-def getListe():
+def get_liste():
     try:
-        liste = getListeConfiguration()
-        return liste
+        return getListeConfiguration()
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/{id}", response_model=ConfigurationResponse)
-def getDetailDevice(id):
-    try:
-        device = getDetailConfiguration(id)
-
-        if device is None:
-            raise HTTPException(
-                status_code=404,
-                detail="Device introuvable"
-            )
-
-        return device
-
-    except HTTPException:
-        raise
-
-    except Exception as e:
-        traceback.print_exc()
-
-        raise HTTPException(
-            status_code=500,
-            detail=str(e)
-        )
-        
-        
 @router.post("/create", status_code=201)
-def create(data: ConfigurationData):
+def create_configuration(data: ConfigurationData):
     date = datetime.now()
-    InsertConfiguration(data.type, data.valeur,date)
+    insert_config_service(data.type, data.valeur, date)
     return {"message": "Configuration créée"}
 
 @router.put("/{id}/update")
-def update(id: int, data: ConfigurationData):
+def update_configuration(id: int, data: ConfigurationData):
     date = datetime.now()
-    UpdateConfiguration(data.type, data.valeur, date, id)
+    update_config_service(id, data.type, data.valeur, date)
     return {"message": "Configuration mise à jour"}
+
+@router.post("/{id}/delete", status_code=201)
+def delete_configuration(id: int):
+    delete_config_service(id, date=datetime.now())
+    return {"message": "Configuration supprimée"}
+
+@router.get("/liste/archiver", response_model=List[ConfigurationResponse])
+def get_list_archive():
+    try:
+        return getListeArchiveConfiguration()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/{id}/restaurer")
+def restore_configuration(id: int):
+    try:
+        restored_id = restore_config_service(id)
+        return {"message": "Configuration restaurée", "id": restored_id}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

@@ -1,4 +1,5 @@
 import os
+import socket
 import time
 from pathlib import Path
 import threading
@@ -89,6 +90,24 @@ def _execute_with_retry(request_fn, max_retries=4, base_delay=1.0):
             print(
                 f"[Google API retry] status={status}, attempt={attempt + 1}/{max_retries + 1}, "
                 f"retrying in {delay:.1f}s"
+            )
+            time.sleep(delay)
+        except (TimeoutError, socket.timeout, OSError) as exc:
+            if attempt >= max_retries:
+                raise
+            delay = base_delay * (2 ** attempt)
+            print(
+                f"[Google API retry] timeout/network error={type(exc).__name__}, "
+                f"attempt={attempt + 1}/{max_retries + 1}, retrying in {delay:.1f}s"
+            )
+            time.sleep(delay)
+        except Exception as exc:
+            if attempt >= max_retries:
+                raise
+            delay = base_delay * (2 ** attempt)
+            print(
+                f"[Google API retry] unexpected error={type(exc).__name__}: {exc}, "
+                f"attempt={attempt + 1}/{max_retries + 1}, retrying in {delay:.1f}s"
             )
             time.sleep(delay)
 

@@ -18,5 +18,6 @@ def getListeStatut():
     
     close_connection(connexion)
     return result
+        
 # if __name__ == "__main__":
 #     getListeStatut()

@@ -111,17 +111,26 @@ def get_device_by_type(cur,id_type_appareil):
     result = cur.fetchall()
     return result
 
-def get_device_by_statut(cur,id_statut):
+STATUTS_AUTORISES = ('ACTIVE', 'DELINQUENT', 'DISABLED', 'DEPROVISIONED')
+
+def get_device_by_statut(cur, id_statut):
     cur.execute(
         """
-        SELECT d.* FROM t_device d
+        SELECT d.*
+        FROM t_device d
         JOIN t_device_statut ds ON d.id = ds.id_device
+        JOIN t_statut s ON s.id = ds.id_statut
         WHERE ds.id_statut = %s
-        AND ds.date = (SELECT MAX(ds2.date) FROM t_device_statut ds2 WHERE ds2.id_device = d.id)
-        """,(id_statut,)
+          AND s.nom IN %s
+          AND ds.date = (
+              SELECT MAX(ds2.date)
+              FROM t_device_statut ds2
+              WHERE ds2.id_device = d.id
+          )
+        """,
+        (id_statut, STATUTS_AUTORISES)
     )
-    result = cur.fetchall()
-    return result
+    return cur.fetchall()
 
 def get_liste_chromebook(cur):
     cur.execute(
@@ -426,16 +435,13 @@ def update_device(cur, device_id, serial_number, modele,
     return row[0] if row else None
 
 def insert_device_cpu(cur, cpu_id, device_id):
-    cur.execute(
-        """
-        INSERT INTO t_device_cpu (id_device, id_cpu)
-        VALUES (%s, %s)
-        RETURNING id;
-        """,
-        (device_id, cpu_id)
-    )
-    row = cur.fetchone()
-    return row[0] if row else None
+    """
+    Les lignes vides de liaison CPU ne doivent plus être créées.
+    La vraie mesure CPU est stockée dans t_device_cpu via l'insertion de
+    cpu_utiliser, cpu_libre, cpu_total et date.
+    """
+    return None
+
 
 def get_last_cpu_for_device(cur, device_id):
     cur.execute(
@@ -481,33 +487,31 @@ def delete_all(cur):
     cur.execute(
     """
     TRUNCATE TABLE
+        t_device_alerte_statut,
         t_device_alerte,
-        t_device_utilisateur_recent,
+        t_device_cpu,
         t_device_filiale,
-        t_device_historique,
+        t_device_reseau,
         t_device_statut,
         t_device_utilisateur,
+        t_device_utilisateur_recent,
         t_disk_device,
         t_rapport_device,
-        t_version_report,
         t_evenement_device,
         t_imprimante_device,
+        t_imprimante_user,
+        t_statut_comparaison,
         t_comparaison,
         t_filiale_utilisateur,
         t_reseau_filiale,
-        t_device_cpu,
+        t_statut_synchronisation,
+        t_synchronisation_historique,
         t_device,
         t_imprimante,
-        t_alerte,
-        t_type_evenement,
-        t_type_rapport,
         t_utilisateur,
-        t_type_appareil,
-        t_reseau,
         t_filiale,
-        t_configuration,
+        t_reseau,
         t_cpu,
-        t_statut,
         t_disk
     RESTART IDENTITY CASCADE;
     

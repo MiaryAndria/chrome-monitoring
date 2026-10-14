@@ -158,3 +158,16 @@ def insert_rapport_lot(cur, lignes):
         template="(%s, %s, %s, %s::jsonb)",
         page_size=1000,
     )
+    
+def recuperation_json_brut(cur, id_device, date):
+    cur.execute(
+        """
+        SELECT * FROM t_rapport_device
+        WHERE id_device = %s
+          AND DATE(report_time) = %s
+        ORDER BY report_time DESC
+        """,
+        (id_device, date),
+    )
+    result = cur.fetchall()
+    return result

@@ -7,6 +7,9 @@ from backend.fonction.metier.repository.devices import (
 )
 from backend.fonction.metier.repository.statut import get_liste_statut
 
+STATUTS_DASHBOARD = {"ACTIVE", "DELINQUENT", "DISABLED", "DEPROVISIONED"}
+
+
 def nombreDevice(cur):
     return get_nombre_device(cur)
 
@@ -27,9 +30,11 @@ def nombreDeviceByStatut(cur):
     for l in ls:
         id_statut = l[0]
         nom_statut = l[1]
+        if nom_statut not in STATUTS_DASHBOARD:
+            continue
         statutbydevice = get_device_by_statut(cur, id_statut)
         nombre = len(statutbydevice)
-        result[nom_statut]=nombre
+        result[nom_statut] = nombre
     return result
 
 def getStatistiques():

@@ -28,8 +28,6 @@ const STATUS_STYLES = [
 
 export const getStatusStyle = (index) => STATUS_STYLES[index % STATUS_STYLES.length];
 
-
-
 export const getListeDevice = async () => {
     try {
         const response = await api_service.get('/device/liste')

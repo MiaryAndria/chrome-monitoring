@@ -87,11 +87,17 @@ fonctionnalité export liste utilisateur chromebox ou chromebook en utilisant id
 get_devices et get_telemetry_devices ne reçoivent pas debut. Ils récupèrent tous les appareils à chaque tour (d’où ~1160 lignes constantes)
 mettre toutes les filtres dans backend pour rapidité 
 
-
 todo 
 intervalle de recuperation atao anaty base 
 intervalle de synchronisation ko 
 configuration insertion et suppression et retour 
 modification des codes backend pour utiliser les parametres depuis base ao amn'event et device etc dans python ao amn'google_api tsy atao en dur ilay zavatra reny 
 page detail imprimante avec liste utilisateur et liste device connécté 
-
+t_device_cpu stocker valeur cpu avec date dans t_device_cpu avec total si possible et utilisation etc et aussi creer un table t_device_ram pour stocker valeur ram id_pc et valeur ram_utiliser ram_total et date et ram_libre et ram_utiliser
+ajuster frontend pour recuperer maintenant valeur directement depuis t_device_cpu et t_device_ram et verifier t_disk_device
+verifier dans fontend que toutes les fonctions filtrage etc sont-ils dans backend et aussi ameliorer frontend pour charger genre 10 d'abord afficher 10 pendant que les autres se charge et on fait cashing
+securisation du site 
+multi tier pour de bon 
+caching 
+amelioration dashboard
+format valeur heure dans t_evenements

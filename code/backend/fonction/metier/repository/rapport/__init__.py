@@ -6,7 +6,8 @@ from .rapport_device import (
     create_rapport_device,
     get_rapport_by_device_type_and_period,
     insert_rapport_lot,
-    get_liste_rapport_device
+    get_liste_rapport_device,
+    recuperation_json_brut
 )
 
 from .type_rapport import (
