@@ -1,13 +1,23 @@
 import { Printer } from "lucide-react";
 
-function ImprimanteCard({ imp }) {
+function ImprimanteCard({ imp ,onClick}) {
     return (
-        <div className="device-card group bg-amber-500/5 border-amber-500/20" 
-             style={{ 
-                 '--card-glow': 'radial-gradient(circle at top right, rgba(245, 158, 11, 0.08), transparent 70%)',
-                 '--card-border-hover': 'rgba(245, 158, 11, 0.5)',
-                 '--card-shadow': 'rgba(245, 158, 11, 0.2)'
-             }}>
+
+        <div
+            onClick={onClick}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    onClick?.();
+                }
+            }} className="device-card group bg-amber-500/5 border-amber-500/20"
+            style={{
+                '--card-glow': 'radial-gradient(circle at top right, rgba(245, 158, 11, 0.08), transparent 70%)',
+                '--card-border-hover': 'rgba(245, 158, 11, 0.5)',
+                '--card-shadow': 'rgba(245, 158, 11, 0.2)'
+            }}>
             {/* Icône + fabricant */}
             <div className="flex items-center gap-3 mb-4">
                 <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center flex-shrink-0 group-hover:bg-amber-500/20 transition-colors">

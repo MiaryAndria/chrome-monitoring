@@ -1,4 +1,4 @@
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 from pydantic import BaseModel
 
 class Device(BaseModel):
@@ -49,3 +49,11 @@ class StatistiquesResponse(BaseModel):
     total: int
     par_statut: Dict[str,int]
     par_type: Dict[str,int]
+
+
+class DevicePageResponse(BaseModel):
+    items: List[DeviceResponses]
+    total: int
+    page: int
+    page_size: int
+    total_pages: int

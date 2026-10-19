@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { Laptop, Network, User, Users, X, Copy, Check, ChevronLeft, Building2, Server } from 'lucide-react';
 import { useParams, useNavigate } from 'react-router-dom';
-import Sidebar from "../../components/Sidebar";
 import Navbar from "../../components/Navbar";
 import MouseSpotlight from "../../components/MouseSpotlight";
+import Pagination from "../../components/Pagination";
+import DeviceListSkeleton from "../../components/skeletons/DeviceListSkeleton";
 import '../../css/liste.css';
 import StatutDropdown from "../component/StatutDropdown";
 import ResetFiltreButton from "../component/ResetFiltreButton";
@@ -21,6 +22,11 @@ function ListeDeviceFiliale() {
     const [filialeInfo, setFilialeInfo] = useState(null);
     const [loading, setLoading] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
+    const [pageSize, setPageSize] = useState(10);
+    const [total, setTotal] = useState(0);
+    const [totalPages, setTotalPages] = useState(0);
+    const [activeCount, setActiveCount] = useState(0);
+    const [filialeTotal, setFilialeTotal] = useState(0);
     const [selectedDevice, setSelectedDevice] = useState(null);
     const [copiedSN, setCopiedSN] = useState(null);
 
@@ -44,17 +50,6 @@ function ListeDeviceFiliale() {
         setCurrentPage(1);
     };
 
-    const filteredDevices = devices.filter(d => {
-        if (statut && (d.status || d.nom_statut || '').toUpperCase() !== statut.toUpperCase()) return false;
-        return true;
-    });
-
-    const deviceParPage = 8;
-    const indexLastDevice = currentPage * deviceParPage;
-    const indexFirstDevice = indexLastDevice - deviceParPage;
-    const currentDevices = filteredDevices.slice(indexFirstDevice, indexLastDevice);
-    const totalPages = Math.ceil(devices.length / deviceParPage) || 1;
-
     const handleCopySN = (serialNumber) => {
         if (!serialNumber) return;
         navigator.clipboard.writeText(serialNumber);
@@ -70,8 +65,20 @@ function ListeDeviceFiliale() {
                 const current = filiales.find(f => f.id === parseInt(id_filiale));
                 if (current) setFilialeInfo(current);
             }
-            const data = await getDevicesByFiliale(id_filiale);
-            setDevices(data || []);
+            const [data, statsData, activeData] = await Promise.all([
+                getDevicesByFiliale(id_filiale, {
+                    page: currentPage,
+                    page_size: pageSize,
+                    statut: statut || undefined,
+                }),
+                getDevicesByFiliale(id_filiale, { page: 1, page_size: 1 }),
+                getDevicesByFiliale(id_filiale, { page: 1, page_size: 1, statut: 'ACTIVE' }),
+            ]);
+            setDevices(data?.items || []);
+            setTotal(data?.total || 0);
+            setTotalPages(data?.total_pages || 0);
+            setActiveCount(activeData?.total || 0);
+            setFilialeTotal(statsData?.total || 0);
         } catch (e) {
             console.log(e);
         } finally {
@@ -81,20 +88,13 @@ function ListeDeviceFiliale() {
 
     useEffect(() => {
         fetchData();
-        setCurrentPage(1);
-    }, [id_filiale]);
+    }, [id_filiale, currentPage, pageSize, statut]);
 
-
-    const activeCount = devices.filter(d => {
-        const s = (d.status || d.nom_statut || '').toUpperCase();
-        return s === 'ACTIVE' || s === 'ACTIFS';
-    }).length;
-    const otherCount = devices.length - activeCount;
+    const otherCount = filialeTotal - activeCount;
 
     return (
         <div className="device-layout" data-theme="dark">
             <MouseSpotlight />
-            <Sidebar />
 
             <div className="flex-1 flex flex-col h-screen overflow-hidden relative z-10">
                 <div className="bg-glow-cyan"></div>
@@ -140,7 +140,7 @@ function ListeDeviceFiliale() {
                     <div className="stats stats-container glass-panel">
                         <div className="stat place-items-center">
                             <div className="stat-title text-zinc-400">Total Devices</div>
-                            <div className="stat-value neon-text-cyan text-4xl">{devices.length}</div>
+                            <div className="stat-value neon-text-cyan text-4xl">{filialeTotal}</div>
                             <div className="stat-desc text-zinc-500 flex items-center gap-1 mt-1">
                                 <Server className="w-3 h-3 text-emerald-500" /> Dans cette filiale
                             </div>
@@ -160,13 +160,11 @@ function ListeDeviceFiliale() {
                     <div>
                         <div className="section-header">
                             <h2 className="section-title">Devices de la filiale</h2>
-                            <span className="section-count">{devices.length} device(s)</span>
+                            <span className="section-count">{total} device(s)</span>
                         </div>
 
-                        {loading ? (
-                            <div className="flex justify-center p-12">
-                                <span className="loading loading-infinity loading-lg text-cyan-500"></span>
-                            </div>
+                        {loading && devices.length === 0 ? (
+                            <DeviceListSkeleton />
                         ) : devices.length === 0 ? (
                             <div className="empty-state">
                                 <Laptop className="empty-state-icon" />
@@ -174,7 +172,7 @@ function ListeDeviceFiliale() {
                             </div>
                         ) : (
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                                {currentDevices.map((d) => (
+                                {devices.map((d) => (
                                     <div key={d.id || d.serial_number} className="device-card">
                                         <div className="flex justify-between items-start mb-4">
                                             <div className="p-2.5 bg-white/5 rounded-xl text-zinc-300">
@@ -259,27 +257,17 @@ function ListeDeviceFiliale() {
                         )}
                     </div>
 
-                    {devices.length > deviceParPage && (
-                        <div className="flex justify-center items-center gap-4 mt-8 pb-4">
-                            <button
-                                className="pagination-btn"
-                                disabled={currentPage === 1}
-                                onClick={() => setCurrentPage(currentPage - 1)}
-                            >
-                                Précédent
-                            </button>
-                            <div className="pagination-indicator">
-                                {currentPage} <span className="pagination-separator">/</span> {totalPages}
-                            </div>
-                            <button
-                                className="pagination-btn"
-                                disabled={currentPage === totalPages}
-                                onClick={() => setCurrentPage(currentPage + 1)}
-                            >
-                                Suivant
-                            </button>
-                        </div>
-                    )}
+                    <Pagination
+                        page={currentPage}
+                        pageSize={pageSize}
+                        totalPages={totalPages}
+                        total={total}
+                        onPageChange={setCurrentPage}
+                        onPageSizeChange={(size) => {
+                            setPageSize(size);
+                            setCurrentPage(1);
+                        }}
+                    />
                 </div>
             </div>
 

@@ -65,6 +65,48 @@ def search_imprimante(cur,recherche):
     result = cur.fetchall()
     return result
 
+
+def _rows_to_dicts(cur):
+    colonnes = [desc[0] for desc in cur.description]
+    return [dict(zip(colonnes, row)) for row in cur.fetchall()]
+
+
+def find_imprimantes_paginated(cur, page=1, page_size=10, recherche=None,
+                               datetime_from=None, datetime_to=None):
+    clauses = []
+    params = []
+
+    if recherche:
+        terme = f"%{recherche}%"
+        clauses.append(
+            "(vendor ILIKE %s OR nom ILIKE %s "
+            "OR CAST(vid AS TEXT) ILIKE %s OR CAST(pid AS TEXT) ILIKE %s)"
+        )
+        params.extend([terme, terme, terme, terme])
+    if datetime_from is not None:
+        clauses.append("derniere_detection >= %s")
+        params.append(datetime_from)
+    if datetime_to is not None:
+        clauses.append("derniere_detection <= %s")
+        params.append(datetime_to)
+
+    where = "WHERE " + " AND ".join(clauses) if clauses else ""
+    offset = (page - 1) * page_size
+
+    cur.execute(
+        f"""
+        SELECT
+            id, vid, pid, vendor, nom, derniere_detection,
+            COUNT(*) OVER() AS total
+        FROM v_imprimantes_filtrees
+        {where}
+        ORDER BY id ASC
+        LIMIT %s OFFSET %s
+        """,
+        tuple(params + [page_size, offset])
+    )
+    return _rows_to_dicts(cur)
+
 def get_nombre_imprimante(cur):
     cur.execute(
         """
@@ -102,21 +144,6 @@ def insert_imprimante(cur, vid, pid, vendor, nom):
         (vid, pid, vendor, nom)
     )
 
-# def getImprimantesDevice(cur,id_device):
-#     cur.execute("""
-#         SELECT i.id, i.vid, i.pid, i.vendor, i.nom, MAX(idv.date)
-#         FROM imprimante_device idv
-#         JOIN imprimante i ON i.id = idv.id_imprimante
-#         WHERE idv.id_device = %s
-#         GROUP BY i.id, i.vid, i.pid, i.vendor, i.nom
-#         ORDER BY i.nom
-#     """, (id_device,))
-#     return [
-#         {"id": r[0], "vid": r[1], "pid": r[2],
-#          "vendor": r[3], "nom": r[4], "derniere_detection": r[5]}
-#         for r in cur.fetchall()
-#     ]
-    
 def get_or_create_imprimante(cur,vid,pid,vendor,nom):
     imprimante = get_imprimante_by_vid_and_pid(cur,vid,pid)
     if not imprimante :
@@ -124,3 +151,4 @@ def get_or_create_imprimante(cur,vid,pid,vendor,nom):
         imprimante = get_imprimante_by_vid_and_pid(cur,vid,pid)
         
     return imprimante 
+

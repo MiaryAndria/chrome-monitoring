@@ -1,9 +1,9 @@
-import { useState } from "react";
 import {
     Calendar, Monitor, User,
     Zap, AlertTriangle, Cpu, Layers
 } from "lucide-react";
-import { formatDate } from "../../fonction/utils/util";
+import { formatDateTime } from "../../fonction/utils/util";
+import EvenementDureeVie from "./EvenementDureeVie";
 
 const CAUSE_LABELS = {
     "ARRET_ANORMAL": { 
@@ -78,8 +78,7 @@ const getStyle = (type, causeClass) => {
     };
 };
 
-function EventCard({ ev, onOpenModal }) {
-    const [open, setOpen] = useState(false);
+function EventCard({ ev, isOpen, onToggle }) {
     const style = getStyle(ev.type_evenement, ev.cause_class);
     const causeInfo = CAUSE_LABELS[ev.cause_class] || null;
     const shortType = (ev.type_evenement || "INCONNU").replace("CRASH_TYPE_", "").replace(/_/g, " ");
@@ -106,7 +105,7 @@ function EventCard({ ev, onOpenModal }) {
                     </div>
                     <span className="text-[10px] text-zinc-500 whitespace-nowrap flex items-center gap-1">
                         <Calendar className="w-3 h-3" />
-                        {formatDate(ev.date_evenement)}
+                        {formatDateTime(ev.date_evenement)}
                     </span>
                 </div>
 
@@ -147,15 +146,15 @@ function EventCard({ ev, onOpenModal }) {
 
             {/* Bouton détail */}
             <button
-                onClick={() => setOpen(o => !o)}
+                onClick={onToggle}
                 className="w-full px-4 py-2 mt-3 border-t border-white/5 text-[10px] text-zinc-500 hover:text-cyan-300 hover:bg-cyan-500/5 transition-colors flex items-center justify-center gap-1 cursor-pointer rounded-b-xl"
             >
-                {open ? "Masquer" : "Voir diagnostic"}
-                <span className={`transition-transform duration-200 ${open ? "rotate-180" : ""}`}>▼</span>
+                {isOpen ? "Masquer" : "Voir diagnostic"}
+                <span className={`transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}>▼</span>
             </button>
 
             {/* Détail expandable */}
-            {open && (
+            {isOpen && (
                 <div className="px-4 py-3 border-t border-white/5 bg-black/20 space-y-2">
                     {causeInfo && (
                         <p className="text-[11px] text-zinc-400 leading-relaxed">{causeInfo.desc}</p>
@@ -187,6 +186,13 @@ function EventCard({ ev, onOpenModal }) {
                                 <p className="text-sm font-bold text-zinc-200">{Number(ev.minutes_since_boot).toFixed(0)}</p>
                             </div>
                         )}
+                    </div>
+
+                    <div className="pt-2 border-t border-white/5">
+                        <p className="text-[10px] text-zinc-500 uppercase font-semibold mb-2">
+                            Durée de vie avant extinction
+                        </p>
+                        <EvenementDureeVie eventId={ev.id} />
                     </div>
                 </div>
             )}

@@ -1,8 +1,11 @@
+import traceback
+
 from fastapi import APIRouter, HTTPException,Query
 from fastapi.responses import StreamingResponse
-from datetime import date
+from datetime import date, datetime
 from typing import List,Optional
 from backend.fonction.metier.service.rapport_service import (
+    build_imprimante_sections,
     getCpuRaportById,
     getRamRaportById,
     getStockageRaportById,
@@ -10,15 +13,19 @@ from backend.fonction.metier.service.rapport_service import (
     getReseauRaportById,
     getConnectedPerRaportById,
     getDeviceRaportGeneral,
-    filterRapportDeviceByDate,
+    filterRapportDeviceByDatetime,
     idByName,getReportsForExport,
     getListeReport
 )
+
+from backend.fonction.metier.service.imprimante_service import get_imprimante_detail
+
 from backend.fonction.metier.service.export_service import (
     build_sections, generate_excel, generate_pdf, TABLE_BUILDERS,
     build_export_filename, resolve_device_export_name, save_export_file,
 )
 from backend.fonction.metier.models.rapport import RapportDeviceResponse,TypeRapportIdResponse
+from backend.utils.validation import is_valid_datetime_range
 router = APIRouter()
 
 ONGLETS_VALIDES = {"general", *TABLE_BUILDERS.keys()}
@@ -77,9 +84,21 @@ def getPeripheriquesReport(id: int):
 
         
 @router.get("/filter", response_model=List[RapportDeviceResponse])
-def getRapportFiltrer(id_device: int, id_type_rapport: int, date_debut: date, date_fin: date):
+def getRapportFiltrer(
+    id_device: int,
+    id_type_rapport: int,
+    datetime_from: datetime,
+    datetime_to: datetime,
+):
+    if not is_valid_datetime_range(datetime_from, datetime_to):
+        raise HTTPException(
+            status_code=400,
+            detail="datetime_to doit être supérieur ou égal à datetime_from",
+        )
     try:
-        return filterRapportDeviceByDate(id_device, id_type_rapport, date_debut, date_fin)
+        return filterRapportDeviceByDatetime(
+            id_device, id_type_rapport, datetime_from, datetime_to
+        )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     
@@ -90,6 +109,63 @@ def getIdByName(name: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.get("/export/excel/imprimante/{id}")
+def exportImprimanteExcel(id: int):
+    try:
+        detail = get_imprimante_detail(id)
+        if detail is None:
+            raise HTTPException(status_code=404, detail="Imprimante introuvable")
+
+        nom = detail.get("nom") or f"imprimante_{id}"
+        sections = build_imprimante_sections(detail)
+        titre = f"Rapport imprimante - {nom}"
+
+        buffer = generate_excel(sections, titre, device_info=None)
+        media = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        ext = "xlsx"
+
+        filename = build_export_filename("imprimante", id, ext, nom)
+        save_export_file(buffer, ext, filename)
+        return StreamingResponse(
+            buffer, media_type=media,
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/export/pdf/imprimante/{id}")
+def exportImprimantePdf(id: int):
+    try:
+        detail = get_imprimante_detail(id)
+        if detail is None:
+            
+            raise HTTPException(status_code=404, detail="Imprimante introuvable")
+
+        nom = detail.get("nom") or f"imprimante_{id}"
+        sections = build_imprimante_sections(detail)
+        titre = f"Rapport imprimante - {nom}"
+        periode = "Toute la période"
+
+        buffer = generate_pdf(sections, titre, periode, device_info=None)
+        media = "application/pdf"
+        ext = "pdf"
+
+        filename = build_export_filename("imprimante", id, ext, nom)
+        save_export_file(buffer, ext, filename)
+        return StreamingResponse(
+            buffer, media_type=media,
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+    
 @router.get("/export/excel/{onglet}/{id}")
 def exportRapportExcel(
     onglet: str,
@@ -120,6 +196,7 @@ def exportRapportExcel(
     except HTTPException:
         raise
     except Exception as e:
+        
         raise HTTPException(status_code=500, detail=str(e))
     
 @router.get("/export/pdf/{onglet}/{id}")
@@ -154,7 +231,8 @@ def exportPdf(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
- 
+    
+
   
 @router.get("/liste")
 def getReport():
@@ -165,3 +243,4 @@ def getReport():
         return report
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+    

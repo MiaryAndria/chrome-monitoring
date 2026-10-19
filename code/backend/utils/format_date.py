@@ -3,15 +3,12 @@ def format_date(date):
     if not date:
         return "N/A"
 
+    if isinstance(date, datetime):
+        return date.strftime("%d/%m/%Y %H:%M:%S")
     try:
-        date_obj = datetime.fromisoformat(
-            date.replace("Z", "+00:00")
-        )
+        date_obj = datetime.fromisoformat(date.replace("Z", "+00:00"))
     except ValueError:
-        date_obj = datetime.strptime(
-            date,
-            "%d/%m/%Y %H:%M:%S"
-        )
+        date_obj = datetime.strptime(date, "%d/%m/%Y %H:%M:%S")
 
     return date_obj.strftime("%d/%m/%Y %H:%M:%S")
 

@@ -1,0 +1,35 @@
+# Taste
+- When given a multi-step task guide/document, read it fully first, then execute the listed changes in order while respecting its stated constraints. Confidence: 0.8
+- Prefers autonomous execution: chain through numbered steps/adjustments automatically without waiting for validation after each one, stopping only on genuine blockers (business ambiguity, missing info, major architectural decision). Confidence: 0.85
+- After each completed step/adjustment, create a tracking markdown document following the agreed naming convention. Confidence: 0.8
+- Prefers short reports after each step — roughly 5–10 lines, not verbose write-ups. Confidence: 0.8
+- Keep SQL confined to the repository layer (never write SQL outside `repositories/`). Confidence: 0.8
+- Never create nested (inner) functions. Confidence: 0.75
+- Wants all database VIEWs kept in a single dedicated `views.sql` file (not scattered per-feature); obsolete VIEWs go in a separate `drop_views.sql`. Confidence: 0.75
+- Database access is for read-only verification only (SELECT, EXPLAIN, information_schema); the agent must never run writes or DDL (INSERT/UPDATE/DELETE/CREATE/ALTER/DROP, including CREATE/DROP VIEW and CREATE INDEX). Confidence: 0.85
+- For any VIEW, index, or schema statement, write the complete SQL block and hand it over for the user to run manually — include it both in the short report and in the tracking `.md`. Confidence: 0.8
+- Reserves schema constraints (e.g. `ALTER TABLE ... ADD CONSTRAINT UNIQUE`) as business decisions: do not author them, only flag them, and when he answers "no constraint", do not draft one. Confidence: 0.75
+- Verify actual column/table names against the live schema (information_schema / grep) before referencing them; use the real spelling exactly (e.g. `t_device.ip_adress`, one "d") instead of assumed conventional names like `adresse_ip`. Confidence: 0.75
+- When asked to look for duplicates/anomalies, run the check at the exact granularity requested (per group — e.g. per filiale, internal duplicates) rather than answering with a global cross-group summary. Confidence: 0.7
+- Do not produce destructive cleanup (`DELETE`) or tightening constraints for data that is legitimate: "keep the data as it is" is the default unless a real anomaly is demonstrated. Confidence: 0.65
+- Expects mandatory business/domain questions to be raised and answered before implementation instead of guessing ambiguous semantics. Confidence: 0.7
+- Works in French: expects French in conversation, documentation, and code comments/identifiers in the project. Confidence: 0.65
+- Prefers one single filter control per view: says to remove the duplicate filter placed above/below a chart and reuse the existing top-level filter used for the page's base filtering. Confidence: 0.6
+- Prefers compact date filters: time should not be exposed as separate always-visible fields — hour selection belongs inside the calendar popover, revealed when the user opens it. Confidence: 0.6
+- After a batch of code changes, expects a numbered handoff checklist of the remaining manual actions he must run himself (which SQL scripts/views/indexes to execute, frontend restart/rebuild) — he repeatedly asks "qu'est-ce que je dois faire maintenant ?" and wants a concrete ordered list. Confidence: 0.7
+- In that checklist, state explicitly which items need no action because the DB already shows the right state (verified read-only first), rather than listing steps he may have already done. Confidence: 0.6
+- When resuming work, asks for a compact context recap rather than re-exploration: stack, work already done, verified current DB state, and the remaining manual steps — kept to a few short bullet groups. Confidence: 0.5
+- Wants the purpose of each SQL object documented, not just the SQL itself: an explanation of what every VIEW/index is for, why it exists, and who consumes it — accepted as header comments in the `.sql` files and/or a dedicated reference doc under `doc/md/` (e.g. `bdd.md`). Doing both is welcome. Confidence: 0.6
+- Prefers a FastAPI backend using raw `psycopg2` SQL (no ORM), a React/Vite frontend, and PostgreSQL. Confidence: 0.7
+- Caching rule: cache only paginated lists and stable/reference data; never cache changing metrics (CPU/RAM/Disk/Battery), date-filtered sums, device detail, recent events, or the dashboard summary (its counters change on every sync). Confidence: 0.85
+- When new data arrives via sync/import (e.g., a new printer, device, or event), invalidate the cache immediately after commit so the fresh data is visible on the next list call. Confidence: 0.8
+- Treats prefetching as distinct from caching: prefetch pages N+1/N+2 in the background for a fast page 1 and instant "next", one-shot (refetch if returning later), with a local skeleton rather than a global spinner. Confidence: 0.75
+- For a date-range aggregate, wants both the total and the per-day detail; when start and end fall on the same day, omit the total and show per-measurement detail instead. Confidence: 0.7
+- The date+time filter should only appear where it has business meaning (device detail tabs, events, stats/alerts) and be removed from pages like the device list where filtering by date is meaningless. Confidence: 0.7
+- Validates code changes by running Python `compileall`, the test suite, and the frontend build before reporting success. Confidence: 0.7
+- Computed aggregates (e.g. sums over a date range) should live in application code, not be materialized as database VIEWs. Confidence: 0.6
+- Chart axes of a metric (e.g. memory) should be scaled to the real capacity/reference value (total memory) rather than to the max of the received values, so bars are proportional to the actual capacity. Confidence: 0.6
+- Aggregate panels (CPU/RAM sums) must handle empty periods explicitly: when a filtered period returns no values, show an informative French empty-state message ("Aucune donnée relevée sur cette période.") instead of an empty panel or a misleading "Total 0". For multi-day detail, list every day of the range and mark days without data as "Aucune donnée" (valeur: null) rather than hiding them; the total appears only when at least one value exists. Confidence: 0.7
+- Prefers a horizontal top navigation bar (navbar) over a vertical sidebar for the app's main navigation. Confidence: 0.7
+- Groups related secondary navigation under a dropdown menu (e.g. Configuration: list / create / archive) rather than as flat top-level links. Confidence: 0.6
+- Prefers the brand/logo (e.g. the "GT" icon) to link back to the home page, and login to land on that home page (dashboard). Confidence: 0.6

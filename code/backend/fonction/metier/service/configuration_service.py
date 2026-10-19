@@ -39,10 +39,17 @@ def getDetailConfiguration(id_configuration):
         return None
     try:
         cur = connexion.cursor()
-        return get_configuration_by_id(cur, id_configuration)
+        row = get_configuration_by_id(cur, id_configuration)
+        if row is None:
+            return None 
+        return{
+            "id": row[0],
+            "type": row[1] if row[1] is not None else None,
+            "valeur": row[2],
+            "date": row[3],   
+        }
     finally:
         close_connection(connexion)
-
 
 def UpdateConfiguration(id_configuration, type_, valeur, date=None, status_id=13):
     connexion = get_connection()

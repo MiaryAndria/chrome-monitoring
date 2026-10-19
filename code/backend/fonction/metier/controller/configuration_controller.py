@@ -9,6 +9,7 @@ from backend.fonction.metier.service.configuration_service import (
     deleteConfiguration as delete_config_service,
     getListeArchiveConfiguration,
     getListeConfiguration,
+    getDetailConfiguration,
     reStaurer as restore_config_service,
 )
 
@@ -27,6 +28,13 @@ def create_configuration(data: ConfigurationData):
     insert_config_service(data.type, data.valeur, date)
     return {"message": "Configuration créée"}
 
+@router.get("/{id}",response_model=ConfigurationResponse)
+def get_detail(id:int):
+    try:
+        return getDetailConfiguration(id)
+    except Exception as e:
+        raise HTTPException(status_code=500,detail=str(e))
+    
 @router.put("/{id}/update")
 def update_configuration(id: int, data: ConfigurationData):
     date = datetime.now()

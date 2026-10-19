@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { updateConfiguration } from '../../fonction/configurationFonction';
+import { useState,useEffect } from 'react';
+import { updateConfiguration,getDetailConfiguration} from '../../fonction/configurationFonction';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Pencil, ArrowLeft } from 'lucide-react';
 import PageLayout from '../../components/PageLayout';
@@ -9,9 +9,21 @@ import '../../css/configuration.css';
 function ConfigurationUpdate() {
     const [type, setType] = useState('');
     const [valeur, setValeur] = useState('');
+    const [existedType,setExistedType]=useState('');
+    const [existedValeur,setExistedValeur]=useState('');
     const navigate = useNavigate();
     const { id } = useParams();
-
+    const getDetail = async(id)=>{
+        try{
+            const d = await getDetailConfiguration(id)
+            setExistedType(d.type)
+            setExistedValeur(d.valeur)
+            console.log(d)
+        }catch(e){
+            console.log(e);
+        }
+    }
+    
     const updConfiguration = async () => {
         try {
             await updateConfiguration(id, type, valeur);
@@ -20,6 +32,10 @@ function ConfigurationUpdate() {
             console.log(e);
         }
     };
+
+    useEffect(()=>{
+        getDetail(id);
+    },[id]);
 
     return (
         <PageLayout
@@ -33,7 +49,7 @@ function ConfigurationUpdate() {
                         <div className="config-form-title-icon">
                             <Pencil className="w-5 h-5" />
                         </div>
-                        Modifier configuration #{id}
+                        Modifier configuration {existedType}
                     </div>
 
                     <div className="config-form-group">
@@ -42,7 +58,7 @@ function ConfigurationUpdate() {
                             type="text"
                             className="config-form-input"
                             onChange={(e) => setType(e.target.value)}
-                            placeholder="Entrer type configuration"
+                            placeholder={existedType}
                         />
                     </div>
 
@@ -52,7 +68,7 @@ function ConfigurationUpdate() {
                             type="text"
                             className="config-form-input"
                             onChange={(e) => setValeur(e.target.value)}
-                            placeholder="Entrer valeur"
+                            placeholder={existedValeur}
                         />
                     </div>
 

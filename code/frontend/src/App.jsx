@@ -11,6 +11,7 @@ import ConfigurationCreate from './page/configuration/create'
 import ConfigurationListe from './page/configuration/liste'
 import ConfigurationUpdate from './page/configuration/update'
 import ArchivedConfiguration from './page/configuration/archived'
+import DetailImprimante from './page/imprimante/detailImprimante'
 
 function App() {
   return (
@@ -29,6 +30,7 @@ function App() {
           <Route path="/liste/configuration" element={<ConfigurationListe/>} />
           <Route path="/liste/configuration/archive" element={<ArchivedConfiguration/>} />
           <Route path="/update/configuration/:id" element={<ConfigurationUpdate/>} />
+          <Route path="/imprimante/:id" element={<DetailImprimante/>} />
         </Routes>
       </main>
   )

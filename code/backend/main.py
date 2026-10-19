@@ -11,6 +11,9 @@ from backend.fonction.metier.controller.rapport_controller import router as rapp
 from backend.fonction.metier.controller.imprimante_controller import router as imprimante_router
 from backend.fonction.metier.controller.evenement_controller import router as evenement_router
 from backend.fonction.metier.controller.configuration_controller import router as configuration_router
+from backend.fonction.metier.controller.ram_controller import router as ram_router
+from backend.fonction.metier.controller.cpu_controller import router as cpu_router
+from backend.fonction.metier.controller.disk_controller import router as disk_router
 # from backend.fonction.metier.service.import_service import synchroniser_tout
 from backend.fonction.metier.service.reset_service import reset_data
 
@@ -33,6 +36,9 @@ app.include_router(rapport_router,prefix="/rapport",tags=["rapport"])
 app.include_router(imprimante_router,prefix="/imprimante",tags=["imprimante"])
 app.include_router(evenement_router,prefix="/evenement",tags=["evenement"])
 app.include_router(configuration_router,prefix="/configuration",tags=["configuration"])
+app.include_router(ram_router,prefix="/ram",tags=["ram"])
+app.include_router(cpu_router,prefix="/cpu",tags=["cpu"])
+app.include_router(disk_router,prefix="/disk",tags=["disk"])
 
 @app.get("/")
 def accueil():

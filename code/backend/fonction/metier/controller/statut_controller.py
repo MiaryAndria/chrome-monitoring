@@ -1,6 +1,5 @@
 from typing import List
 from fastapi import APIRouter, HTTPException
-from backend.fonction.metier.service.statistique_service import getStatistiques
 from backend.fonction.metier.models.statut import statutResponse
 from backend.fonction.metier.service.statut_service import getListeStatut
 

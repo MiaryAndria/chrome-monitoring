@@ -10,6 +10,16 @@ export const getDashboardStats = async () => {
     }
 };
 
+export const getDashboardSummary = async () => {
+    try {
+        const response = await api_service.get('/dashboard/summary');
+        return response.data;
+    } catch (e) {
+        console.log(e);
+        return null;
+    }
+};
+
 export const getListeStatut = async () => {
     try {
         const response = await api_service.get('/statut/liste');
@@ -28,12 +38,13 @@ const STATUS_STYLES = [
 
 export const getStatusStyle = (index) => STATUS_STYLES[index % STATUS_STYLES.length];
 
-export const getListeDevice = async () => {
+export const getListeDevice = async (params = {}) => {
     try {
-        const response = await api_service.get('/device/liste')
+        const response = await api_service.get('/device/liste', { params })
         return response.data;
     } catch (e) {
         console.log(e)
+        return { items: [], total: 0, page: 1, page_size: params.page_size || 10, total_pages: 0 };
     }
 }
 
@@ -83,6 +94,66 @@ export const getDetailRam = async(id)=>{
         return response.data;
     }catch(e){  
         console.log(e)
+    }
+};
+
+export const getRamMaxTotal = async(id, params = {})=>{
+    try{
+        const response = await api_service.get(`/ram/${id}/max-total`, { params });
+        return response.data?.max_total ?? null;
+    }catch(e){
+        console.log(e);
+        return null;
+    }
+};
+
+export const getCpuLatest = async (id) => {
+    try {
+        const response = await api_service.get(`/cpu/${id}/latest`);
+        return response.data?.latest ?? null;
+    } catch (e) {
+        console.log(e);
+        return null;
+    }
+};
+
+export const getCpuSomme = async (id, params) => {
+    try {
+        const response = await api_service.get(`/cpu/${id}/somme`, { params });
+        return response.data;
+    } catch (e) {
+        console.log(e);
+        return null;
+    }
+};
+
+export const getRamSomme = async (id, params) => {
+    try {
+        const response = await api_service.get(`/ram/${id}/somme`, { params });
+        return response.data;
+    } catch (e) {
+        console.log(e);
+        return null;
+    }
+};
+
+export const getRamLatest = async (id) => {
+    try {
+        const response = await api_service.get(`/ram/${id}/latest`);
+        return response.data?.latest ?? null;
+    } catch (e) {
+        console.log(e);
+        return null;
+    }
+};
+
+export const getDiskLatest = async (id) => {
+    try {
+        const response = await api_service.get(`/disk/${id}/latest`);
+        return response.data?.latest ?? null;
+    } catch (e) {
+        console.log(e);
+        return null;
     }
 };
 
@@ -338,10 +409,10 @@ export const extractPeripheralsSummary = (reports) => {
     return devices.length > 0 ? devices : null;
 };
 
-export const filterByDeviceIdAndDate = async (id_device, id_type_rapport, date_debut, date_fin) => {
+export const filterByDeviceIdAndDateTime = async (id_device, id_type_rapport, datetime_from, datetime_to) => {
     try {
         const response = await api_service.get('/rapport/filter', {
-            params: { id_device, id_type_rapport, date_debut, date_fin }
+            params: { id_device, id_type_rapport, datetime_from, datetime_to }
         });
         return response.data;
     } catch (e) {

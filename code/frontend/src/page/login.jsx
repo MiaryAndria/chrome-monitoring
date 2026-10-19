@@ -16,7 +16,7 @@ function Connexion() {
         e.preventDefault(); // Empêcher le rechargement de la page
         try {
             await Login(nom, password);
-            navigate('/filiale');
+            navigate('/dashboard');
         } catch(e) {
             console.log(e);
             setError(true);

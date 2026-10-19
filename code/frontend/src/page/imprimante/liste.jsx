@@ -3,10 +3,14 @@ import { Printer, Search, LayoutGrid, List } from "lucide-react";
 import GenericTable from "../../components/GenericTable";
 import PageLayout from "../../components/PageLayout";
 import EmptyState from "../../components/EmptyState";
-import { getListeImprimante } from "../../fonction/imprimanteFonction";
+import Pagination from "../../components/Pagination";
+import PrinterListSkeleton from "../../components/skeletons/PrinterListSkeleton";
+import DateHeureFilter from "../component/DateHeureFilter";
+import { getImprimantes } from "../../fonction/imprimanteFonction";
 import ImprimanteCard from "../component/component_imprimante";
 import '../../css/liste.css';
 import '../../css/filiale.css';
+import { useNavigate } from 'react-router-dom';
 
 function ListeImprimante() {
     const [imprimantes, setImprimantes] = useState([]);
@@ -14,8 +18,17 @@ function ListeImprimante() {
     const [search, setSearch] = useState("");
     const [error, setError] = useState(null);
     const [currentPage, setCurrentPage] = useState(1);
+    const [pageSize, setPageSize] = useState(10);
+    const [total, setTotal] = useState(0);
+    const [totalPages, setTotalPages] = useState(0);
     const [viewMode, setViewMode] = useState('grid');
-    const itemsPerPage = 20;
+    const [dateDebut, setDateDebut] = useState('');
+    const [heureDebut, setHeureDebut] = useState('00:00');
+    const [dateFin, setDateFin] = useState('');
+    const [heureFin, setHeureFin] = useState('23:59');
+    const [datetimeFrom, setDatetimeFrom] = useState('');
+    const [datetimeTo, setDatetimeTo] = useState('');
+    const navigate = useNavigate();
 
     const imprimanteColumns = [
         { header: "Fabricant", render: (imp) => <span className="font-bold text-zinc-100">{imp.vendor || '-'}</span> },
@@ -28,8 +41,16 @@ function ListeImprimante() {
         try {
             setLoading(true);
             setError(null);
-            const data = await getListeImprimante();
-            setImprimantes(data || []);
+            const data = await getImprimantes({
+                page: currentPage,
+                page_size: pageSize,
+                recherche: search || undefined,
+                datetime_from: datetimeFrom || undefined,
+                datetime_to: datetimeTo || undefined,
+            });
+            setImprimantes(data?.items || []);
+            setTotal(data?.total || 0);
+            setTotalPages(data?.total_pages || 0);
         } catch (e) {
             console.error(e);
             setError("Impossible de charger les imprimantes.");
@@ -38,27 +59,38 @@ function ListeImprimante() {
         }
     };
 
-    useEffect(() => { charger(); }, []);
+    useEffect(() => { charger(); }, [currentPage, pageSize, search, datetimeFrom, datetimeTo]);
 
     // Reset pagination when search changes
     useEffect(() => {
         setCurrentPage(1);
     }, [search]);
 
-    const filtered = imprimantes.filter(imp => {
-        const q = search.toLowerCase();
-        return (
-            (imp.vendor || "").toLowerCase().includes(q) ||
-            (imp.nom || "").toLowerCase().includes(q) ||
-            String(imp.vid || "").includes(q) ||
-            String(imp.pid || "").includes(q)
-        );
-    });
+    const filtrerParDate = () => {
+        if (!dateDebut || !dateFin) return;
+        if (dateDebut > dateFin) {
+            alert("La date de début doit être antérieure à la date de fin.");
+            return;
+        }
+        if (dateDebut === dateFin && heureDebut > heureFin) {
+            alert("L'heure de début doit être antérieure à l'heure de fin.");
+            return;
+        }
 
-    const totalPages = Math.ceil(filtered.length / itemsPerPage) || 1;
-    const indexOfLastItem = currentPage * itemsPerPage;
-    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-    const currentItems = filtered.slice(indexOfFirstItem, indexOfLastItem);
+        setDatetimeFrom(`${dateDebut}T${heureDebut || '00:00'}:00`);
+        setDatetimeTo(`${dateFin}T${heureFin || '23:59'}:59`);
+        setCurrentPage(1);
+    };
+
+    const resetDate = () => {
+        setDateDebut('');
+        setHeureDebut('00:00');
+        setDateFin('');
+        setHeureFin('23:59');
+        setDatetimeFrom('');
+        setDatetimeTo('');
+        setCurrentPage(1);
+    };
 
     return (
         <PageLayout
@@ -75,16 +107,29 @@ function ListeImprimante() {
                                 value={search} onChange={e => setSearch(e.target.value)}
                                 className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-zinc-900/60 border border-white/10 text-zinc-200 text-sm placeholder-zinc-500 focus:outline-none focus:border-amber-400/50 focus:ring-1 focus:ring-amber-400/20 transition-all" />
                         </div>
+
+                        <div className="mt-4 pt-4 border-t border-white/5">
+                            <DateHeureFilter
+                                dateDebut={dateDebut}
+                                heureDebut={heureDebut}
+                                dateFin={dateFin}
+                                heureFin={heureFin}
+                                setDateDebut={setDateDebut}
+                                setHeureDebut={setHeureDebut}
+                                setDateFin={setDateFin}
+                                setHeureFin={setHeureFin}
+                                onFilter={filtrerParDate}
+                                onReset={resetDate}
+                            />
+                        </div>
                     </div>
 
                     {/* Contenu */}
-                    {loading ? (
-                        <div className="flex justify-center p-12">
-                            <span className="loading loading-infinity loading-lg text-amber-500"></span>
-                        </div>
+                    {loading && imprimantes.length === 0 ? (
+                        <PrinterListSkeleton viewMode={viewMode} />
                     ) : error ? (
                         <EmptyState icon={Printer} title={error} />
-                    ) : filtered.length === 0 ? (
+                    ) : total === 0 ? (
                         <EmptyState
                             icon={Printer}
                             title="Aucune imprimante trouvée"
@@ -96,7 +141,7 @@ function ListeImprimante() {
                                 <div>
                                     <h2 className="section-title">Modèles détectés</h2>
                                     <span className="section-count">
-                                        {filtered.length} modèle{filtered.length > 1 ? "s" : ""} — Page {currentPage}/{totalPages}
+                                        {total} modèle{total > 1 ? "s" : ""} — Page {currentPage}/{totalPages}
                                     </span>
                                 </div>
                                 <div className="flex bg-zinc-900 rounded-lg p-1 border border-white/10">
@@ -118,37 +163,27 @@ function ListeImprimante() {
                             </div>
 
                             {viewMode === 'table' ? (
-                                <GenericTable columns={imprimanteColumns} data={currentItems} />
+                                <GenericTable columns={imprimanteColumns} data={imprimantes}onRowClick={(imp) => navigate(`/imprimante/${imp.id}`)} />
                             ) : (
                                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-                                    {currentItems.map((imp, idx) => (
-                                        <ImprimanteCard key={imp.id ?? idx} imp={imp} />
+                                    {imprimantes.map((imp, idx) => (
+                                        <ImprimanteCard key={imp.id ?? idx}imp={imp}onClick={() => navigate(`/imprimante/${imp.id}`)}/>
                                     ))}
                                 </div>
                             )}
 
                             {/* Pagination */}
-                            {totalPages > 1 && (
-                                <div className="flex justify-center items-center gap-4 mt-8 pb-4">
-                                    <button
-                                        className="pagination-btn"
-                                        disabled={currentPage === 1}
-                                        onClick={() => setCurrentPage(currentPage - 1)}
-                                    >
-                                        Précédent
-                                    </button>
-                                    <div className="pagination-indicator">
-                                        {currentPage} <span className="pagination-separator">/</span> {totalPages}
-                                    </div>
-                                    <button
-                                        className="pagination-btn"
-                                        disabled={currentPage === totalPages}
-                                        onClick={() => setCurrentPage(currentPage + 1)}
-                                    >
-                                        Suivant
-                                    </button>
-                                </div>
-                            )}
+                            <Pagination
+                                page={currentPage}
+                                pageSize={pageSize}
+                                totalPages={totalPages}
+                                total={total}
+                                onPageChange={setCurrentPage}
+                                onPageSizeChange={(size) => {
+                                    setPageSize(size);
+                                    setCurrentPage(1);
+                                }}
+                            />
                         </>
                     )}
             </PageLayout>

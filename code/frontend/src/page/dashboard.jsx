@@ -1,41 +1,23 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Server, Laptop, Bell, Printer, Zap, Cpu, Monitor } from 'lucide-react';
-import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
 import MouseSpotlight from "../components/MouseSpotlight";
-import { getDashboardStats, getStatusStyle } from "../fonction/deviceFonction";
-import { getListeEvenement } from "../fonction/eventFonction";
-import { getListeImprimante } from "../fonction/imprimanteFonction";
+import { getDashboardSummary, getStatusStyle } from "../fonction/deviceFonction";
+import DashboardSkeleton from "../components/skeletons/DashboardSkeleton";
 import '../css/liste.css';
 import '../css/filiale.css';
 
 function Dashboard() {
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
-    const [stats, setStats] = useState({
-        total: 0,
-        par_statut: {},
-        par_type: {}
-    });
-    
-    // Nouveaux states pour événements et imprimantes
-    const [eventsData, setEventsData] = useState([]);
-    const [printersData, setPrintersData] = useState([]);
+    const [summary, setSummary] = useState(null);
 
     const fetchData = async () => {
         try {
             setLoading(true);
-            const [dataStats, evData, printData] = await Promise.all([
-                getDashboardStats(),
-                getListeEvenement(),
-                getListeImprimante()
-            ]);
-            
-            if (dataStats) setStats(dataStats);
-            if (evData) setEventsData(evData);
-            if (printData) setPrintersData(printData);
-            
+            const data = await getDashboardSummary();
+            if (data) setSummary(data);
         } catch (e) {
             console.log(e);
         } finally {
@@ -47,30 +29,29 @@ function Dashboard() {
         fetchData();
     }, []);
 
-    // Calculs événements
-    const totalEvents = eventsData.length;
-    const kernelEvents = eventsData.filter(e => {
-        const t = (e.type_evenement || "").toUpperCase();
-        return t.includes("KERNEL");
-    }).length;
-    const ecEvents = eventsData.filter(e => {
-        const t = (e.type_evenement || "").toUpperCase();
-        return t.includes("EMBEDDED") || t.includes("CONTROLLER") || t.includes("EC");
-    }).length;
-    const appEvents = eventsData.filter(e => {
-        const t = (e.type_evenement || "").toUpperCase();
-        return t.includes("BROWSER") || t.includes("APP");
-    }).length;
+    const stats = {
+        total: summary?.nb_total_appareils || 0,
+        par_statut: summary?.repartition_statuts || {},
+        par_type: summary?.repartition_types || {}
+    };
+
+    const repartitionEvenements = summary?.repartition_evenements || {};
+    const compterTypes = (motsCles) => Object.entries(repartitionEvenements)
+        .filter(([type]) => motsCles.some((mot) => (type || "").toUpperCase().includes(mot)))
+        .reduce((somme, [, nombre]) => somme + nombre, 0);
+
+    // Indicateurs événements et imprimantes issus du résumé backend
+    const totalEvents = summary?.nb_crashs || 0;
+    const kernelEvents = compterTypes(["KERNEL"]);
+    const ecEvents = compterTypes(["EMBEDDED", "CONTROLLER", "EC"]);
+    const appEvents = compterTypes(["BROWSER", "APP"]);
     const otherEvents = totalEvents - kernelEvents - ecEvents - appEvents;
-    
-    // Calcul imprimantes
-    const totalPrinters = printersData.length;
+    const totalPrinters = summary?.nb_imprimantes || 0;
 
 
     return (
         <div className="device-layout" data-theme="dark">
             <MouseSpotlight />
-            <Sidebar />
 
             <div className="flex-1 flex flex-col h-screen overflow-hidden relative z-10">
                 <div className="bg-glow-cyan"></div>
@@ -91,9 +72,7 @@ function Dashboard() {
                     </div>
 
                     {loading ? (
-                        <div className="flex justify-center p-12">
-                            <span className="loading loading-infinity loading-lg text-cyan-500"></span>
-                        </div>
+                        <DashboardSkeleton />
                     ) : (
                         <div className="space-y-8">
                             
@@ -149,7 +128,6 @@ function Dashboard() {
                                                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                                                     {Object.entries(stats.par_type).map(([nomType, nombre], idx) => {
                                                         const style = getStatusStyle(idx + Object.keys(stats.par_statut || {}).length);
-                                                        const Icon = style.icon;
                                                         return (
                                                             <div 
                                                                 key={idx} 
@@ -159,7 +137,7 @@ function Dashboard() {
                                                                     navigate(`/liste/device?type=${nomType}`);
                                                                 }}
                                                             >
-                                                                <Icon className={`w-5 h-5 mx-auto mb-2 ${style.colorClass}`} />
+                                                                <div className={`w-5 h-5 mx-auto mb-2 ${style.colorClass}`} />
                                                                 <p className="text-[10px] text-zinc-500 uppercase tracking-wider font-semibold mb-1 truncate px-1" title={nomType}>
                                                                     {nomType}
                                                                 </p>
@@ -196,22 +174,38 @@ function Dashboard() {
                                         <div className="text-sm font-medium text-zinc-400 mb-4">Événements d'infrastructure</div>
                                         
                                         <div className="grid grid-cols-4 gap-2 mt-4 pt-4 border-t border-white/5">
-                                            <div className="bg-red-500/10 rounded-lg p-2 text-center border border-red-500/20">
+                                            <div
+                                                className="bg-red-500/10 rounded-lg p-2 text-center border border-red-500/20 cursor-pointer hover:bg-red-500/20 transition-colors"
+                                                onClick={(e) => { e.stopPropagation(); navigate("/liste/event?type=CRASH_TYPE_KERNEL"); }}
+                                                title="Voir les crashs noyau"
+                                            >
                                                 <Cpu className="w-4 h-4 text-red-400 mx-auto mb-1" />
                                                 <p className="text-[9px] text-zinc-500 uppercase">Kernel</p>
                                                 <p className="text-sm font-bold text-zinc-200">{kernelEvents}</p>
                                             </div>
-                                            <div className="bg-amber-500/10 rounded-lg p-2 text-center border border-amber-500/20">
+                                            <div
+                                                className="bg-amber-500/10 rounded-lg p-2 text-center border border-amber-500/20 cursor-pointer hover:bg-amber-500/20 transition-colors"
+                                                onClick={(e) => { e.stopPropagation(); navigate("/liste/event?type=CRASH_TYPE_EMBEDDED_CONTROLLER"); }}
+                                                title="Voir les crashs du contrôleur embarqué"
+                                            >
                                                 <Zap className="w-4 h-4 text-amber-400 mx-auto mb-1" />
                                                 <p className="text-[9px] text-zinc-500 uppercase">EC</p>
                                                 <p className="text-sm font-bold text-zinc-200">{ecEvents}</p>
                                             </div>
-                                            <div className="bg-purple-500/10 rounded-lg p-2 text-center border border-purple-500/20">
+                                            <div
+                                                className="bg-purple-500/10 rounded-lg p-2 text-center border border-purple-500/20 cursor-pointer hover:bg-purple-500/20 transition-colors"
+                                                onClick={(e) => { e.stopPropagation(); navigate("/liste/event"); }}
+                                                title="Voir tous les événements"
+                                            >
                                                 <Monitor className="w-4 h-4 text-purple-400 mx-auto mb-1" />
                                                 <p className="text-[9px] text-zinc-500 uppercase">App/Web</p>
                                                 <p className="text-sm font-bold text-zinc-200">{appEvents}</p>
                                             </div>
-                                            <div className="bg-cyan-500/10 rounded-lg p-2 text-center border border-cyan-500/20">
+                                            <div
+                                                className="bg-cyan-500/10 rounded-lg p-2 text-center border border-cyan-500/20 cursor-pointer hover:bg-cyan-500/20 transition-colors"
+                                                onClick={(e) => { e.stopPropagation(); navigate("/liste/event?type=UNKNOWN"); }}
+                                                title="Voir les autres événements"
+                                            >
                                                 <Bell className="w-4 h-4 text-cyan-400 mx-auto mb-1" />
                                                 <p className="text-[9px] text-zinc-500 uppercase">Autre</p>
                                                 <p className="text-sm font-bold text-zinc-200">{otherEvents}</p>
@@ -223,7 +217,7 @@ function Dashboard() {
                                 {/* Carte Imprimantes */}
                                 <div 
                                     className="device-card group bg-amber-500/5 border-amber-500/30"
-                                    onClick={() => navigate("/liste/imprimante")}
+                                    onClick={() => navigate("/imprimantes")}
                                     style={{ 
                                         '--card-glow': 'radial-gradient(circle at top right, rgba(245, 158, 11, 0.08), transparent 70%)',
                                         '--card-border-hover': 'rgba(245, 158, 11, 0.5)',

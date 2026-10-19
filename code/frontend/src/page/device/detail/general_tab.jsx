@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 import { Cpu, Activity, HardDrive, Zap, Network, Plug, ChevronRight, Monitor, Users, Shield, Server, FileText } from 'lucide-react';
 import {
     extractCpuSummary, extractRamSummary, extractStorageSummary,
-    extractBatterySummary, extractPeripheralsSummary
+    extractBatterySummary, extractPeripheralsSummary,
+    getCpuLatest, getRamLatest, getDiskLatest
 } from '../../../fonction/deviceFonction';
 import { formatBytes, usagePercent, exportPdf, exportExcel } from '../../../fonction/utils/util';
 import ExportModal from '../../../components/ExportModal';
@@ -19,6 +20,16 @@ const colorMap = {
 
 function GeneralTab({ generalData, device, onSelectTab, deviceId }) {
     const [modal, setModal] = useState(false);
+    const [latestCpu, setLatestCpu] = useState(null);
+    const [latestRam, setLatestRam] = useState(null);
+    const [latestDisk, setLatestDisk] = useState(null);
+
+    useEffect(() => {
+        if (!deviceId) return;
+        getCpuLatest(deviceId).then(setLatestCpu);
+        getRamLatest(deviceId).then(setLatestRam);
+        getDiskLatest(deviceId).then(setLatestDisk);
+    }, [deviceId]);
 
     const handleExport = async (format) => {
         try {
@@ -38,24 +49,26 @@ function GeneralTab({ generalData, device, onSelectTab, deviceId }) {
     const peripherals = extractPeripheralsSummary(generalData.peripheriques);
 
     const storageDisk = storage?.disks?.[0] || null;
-    const storageTotal = device?.disk_total ?? null;
+    const storageTotal = latestDisk?.total_reel ?? device?.disk_total ?? null;
     const freeFromDisk = storageDisk?.storageFreeBytes ?? null;
     const usedFromDisk = storageDisk?.storageUsedBytes ?? null;
-    const storageFree = freeFromDisk ?? (storageTotal !== null && usedFromDisk !== null ? Math.max(storageTotal - usedFromDisk, 0) : device?.disk_free ?? null);
+    const storageFree = latestDisk?.disponible ?? freeFromDisk ?? (storageTotal !== null && usedFromDisk !== null ? Math.max(storageTotal - usedFromDisk, 0) : device?.disk_free ?? null);
     const storagePercent = storageTotal !== null && storageFree !== null ? usagePercent(storageFree, storageTotal) : null;
     const cpuMaxTemp = cpu?.maxTemperature ?? (cpu?.latestTemps ? Math.max(...cpu.latestTemps.map(t => Number(t.temperatureCelsius) || 0)) : null);
+    const cpuUtilisation = latestCpu?.cpu_utiliser ?? cpu?.latestUtil ?? null;
+    const ramLibre = latestRam?.ram_libre ?? ram?.free ?? null;
 
     const summaryCards = [
         {
             key: 'cpu', icon: Cpu, label: 'Processeur', color: 'cyan',
-            value: cpu?.latestUtil !== null && cpu?.latestUtil !== undefined ? `${cpu.latestUtil}%` : null,
+            value: cpuUtilisation !== null && cpuUtilisation !== undefined ? `${cpuUtilisation}%` : null,
             sub: cpuMaxTemp !== null ? `Max ${cpuMaxTemp}°C` : null,
             count: generalData.cpu?.length || 0
         },
         {
             key: 'ram', icon: Activity, label: 'Mémoire RAM', color: 'purple',
-            value: ram ? formatBytes(ram.free) : null,
-            sub: ram ? 'Libre' : null,
+            value: ramLibre !== null ? formatBytes(ramLibre) : null,
+            sub: ramLibre !== null ? 'Libre' : null,
             count: generalData.ram?.length || 0
         },
         {

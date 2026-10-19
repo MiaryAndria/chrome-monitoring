@@ -50,6 +50,23 @@ from backend.utils.format_date import parse_date_safe
 from backend.fonction.metier.repository.devices.device_utilisateur_recent import get_utilisateur_recent_by_device
 from backend.fonction.metier.repository.ram.ram import insert_into_device_ram
 from backend.fonction.metier.repository.cpu.device_cpu import insert_cpu_device
+from backend.fonction.metier.service.reseau_service import sync_networks_for_all_devices
+from backend.core.cache import cache_invalidate_prefix
+
+
+def _parse_google_datetime(value):
+    """
+    Convertit une date Google (RFC3339 ou datetime) en datetime UTC.
+    Retourne None si la valeur est absente ou invalide.
+    """
+    date_obj = parse_date_safe(value)
+    if date_obj is None:
+        return None
+    if date_obj.tzinfo is None:
+        return date_obj.replace(tzinfo=timezone.utc)
+    return date_obj.astimezone(timezone.utc)
+
+# from backend.fonction.metier.service.backfill_service import backfill_all_devices_history, dedup_evenement_device
 
 
 # @contextmanager
@@ -407,7 +424,11 @@ def insert_event(cur, crashes_data):
 
         crash_type = crash.get("crashType", "UNKNOWN")
         id_type_evenement = get_or_create_type_evenement(cur, crash_type)
-        date_evenement = crash.get("time") or crash.get("last_event_time")
+        date_evenement = _parse_google_datetime(
+            crash.get("time") or crash.get("last_event_time")
+        )
+        if date_evenement is None:
+            continue
 
         details_dict = {
             "incident_key": crash.get("incident_key"),
@@ -457,19 +478,37 @@ def synchroniser_tout(debut=None, fin=None, suivi=None):
         evenements = crashes_data.get("evenements", []) if isinstance(crashes_data, dict) else (crashes_data or [])
         compteurs.update({"devices": nb_dev, "telemetrie": nb_tel, "evenements": len(evenements)})
 
+        # --- Dedup événements (décommenter pour nettoyer les doublons d'événements) ---
         filtre_debut = debut if debut is not None else datetime.now(timezone.utc) - timedelta(hours=24)
-
+        # with chrono("db_dedup_evenement", etapes):
+        #     nb_events = dedup_evenement_device(cur)
         with chrono("db_devices", etapes):
             insertion_device(cur, dvc_list)
+
+        with chrono("db_reseaux", etapes):
+            nb_reseaux = sync_networks_for_all_devices(cur)
+        compteurs["reseaux"] = nb_reseaux
+
         with chrono("db_telemetrie", etapes):
             insert_telemetry(cur, telemetry_devices_list, filtre_debut)
 
         with chrono("db_imprimantes", etapes):
             insert_imprimante(cur, telemetry_devices_list)
+            
         with chrono("db_evenements", etapes):
             insert_event(cur, crashes_data)
+            
+        # --- Backfill historique (décommenter si besoin de reconstituer CPU/RAM/DISK) ---
+        # with chrono("db_backfill", etapes):
+        #     nb_backfill = backfill_all_devices_history(cur)
+        #     print(f"  Backfill terminé : {nb_backfill} lignes insérées (CPU + RAM + DISK)")
+        
         with chrono("db_commit", etapes):
             connexion.commit()
+
+        cache_invalidate_prefix("devices:")
+        cache_invalidate_prefix("events:")
+        cache_invalidate_prefix("imprimantes:")
 
         print("\n Synchronisation complète terminée et validée en BDD !")
         return nb_dev + nb_tel + len(evenements)

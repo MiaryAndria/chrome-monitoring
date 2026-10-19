@@ -3,8 +3,10 @@ from backend.fonction.metier.repository.rapport import (
     get_id_by_type_name,
     get_rapport_by_device_and_type,
     get_rapport_by_device_type_and_period,
+    get_rapport_by_device_type_and_datetime,
     get_liste_rapport_device
 )
+from backend.utils.format_date import format_date
 
 def serialize_rapport_rows(rows):
     if not rows:
@@ -138,6 +140,21 @@ def filterRapportDeviceByDate(id_device, id_type_rapport, date_debut, date_fin):
         return rows
     finally:
         close_connection(connexion)
+
+
+def filterRapportDeviceByDatetime(id_device, id_type_rapport, datetime_from,
+                                  datetime_to):
+    connexion = get_connection()
+    if connexion is None:
+        return []
+    try:
+        cur = connexion.cursor()
+        rows = get_rapport_by_device_type_and_datetime(
+            cur, id_device, id_type_rapport, datetime_from, datetime_to
+        )
+        return rows
+    finally:
+        close_connection(connexion)
         
 def idByName(id_rapport):
     connexion = get_connection()
@@ -183,4 +200,42 @@ def getListeReport():
     cur = connexion.cursor()
     rows = get_liste_rapport_device(cur)
     return rows
+
+
+def build_imprimante_sections(detail: dict):
+    return [
+        (
+            "Informations générales",
+            ["Fabricant", "Modèle / Nom", "VID", "PID"],
+            [[
+                detail.get("vendor") or "-",
+                detail.get("nom") or "-",
+                detail.get("vid") if detail.get("vid") is not None else "-",
+                detail.get("pid") if detail.get("pid") is not None else "-",
+            ]],
+        ),
+        (
+            "Devices",
+            ["Modèle", "N° de série", "IP", "MAC", "ChromeOS", "Dernière détection"],
+            [
+                [
+                    d.get("modele") or "-",
+                    d.get("serial_number") or "-",
+                    d.get("ip_adress") or "-",
+                    d.get("mac_adress") or "-",
+                    d.get("chromeos_version") or "-",
+                    format_date(d.get("derniere_detection")),
+                ]
+                for d in detail.get("device", [])
+            ],
+        ),
+        (
+            "Utilisateurs",
+            ["Email", "Dernière utilisation"],
+            [
+                [u.get("email") or "-", format_date(u.get("derniere_utilisation"))]
+                for u in detail.get("user", [])
+            ],
+        ),
+    ]
     

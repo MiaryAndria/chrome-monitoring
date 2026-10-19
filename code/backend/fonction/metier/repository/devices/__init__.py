@@ -19,7 +19,8 @@ from .devices import (
     update_device_ram_total,
     _get_last_disk_info,
     _get_device_cpu_info,
-    get_map_devices
+    get_map_devices,
+    find_devices_paginated,
 )
 
 from .type_appareil import (

@@ -60,6 +60,33 @@ def get_dernier_rapport_device(cur,id_device):
     result = cur.fetchone()
     return result
 
+
+def get_latest_battery_by_device(cur, id_device):
+    """
+    Retourne le dernier rapport BATTERY_STATUS d'un device (JSONB inclus).
+    """
+    cur.execute(
+        """
+        SELECT rp.id, rp.id_device, rp.report_time, rp.donnees
+        FROM t_rapport_device rp
+        JOIN t_type_rapport tr ON tr.id = rp.id_type_rapport
+        WHERE rp.id_device = %s AND tr.type = 'BATTERY_STATUS'
+        ORDER BY rp.report_time DESC
+        LIMIT 1
+        """,
+        (id_device,)
+    )
+    row = cur.fetchone()
+    if row is None:
+        return None
+
+    return {
+        "id": row[0],
+        "id_device": row[1],
+        "report_time": row[2],
+        "donnees": row[3],
+    }
+
 def get_rapport_by_device_and_type(cur, id_device, id_type_rapport):
     cur.execute(
         """
@@ -132,6 +159,34 @@ def get_rapport_by_device_type_and_period(cur, id_device, id_type_rapport, date_
         }
         for row in result
     ]
+
+def get_rapport_by_device_type_and_datetime(cur, id_device, id_type_rapport,
+                                            datetime_from, datetime_to):
+    cur.execute(
+        """
+        SELECT id, id_device, id_type_rapport, report_time, donnees
+        FROM t_rapport_device
+        WHERE id_device = %s
+          AND id_type_rapport = %s
+          AND report_time >= %s
+          AND report_time <= %s
+        ORDER BY report_time DESC
+        """,
+        (id_device, id_type_rapport, datetime_from, datetime_to)
+    )
+    result = cur.fetchall()
+
+    return [
+        {
+            "id": row[0],
+            "id_device": row[1],
+            "id_type_rapport": row[2],
+            "report_time": row[3],
+            "donnees": row[4]
+        }
+        for row in result
+    ]
+
 
 def create_rapport_device(cur, device_id, id_type_rapport, date_releve, data):
     cur.execute(

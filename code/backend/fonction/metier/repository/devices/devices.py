@@ -496,6 +496,7 @@ def delete_all(cur):
         t_device_utilisateur,
         t_device_utilisateur_recent,
         t_disk_device,
+        t_device_ram,
         t_rapport_device,
         t_evenement_device,
         t_imprimante_device,
@@ -552,3 +553,75 @@ def get_map_devices(cur):
     cur.execute("SELECT device_id, id FROM t_device")
     map_devices = dict(cur.fetchall())
     return map_devices
+
+
+def _rows_to_dicts(cur):
+    colonnes = [desc[0] for desc in cur.description]
+    return [dict(zip(colonnes, row)) for row in cur.fetchall()]
+
+
+def _build_device_filter_clause(id_filiale=None, filiale=None, statut=None,
+                                type_appareil=None, recherche=None,
+                                datetime_from=None, datetime_to=None):
+    clauses = []
+    params = []
+
+    if id_filiale is not None:
+        clauses.append("id_filiale = %s")
+        params.append(id_filiale)
+    if filiale:
+        clauses.append("filiale = %s")
+        params.append(filiale)
+    if statut:
+        clauses.append("UPPER(status) = UPPER(%s)")
+        params.append(statut)
+    if type_appareil:
+        clauses.append("UPPER(type_appareil) = UPPER(%s)")
+        params.append(type_appareil)
+    if recherche:
+        terme = f"%{recherche}%"
+        clauses.append(
+            "(device_id ILIKE %s OR serial_number ILIKE %s OR modele ILIKE %s "
+            "OR utilisateur_email ILIKE %s OR type_appareil ILIKE %s "
+            "OR status ILIKE %s OR filiale ILIKE %s)"
+        )
+        params.extend([terme] * 7)
+    if datetime_from is not None:
+        clauses.append("date >= %s")
+        params.append(datetime_from)
+    if datetime_to is not None:
+        clauses.append("date <= %s")
+        params.append(datetime_to)
+
+    return clauses, params
+
+
+def find_devices_paginated(cur, page=1, page_size=10, id_filiale=None,
+                           filiale=None, statut=None, type_appareil=None,
+                           recherche=None, datetime_from=None,
+                           datetime_to=None):
+    clauses, params = _build_device_filter_clause(
+        id_filiale, filiale, statut, type_appareil, recherche,
+        datetime_from, datetime_to
+    )
+    where = "WHERE " + " AND ".join(clauses) if clauses else ""
+    offset = (page - 1) * page_size
+
+    cur.execute(
+        f"""
+        SELECT
+            id, device_id, serial_number, modele, id_type_appareil,
+            type_appareil, chromeos_version, chrome_version, mac_adress,
+            ip_adress, date, ram_total, id_utilisateur, utilisateur_email,
+            status, id_filiale, filiale, utilisateurs_recents, cpu_model,
+            cpu_freq_max, cpu_architecture, disk_total, disk_free, disk_used,
+            disk_model, disk_type,
+            COUNT(*) OVER() AS total
+        FROM v_appareils_filtres
+        {where}
+        ORDER BY id ASC
+        LIMIT %s OFFSET %s
+        """,
+        tuple(params + [page_size, offset])
+    )
+    return _rows_to_dicts(cur)

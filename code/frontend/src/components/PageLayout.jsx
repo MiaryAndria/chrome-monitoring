@@ -1,4 +1,3 @@
-import Sidebar from "./Sidebar";
 import Navbar from "./Navbar";
 import MouseSpotlight from "./MouseSpotlight";
 
@@ -14,7 +13,6 @@ function PageLayout({
     return (
         <div className="device-layout" data-theme="dark">
             <MouseSpotlight />
-            <Sidebar />
 
             <div className="flex-1 flex flex-col h-screen overflow-hidden relative z-10">
                 <div className="bg-glow-cyan"></div>

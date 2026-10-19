@@ -97,3 +97,39 @@ def insert_imprimante_device(cur, id_imprimante, id_device, date):
     """, (id_imprimante, id_device, date))
     return cur.fetchone() is not None  
 
+
+def get_devices_by_imprimante(cur, id_imprimante):
+    """
+    Retourne la liste des devices sur lesquels une imprimante a été détectée.
+    Chaque device est retourné avec sa dernière date de détection.
+    """
+    cur.execute("""
+        SELECT DISTINCT ON (d.id)
+            d.id                AS id_device,
+            d.device_id         AS device_uuid,
+            d.serial_number,
+            d.modele,
+            d.ip_adress,
+            d.mac_adress,
+            d.chromeos_version,
+            idv.date            AS derniere_detection
+        FROM t_imprimante_device idv
+        JOIN t_device d ON d.id = idv.id_device
+        WHERE idv.id_imprimante = %s
+        ORDER BY d.id, idv.date DESC
+    """, (id_imprimante,))
+
+    rows = cur.fetchall()
+    return [
+        {
+            "id_device": r[0],
+            "device_id": r[1],
+            "serial_number": r[2],
+            "modele": r[3],
+            "ip_adress": r[4],
+            "mac_adress": r[5],
+            "chromeos_version": r[6],
+            "derniere_detection": r[7],
+        }
+        for r in rows
+    ]

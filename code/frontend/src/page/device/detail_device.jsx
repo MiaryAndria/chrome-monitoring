@@ -2,15 +2,16 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from 'react-router-dom';
 import {
     Laptop, Network, Copy, Check, ArrowLeft, Cpu, HardDrive,
-    Monitor, Activity, Zap, Plug, Layers, RefreshCw
+    Monitor, Activity, Zap, Plug, Layers
 } from 'lucide-react';
-import Sidebar from "../../components/Sidebar";
 import Navbar from "../../components/Navbar";
 import MouseSpotlight from "../../components/MouseSpotlight";
+import Skeleton from "../../components/Skeleton";
+import CpuRamChartSkeleton from "../../components/skeletons/CpuRamChartSkeleton";
 import {
     getDeviceDetail, getDetailCpu, getDetailRam, getDetailStockage,
     detailBatterie, detailReseau, detailPeripheriques, getDetailGeneral,
-    filterByDeviceIdAndDate, getIdByName
+    filterByDeviceIdAndDateTime, getIdByName
 } from "../../fonction/deviceFonction";
 import '../../css/liste.css';
 import '../../css/filiale.css';
@@ -23,7 +24,7 @@ import StorageTab from './detail/storage_tab';
 import BatteryTab from './detail/battery_tab';
 import NetworkTab from './detail/network_tab';
 import PeripheriquesTab from './detail/peripherique_tab';
-import DateFilter from "../component/dateFilter";
+import DateHeureFilter from "../component/DateHeureFilter";
 
 const TYPE_RAPPORT_NAME = {
     cpu: 'CPU_STATUS',
@@ -68,7 +69,11 @@ function DetailDevice() {
     });
     const [tabLoading, setTabLoading] = useState(false);
     const [dateDebut, setDateDebut] = useState('');
+    const [heureDebut, setHeureDebut] = useState('00:00');
     const [dateFin, setDateFin] = useState('');
+    const [heureFin, setHeureFin] = useState('23:59');
+    const [filtreDebut, setFiltreDebut] = useState('');
+    const [filtreFin, setFiltreFin] = useState('');
 
     const fetchDeviceDetail = async () => {
         try {
@@ -103,7 +108,11 @@ function DetailDevice() {
     const handleTabChange = async (tabKey) => {
         setActiveTab(tabKey);
         setDateDebut('');
+        setHeureDebut('00:00');
         setDateFin('');
+        setHeureFin('23:59');
+        setFiltreDebut('');
+        setFiltreFin('');
 
         if (tabKey === 'general') {
             if (!generalData) fetchGeneralData();
@@ -128,13 +137,23 @@ function DetailDevice() {
             alert("La date de début doit être antérieure à la date de fin.");
             return;
         }
+        if (dateDebut === dateFin && heureDebut > heureFin) {
+            alert("L'heure de début doit être antérieure à l'heure de fin.");
+            return;
+        }
 
         try {
             setTabLoading(true);
             const idType = await getIdByName(TYPE_RAPPORT_NAME[activeTab]);
             if (!idType) return;
 
-            const res = await filterByDeviceIdAndDate(id, idType, dateDebut, dateFin);
+            const datetimeFrom = `${dateDebut}T${heureDebut || '00:00'}:00`;
+            const datetimeTo = `${dateFin}T${heureFin || '23:59'}:59`;
+
+            setFiltreDebut(datetimeFrom);
+            setFiltreFin(datetimeTo);
+
+            const res = await filterByDeviceIdAndDateTime(id, idType, datetimeFrom, datetimeTo);
             setTabData(prev => ({ ...prev, [activeTab]: res || [] }));
         } catch (e) {
             console.error(e);
@@ -146,7 +165,11 @@ function DetailDevice() {
     const resetFiltre = async () => {
         if (activeTab === 'general') return;
         setDateDebut('');
+        setHeureDebut('00:00');
         setDateFin('');
+        setHeureFin('23:59');
+        setFiltreDebut('');
+        setFiltreFin('');
 
         try {
             setTabLoading(true);
@@ -184,20 +207,20 @@ function DetailDevice() {
     }, [id]);
 
     const renderTabContent = () => {
-        if (tabLoading) {
-            return (
-                <div className="flex justify-center p-12">
-                    <RefreshCw className="w-6 h-6 text-cyan-400 animate-spin" />
-                </div>
-            );
+        const donneesOnglet = activeTab === 'general' ? generalData : tabData[activeTab];
+        const ongletNonCharge = !donneesOnglet
+            || (Array.isArray(donneesOnglet) && donneesOnglet.length === 0);
+
+        if (tabLoading && ongletNonCharge) {
+            return <CpuRamChartSkeleton />;
         }
         switch (activeTab) {
             case 'general':
                 return <GeneralTab generalData={generalData} device={device} onSelectTab={handleTabChange} deviceId={Number(id)} />;
             case 'cpu':
-                return <CpuTab reports={tabData.cpu} device={device} deviceId={Number(id)} />;
+                return <CpuTab reports={tabData.cpu} device={device} deviceId={Number(id)} datetimeFrom={filtreDebut} datetimeTo={filtreFin} />;
             case 'ram':
-                return <RamTab reports={tabData.ram} device={device} deviceId={Number(id)} />;
+                return <RamTab reports={tabData.ram} device={device} deviceId={Number(id)} datetimeFrom={filtreDebut} datetimeTo={filtreFin} />;
             case 'stockage':
                 return <StorageTab reports={tabData.stockage} device={device} deviceId={Number(id)} />;
             case 'batterie':
@@ -214,7 +237,6 @@ function DetailDevice() {
     return (
         <div className="device-layout" data-theme="dark">
             <MouseSpotlight />
-            <Sidebar />
 
             <div className="flex-1 flex flex-col h-screen overflow-hidden relative z-10">
                 <div className="bg-glow-cyan"></div>
@@ -230,8 +252,10 @@ function DetailDevice() {
                     </div>
 
                     {loading ? (
-                        <div className="flex justify-center p-12">
-                            <span className="loading loading-infinity loading-lg text-cyan-500"></span>
+                        <div className="detail-card space-y-6">
+                            <Skeleton className="h-24 w-full" />
+                            <Skeleton className="h-12 w-full" />
+                            <CpuRamChartSkeleton />
                         </div>
                     ) : !device ? (
                         <div className="empty-state mt-10">
@@ -298,11 +322,15 @@ function DetailDevice() {
                             </div>
 
                             {activeTab !== 'general' && (
-                                <DateFilter
+                                <DateHeureFilter
                                     dateDebut={dateDebut}
+                                    heureDebut={heureDebut}
                                     dateFin={dateFin}
+                                    heureFin={heureFin}
                                     setDateDebut={setDateDebut}
+                                    setHeureDebut={setHeureDebut}
                                     setDateFin={setDateFin}
+                                    setHeureFin={setHeureFin}
                                     onFilter={filtrerByDate}
                                     onReset={resetFiltre}
                                 />

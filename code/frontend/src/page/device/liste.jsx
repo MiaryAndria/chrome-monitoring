@@ -4,13 +4,17 @@ import { Laptop, Network, User, Users, X, Copy, Check } from 'lucide-react';
 import GenericTable from "../../components/GenericTable";
 import PageLayout from "../../components/PageLayout";
 import EmptyState from "../../components/EmptyState";
+import Pagination from "../../components/Pagination";
+import DeviceListSkeleton from "../../components/skeletons/DeviceListSkeleton";
+import TableSkeleton from "../../components/skeletons/TableSkeleton";
+import usePaginatedData from "../../hooks/usePaginatedData";
 import FilialeDropdown from "../component/FilialeDropdown";
 import StatutDropdown from "../component/StatutDropdown";
 import ResetFiltreButton from "../component/ResetFiltreButton";
 import ViewModeToggle from "../component/ViewModeToggle";
 import '../../css/liste.css';
 import '../../css/filiale.css';
-import { getListeDevice, getBadgeClass, searchDevices, getListeStatut } from "../../fonction/deviceFonction";
+import { getListeDevice, getBadgeClass, getListeStatut } from "../../fonction/deviceFonction";
 import { getListeFiliale } from "../../fonction/filialeFonction";
 
 function ListeDevice() {
@@ -20,9 +24,8 @@ function ListeDevice() {
     const filterType = searchParams.get("type");
     const filterSearch = searchParams.get("search");
     
-    const [device, setDevice] = useState([]);
-    const [loading, setLoading] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
+    const [pageSize, setPageSize] = useState(10);
     const [selectedDevice, setSelectedDevice] = useState(null);
     const [copiedSN, setCopiedSN] = useState(null);
     const [viewMode, setViewMode] = useState('grid');
@@ -34,6 +37,18 @@ function ListeDevice() {
     // Filtre statut
     const [listeStatuts, setListeStatuts] = useState([]);
     const [statut, setStatut] = useState("");
+
+    const { items: device, total, totalPages, loading } = usePaginatedData(
+        getListeDevice,
+        currentPage,
+        pageSize,
+        {
+            statut: statut || filterStatus || undefined,
+            filiale: filiale || undefined,
+            type_appareil: filterType || undefined,
+            recherche: filterSearch || undefined,
+        }
+    );
 
     const deviceColumns = [
         { header: "Modèle", accessor: "modele" },
@@ -52,8 +67,6 @@ function ListeDevice() {
             )
         }
     ];
-
-    const deviceParPage = 8;
 
     const getStatut = async () => {
         try {
@@ -81,7 +94,7 @@ function ListeDevice() {
     // Revenir à la page 1 quand un filtre change
     useEffect(() => {
         setCurrentPage(1);
-    }, [filiale, statut]);
+    }, [filiale, statut, filterSearch, filterStatus, filterType]);
 
     const filtresActifs = filiale !== "" || statut !== "";
 
@@ -91,54 +104,12 @@ function ListeDevice() {
         setCurrentPage(1);
     };
 
-    const filteredDevices = device.filter(d => {
-        if (filterStatus) {
-            const s = (d.status || d.nom_statut || '').toUpperCase();
-            if (s !== filterStatus.toUpperCase()) return false;
-        }
-        if (filterType) {
-            const t = (d.type_appareil || d.nom_type || d.modele || '').toUpperCase();
-            if (!t.includes(filterType.toUpperCase())) return false;
-        }
-        // Filtre filiale (adapte le nom du champ si besoin)
-        if (filiale && (d.filiale ?? d.org_unit_path) !== filiale) return false;
-        // AJOUT : filtre statut
-        if (statut && (d.status || d.nom_statut || '').toUpperCase() !== statut.toUpperCase()) return false;
-        return true;
-    });
-
-    const indexLastDevice = currentPage * deviceParPage;
-    const indexFirstDevice = indexLastDevice - deviceParPage;
-    const currentDevices = filteredDevices.slice(indexFirstDevice, indexLastDevice);
-    const totalPages = Math.ceil(filteredDevices.length / deviceParPage) || 1;
-
     const handleCopySN = (serialNumber) => {
         if (!serialNumber) return;
         navigator.clipboard.writeText(serialNumber);
         setCopiedSN(serialNumber);
         setTimeout(() => setCopiedSN(null), 2000);
     };
-
-    const RecuperationListeDevice = async () => {
-        try {
-            setLoading(true);
-            let d;
-
-            if (filterSearch) {
-                d = await searchDevices(filterSearch);
-            } else {
-                d = await getListeDevice();
-            }
-            setDevice(d || []);
-            setLoading(false);
-        } catch (e) {
-            console.log(e);
-        }
-    };
-
-    useEffect(() => {
-        RecuperationListeDevice();
-    }, [filterSearch, filterStatus, filterType]);
 
     return (
         <PageLayout
@@ -174,20 +145,18 @@ function ListeDevice() {
 
                     <div>
                         {loading && device.length === 0 ? (
-                            <div className="flex justify-center p-12">
-                                <span className="loading loading-infinity loading-lg text-cyan-500"></span>
-                            </div>
-                        ) : currentDevices.length === 0 ? (
+                            <DeviceListSkeleton viewMode={viewMode} />
+                        ) : device.length === 0 ? (
                             <EmptyState
                                 icon={Laptop}
                                 title="Aucun appareil trouvé"
                                 subtitle={filterSearch || filterStatus || filterType || filtresActifs ? "Modifiez vos filtres" : "Aucune donnée disponible"}
                             />
                         ) : viewMode === 'table' ? (
-                            <GenericTable columns={deviceColumns} data={currentDevices} />
+                            <GenericTable columns={deviceColumns} data={device} />
                         ) : (
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                                {currentDevices.map((d) => {
+                                {device.map((d) => {
                                     const status = d.status || 'UNKNOWN';
 
                                     return (
@@ -282,27 +251,24 @@ function ListeDevice() {
                         )}
                     </div>
 
-                    {totalPages > 1 && (
-                        <div className="flex justify-center items-center gap-4 mt-8 pb-4">
-                            <button
-                                className="pagination-btn"
-                                disabled={currentPage === 1}
-                                onClick={() => setCurrentPage(currentPage - 1)}
-                            >
-                                Précédent
-                            </button>
-                            <div className="pagination-indicator">
-                                {currentPage} <span className="pagination-separator">/</span> {totalPages}
-                            </div>
-                            <button
-                                className="pagination-btn"
-                                disabled={currentPage === totalPages}
-                                onClick={() => setCurrentPage(currentPage + 1)}
-                            >
-                                Suivant
-                            </button>
+                    {loading && device.length > 0 && (
+                        <div className="mt-4">
+                            <TableSkeleton rows={2} />
                         </div>
                     )}
+
+                    <Pagination
+                        page={currentPage}
+                        pageSize={pageSize}
+                        totalPages={totalPages}
+                        total={total}
+                        loading={loading}
+                        onPageChange={setCurrentPage}
+                        onPageSizeChange={(size) => {
+                            setPageSize(size);
+                            setCurrentPage(1);
+                        }}
+                    />
 
             {selectedDevice && (
                 <div className="modal-overlay" onClick={() => setSelectedDevice(null)}>

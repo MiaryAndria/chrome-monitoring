@@ -1,11 +1,18 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Search, Bell, User, Sun, Moon } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
+import {
+    Activity, Building2, Laptop, Printer, Bell, BarChart3,
+    Settings, ChevronDown, RotateCcw, RefreshCw
+} from 'lucide-react';
+import { resetData } from '../fonction/importResetFonction';
 
 export default function Navbar() {
     const navigate = useNavigate();
-    const [parametre, setParametre] = useState('');
+    const location = useLocation();
     const [isLightMode, setIsLightMode] = useState(false);
+    const [configOpen, setConfigOpen] = useState(false);
+    const [loading, setLoading] = useState(false);
+    const [message, setMessage] = useState('');
 
     useEffect(() => {
         const storedTheme = localStorage.getItem('theme');
@@ -19,7 +26,6 @@ export default function Navbar() {
     }, []);
 
     const applyTheme = (theme) => {
-        // Applique le thème à tous les conteneurs layout
         document.querySelectorAll('.device-layout').forEach(el => {
             el.setAttribute('data-theme', theme);
         });
@@ -32,73 +38,137 @@ export default function Navbar() {
         applyTheme(newTheme);
     };
 
-    const handleKeyDown = (e) => {
-        if (e.key === 'Enter') {
-            if (parametre.trim()) {
-                navigate(`/liste/device?search=${encodeURIComponent(parametre.trim())}`);
-            } else {
-                navigate('/liste/device');
-            }
+    const resetAll = async () => {
+        if (!window.confirm("Êtes-vous sûr de vouloir réinitialiser toutes les données ?")) return;
+        try {
+            setLoading(true);
+            setMessage("Réinitialisation des données en cours...");
+            await resetData();
+            window.location.reload();
+        } catch (e) {
+            console.log(e);
+        } finally {
+            setLoading(false);
+            setMessage("");
         }
     };
 
+    const navItems = [
+        { path: '/filiale', label: 'Filiales', icon: Building2 },
+        { path: '/liste/device', label: 'Devices', icon: Laptop },
+        { path: '/imprimantes', label: 'Imprimantes', icon: Printer },
+        { path: '/liste/event', label: 'Événements', icon: Bell },
+        { path: '/dashboard', label: 'Dashboard', icon: BarChart3 },
+    ];
+
+    const configItems = [
+        { path: '/liste/configuration', label: 'Liste configuration' },
+        { path: '/creer/configuration', label: 'Créer configuration' },
+        { path: '/liste/configuration/archive', label: 'Archive configuration' },
+    ];
+
+    const configPaths = ['/liste/configuration', '/creer/configuration', '/liste/configuration/archive'];
+    const configActive = configPaths.some((p) => location.pathname.startsWith(p));
+
     return (
-        <div className="header-container glass-panel">
-            <div className="flex items-center gap-4">
-                <h1 className="text-xl font-semibold text-zinc-100 hidden sm:block">Dashboard</h1>
-            </div>
+        <>
+            <div className="header-container glass-panel">
+            <button onClick={() => navigate('/dashboard')} className="brand-button" title="Accueil">
+                <span className="brand-logo">
+                    <Activity className="w-5 h-5 text-cyan-400 animate-pulse" />
+                </span>
+                <span className="brand-title">GT</span>
+            </button>
 
-            <div className="flex items-center gap-6">
-                <div className="relative hidden md:block">
-                    <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
-                    <input 
-                        type="text" 
-                        value={parametre}
-                        onChange={(e) => setParametre(e.target.value)}
-                        onKeyDown={handleKeyDown}
-                        placeholder="Rechercher (S/N, Modèle, IP, Email)..."
-                        className="input input-sm input-bordered bg-zinc-900/50 border-zinc-800 text-zinc-300 w-72 pl-9 focus:border-cyan-500/50 focus:outline-none transition-all"
-                    />
-                </div>
+            <nav className="topnav flex-1 justify-center">
+                {navItems.map((item) => {
+                    const Icon = item.icon;
+                    return (
+                        <NavLink
+                            key={item.path}
+                            to={item.path}
+                            className={({ isActive }) => isActive ? 'topnav-link topnav-link-active' : 'topnav-link'}
+                        >
+                            <Icon className="w-4 h-4" />
+                            <span>{item.label}</span>
+                        </NavLink>
+                    );
+                })}
 
-                <div className="flex items-center gap-5">
-                    {/* Interrupteur Light/Dark Mode (Style Mural Horizontal, Petite Taille) */}
-                    <button 
-                        onClick={toggleTheme}
-                        title="Basculer le thème"
-                        className={`relative w-12 h-6 rounded border border-zinc-900 overflow-hidden shadow-[0_2px_5px_rgba(0,0,0,0.5)] flex items-center cursor-pointer ${isLightMode ? 'bg-zinc-300' : 'bg-zinc-800'}`}
+                <div className="relative">
+                    <button
+                        onClick={() => setConfigOpen(v => !v)}
+                        className={`topnav-link ${configActive ? 'topnav-link-active' : ''}`}
                     >
-                        {/* Gauche (ON) */}
-                        <div className={`flex-1 h-full flex items-center justify-start pl-1.5 transition-colors ${isLightMode ? 'bg-zinc-200' : 'bg-zinc-700/50'}`}>
-                            <span className={`text-[8px] font-black ${isLightMode ? 'text-zinc-600' : 'text-zinc-500'}`}>ON</span>
+                        <Settings className="w-4 h-4" />
+                        <span>Configuration</span>
+                        <ChevronDown className="w-3 h-3" />
+                    </button>
+                    {configOpen && (
+                        <div className="config-dropdown">
+                            {configItems.map((item) => (
+                                <NavLink
+                                    key={item.path}
+                                    to={item.path}
+                                    onClick={() => setConfigOpen(false)}
+                                    className="config-dropdown-item"
+                                >
+                                    {item.label}
+                                </NavLink>
+                            ))}
+
+                            <div className="config-dropdown-divider" />
+                            <button
+                                onClick={() => { setConfigOpen(false); resetAll(); }}
+                                disabled={loading}
+                                className="config-dropdown-item config-dropdown-danger"
+                            >
+                                <RotateCcw className="w-4 h-4" />
+                                Réinitialiser données
+                            </button>
                         </div>
-                        {/* Droite (OFF) */}
-                        <div className={`flex-1 h-full flex items-center justify-end pr-1 transition-colors ${!isLightMode ? 'bg-zinc-900' : 'bg-zinc-300'}`}>
-                            <span className={`text-[8px] font-black ${!isLightMode ? 'text-red-500/80' : 'text-zinc-500/50'}`}>OFF</span>
-                        </div>
-                        
-                        {/* Relief (Le bouton qui bascule) */}
-                        <div 
-                            className={`absolute top-0 bottom-0 w-[55%] transition-transform duration-200 ease-in-out border-l border-r border-black/10 ${
-                                isLightMode 
-                                ? 'translate-x-0 bg-gradient-to-r from-white to-zinc-200 shadow-[2px_0_3px_rgba(0,0,0,0.2)]' 
+                    )}
+                </div>
+            </nav>
+
+            <div className="flex items-center gap-3">
+                <button
+                    onClick={toggleTheme}
+                    title="Basculer le thème"
+                    className={`relative w-12 h-6 rounded border border-zinc-900 overflow-hidden shadow-[0_2px_5px_rgba(0,0,0,0.5)] flex items-center cursor-pointer ${isLightMode ? 'bg-zinc-300' : 'bg-zinc-800'}`}
+                >
+                    <div className={`flex-1 h-full flex items-center justify-start pl-1.5 transition-colors ${isLightMode ? 'bg-zinc-200' : 'bg-zinc-700/50'}`}>
+                        <span className={`text-[8px] font-black ${isLightMode ? 'text-zinc-600' : 'text-zinc-500'}`}>ON</span>
+                    </div>
+                    <div className={`flex-1 h-full flex items-center justify-end pr-1 transition-colors ${!isLightMode ? 'bg-zinc-900' : 'bg-zinc-300'}`}>
+                        <span className={`text-[8px] font-black ${!isLightMode ? 'text-red-500/80' : 'text-zinc-500/50'}`}>OFF</span>
+                    </div>
+                    <div
+                        className={`absolute top-0 bottom-0 w-[55%] transition-transform duration-200 ease-in-out border-l border-r border-black/10 ${
+                            isLightMode
+                                ? 'translate-x-0 bg-gradient-to-r from-white to-zinc-200 shadow-[2px_0_3px_rgba(0,0,0,0.2)]'
                                 : 'translate-x-[82%] bg-gradient-to-r from-zinc-600 to-zinc-800 shadow-[-2px_0_3px_rgba(0,0,0,0.4)]'
-                            }`} 
-                        />
-                    </button>
+                        }`}
+                    />
+                </button>
+            </div>
+        </div>
 
-                    <button className="relative p-2 text-zinc-400 hover:text-zinc-100 transition-colors">
-                        <Bell className="w-5 h-5" />
-                        <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-purple-500 rounded-full"></span>
-                    </button>
-
-                    <div className="avatar">
-                        <div className="w-8 h-8 rounded-full ring ring-cyan-500/30 ring-offset-base-100 ring-offset-2 bg-zinc-800 flex items-center justify-center cursor-pointer">
-                            <User className="w-4 h-4 text-zinc-400" />
+            {loading && (
+                <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex flex-col items-center justify-center z-50 animate-fadeIn">
+                    <div className="p-8 bg-zinc-900/90 border border-cyan-500/40 rounded-2xl shadow-[0_0_50px_rgba(6,182,212,0.3)] flex flex-col items-center max-w-sm text-center">
+                        <div className="relative mb-6">
+                            <div className="w-16 h-16 rounded-full border-4 border-cyan-500/20 border-t-cyan-400 animate-spin"></div>
+                            <RefreshCw className="w-6 h-6 text-cyan-400 absolute inset-0 m-auto animate-pulse" />
+                        </div>
+                        <h3 className="text-lg font-bold text-zinc-100 mb-2">{message}</h3>
+                        <p className="text-xs text-zinc-400 mb-4">Veuillez patienter pendant le traitement...</p>
+                        <div className="w-full bg-zinc-800 rounded-full h-2.5 overflow-hidden border border-white/10 relative">
+                            <div className="progress-bar-animated"></div>
                         </div>
                     </div>
                 </div>
-            </div>
-        </div>
+            )}
+        </>
     );
 }

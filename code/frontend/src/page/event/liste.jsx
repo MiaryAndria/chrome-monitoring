@@ -1,16 +1,22 @@
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
     Bell, Search, Monitor,
     Zap, AlertTriangle, Cpu, XCircle
 } from "lucide-react";
-import DateFilter from "../component/dateFilter";
+import DateHeureFilter from "../component/DateHeureFilter";
 import GenericTable from "../../components/GenericTable";
 import PageLayout from "../../components/PageLayout";
 import EmptyState from "../../components/EmptyState";
-import { getListeEvenement, getListeTypeEvenement } from "../../fonction/eventFonction";
+import Pagination from "../../components/Pagination";
+import EventListSkeleton from "../../components/skeletons/EventListSkeleton";
+import TableSkeleton from "../../components/skeletons/TableSkeleton";
+import usePaginatedData from "../../hooks/usePaginatedData";
+import { getEvenements, getListeTypeEvenement } from "../../fonction/eventFonction";
 import EventCard from "../component/component_event";
+import EvenementDureeVie from "../component/EvenementDureeVie";
 import { getListeFiliale } from "../../fonction/filialeFonction";
-import { toText } from "../../fonction/utils/util";
+import { formatDateTime } from "../../fonction/utils/util";
 import FilialeDropdown from "../component/FilialeDropdown";
 import ResetFiltreButton from "../component/ResetFiltreButton";
 import ViewModeToggle from "../component/ViewModeToggle";
@@ -18,55 +24,79 @@ import '../../css/liste.css';
 import '../../css/filiale.css';
 
 function ListeEvent() {
-    const [evenements, setEvenements] = useState([]);
+    const [searchParams] = useSearchParams();
+    const typeDepuisUrl = searchParams.get("type");
+
     const [listeTypes, setListeTypes] = useState([]);
     const [listeFiliales, setListeFiliales] = useState([]);
-    const [loading, setLoading] = useState(false);
     const [search, setSearch] = useState("");
     const [dateDebut, setDateDebut] = useState('');
+    const [heureDebut, setHeureDebut] = useState('00:00');
     const [dateFin, setDateFin] = useState('');
-    const [dateDebutApplique, setDateDebutApplique] = useState('');
-    const [dateFinApplique, setDateFinApplique] = useState('');
-    const [error, setError] = useState(null);
-    const [typeEvenement, setTypeEvenement] = useState("TOUS");
+    const [heureFin, setHeureFin] = useState('23:59');
+    const [datetimeDebutApplique, setDatetimeDebutApplique] = useState('');
+    const [datetimeFinApplique, setDatetimeFinApplique] = useState('');
+    const [typeEvenement, setTypeEvenement] = useState(typeDepuisUrl || "TOUS");
     const [filiale, setFiliale] = useState("");
     const [selectedExplanation, setSelectedExplanation] = useState(null);
     const [currentPage, setCurrentPage] = useState(1);
+    const [pageSize, setPageSize] = useState(10);
     const [viewMode, setViewMode] = useState('grid');
-    const itemsPerPage = 12;
+    const [openEventId, setOpenEventId] = useState(null);
+
+    const {
+        items: evenements,
+        total,
+        totalPages,
+        loading,
+        error,
+    } = usePaginatedData(
+        getEvenements,
+        currentPage,
+        pageSize,
+        {
+            recherche: search || undefined,
+            type_evenement: typeEvenement !== "TOUS" ? typeEvenement : undefined,
+            filiale: filiale || undefined,
+            datetime_from: datetimeDebutApplique || undefined,
+            datetime_to: datetimeFinApplique || undefined,
+        }
+    );
 
     const eventColumns = [
-        { header: "Date", accessor: "date" },
+        { header: "Date", render: (ev) => <span className="text-zinc-400 text-xs font-mono">{formatDateTime(ev.date_evenement)}</span> },
         { header: "Type d'Incident", render: (ev) => <span className="font-bold text-zinc-100">{ev.type_evenement}</span> },
         { header: "Cause", render: (ev) => <span className="text-zinc-400">{ev.cause_class || '-'}</span> },
         { header: "Utilisateur", render: (ev) => <span className="text-cyan-400 font-medium truncate max-w-[150px] inline-block" title={ev.last_user}>{ev.last_user || '-'}</span> },
-        { header: "Appareil", render: (ev) => <span className="font-mono text-zinc-300">{ev.serial_number || ev.modele || ev.device_id || '-'}</span> }
+        { header: "Appareil", render: (ev) => <span className="font-mono text-zinc-300">{ev.serial_number || ev.modele || ev.device_id || '-'}</span> },
+        {
+            header: "Durée de vie",
+            render: (ev) => (
+                <button
+                    onClick={() => setOpenEventId(prev => prev === ev.id ? null : ev.id)}
+                    className="px-3 py-1.5 text-xs font-semibold text-cyan-400 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 rounded-xl transition-all"
+                >
+                    {openEventId === ev.id ? 'Masquer' : 'Voir'}
+                </button>
+            )
+        }
     ];
 
-    const charger = async () => {
+    const chargerReferences = async () => {
         try {
-            setLoading(true);
-            setError(null);
-
-            const dataEvenements = await getListeEvenement();
-            setEvenements(dataEvenements || []);
-
-            const dataTypes = await getListeTypeEvenement();
+            const [dataTypes, dataFiliales] = await Promise.all([
+                getListeTypeEvenement(),
+                getListeFiliale(),
+            ]);
             setListeTypes(dataTypes || []);
-
-            const dataFiliales = await getListeFiliale();
             setListeFiliales(dataFiliales || []);
-
         } catch (e) {
             console.error(e);
-            setError("Impossible de charger les événements.");
-        } finally {
-            setLoading(false);
         }
     };
 
     useEffect(() => {
-        charger();
+        chargerReferences();
     }, []);
 
     const filtrerByDate = () => {
@@ -74,9 +104,13 @@ function ListeEvent() {
             alert("La date de début doit être antérieure ou égale à la date de fin.");
             return;
         }
+        if (dateDebut && dateFin && dateDebut === dateFin && heureDebut > heureFin) {
+            alert("L'heure de début doit être antérieure ou égale à l'heure de fin.");
+            return;
+        }
 
-        setDateDebutApplique(dateDebut);
-        setDateFinApplique(dateFin);
+        setDatetimeDebutApplique(`${dateDebut}T${heureDebut || '00:00'}:00`);
+        setDatetimeFinApplique(`${dateFin}T${heureFin || '23:59'}:59`);
         setCurrentPage(1);
     };
 
@@ -85,53 +119,29 @@ function ListeEvent() {
         setTypeEvenement("TOUS");
         setFiliale("");
         setDateDebut('');
+        setHeureDebut('00:00');
         setDateFin('');
-        setDateDebutApplique('');
-        setDateFinApplique('');
+        setHeureFin('23:59');
+        setDatetimeDebutApplique('');
+        setDatetimeFinApplique('');
         setCurrentPage(1);
     };
 
     const resetDate = () => {
         setDateDebut('');
+        setHeureDebut('00:00');
         setDateFin('');
-        setDateDebutApplique('');
-        setDateFinApplique('');
+        setHeureFin('23:59');
+        setDatetimeDebutApplique('');
+        setDatetimeFinApplique('');
     };
 
-    const filtresActifs = search !== "" || typeEvenement !== "TOUS" || filiale !== "" || !!dateDebutApplique || !!dateFinApplique;
+    const filtresActifs = search !== "" || typeEvenement !== "TOUS" || filiale !== "" || !!datetimeDebutApplique || !!datetimeFinApplique;
 
     useEffect(() => {
         setCurrentPage(1);
-    }, [search, typeEvenement, filiale, dateDebutApplique, dateFinApplique]);
-
-    const filtered = evenements.filter(ev => {
-        const q = search.toLowerCase();
-        const matchSearch = (
-            toText(ev.type_evenement || "").toLowerCase().includes(q) ||
-            toText(ev.cause_class || "").toLowerCase().includes(q) ||
-            toText(ev.last_user || "").toLowerCase().includes(q) ||
-            toText(ev.device_id || "").toLowerCase().includes(q) ||
-            toText(ev.serial_number || "").toLowerCase().includes(q) ||
-            toText(ev.modele || "").toLowerCase().includes(q)
-        );
-
-        const eventDate = String(ev.date_evenement || "").slice(0, 10);
-        const matchDate = (() => {
-            if (!dateDebutApplique && !dateFinApplique) return true;
-            if (dateDebutApplique && !dateFinApplique) return eventDate >= dateDebutApplique;
-            if (!dateDebutApplique && dateFinApplique) return eventDate <= dateFinApplique;
-            return eventDate >= dateDebutApplique && eventDate <= dateFinApplique;
-        })();
-
-        const matchType = typeEvenement === "TOUS" || ev.type_evenement === typeEvenement;
-        const matchFiliale = filiale === "" || ev.filiale === filiale;
-        return matchSearch && matchType && matchFiliale && matchDate;
-    });
-
-    const totalPages = Math.ceil(filtered.length / itemsPerPage) || 1;
-    const indexOfLastItem = currentPage * itemsPerPage;
-    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-    const currentItems = filtered.slice(indexOfFirstItem, indexOfLastItem);
+        setOpenEventId(null);
+    }, [search, typeEvenement, filiale, datetimeDebutApplique, datetimeFinApplique]);
 
     return (
         <PageLayout
@@ -200,11 +210,15 @@ function ListeEvent() {
                         className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-zinc-900/60 border border-white/10 text-zinc-200 text-sm placeholder-zinc-500 focus:outline-none focus:border-cyan-400/50 focus:ring-1 focus:ring-cyan-400/20 transition-all" />
                 </div>
 
-                <DateFilter
+                <DateHeureFilter
                     dateDebut={dateDebut}
+                    heureDebut={heureDebut}
                     dateFin={dateFin}
+                    heureFin={heureFin}
                     setDateDebut={setDateDebut}
+                    setHeureDebut={setHeureDebut}
                     setDateFin={setDateFin}
+                    setHeureFin={setHeureFin}
                     onFilter={filtrerByDate}
                     onReset={resetDate}
                 />
@@ -246,13 +260,11 @@ function ListeEvent() {
             </div>
 
             {/* Contenu */}
-            {loading ? (
-                <div className="flex justify-center p-12">
-                    <span className="loading loading-infinity loading-lg text-cyan-500"></span>
-                </div>
+            {loading && evenements.length === 0 ? (
+                <EventListSkeleton viewMode={viewMode} />
             ) : error ? (
-                <EmptyState icon={AlertTriangle} title={error} />
-            ) : filtered.length === 0 ? (
+                <EmptyState icon={AlertTriangle} title="Impossible de charger les événements." />
+            ) : total === 0 ? (
                 <EmptyState
                     icon={Bell}
                     title="Aucun événement trouvé"
@@ -266,17 +278,29 @@ function ListeEvent() {
                                 Incidents détectés
                             </h2>
                             <span className="section-count">
-                                {filtered.length} événement{filtered.length > 1 ? "s" : ""} — Page {currentPage}/{totalPages}
+                                {total} événement{total > 1 ? "s" : ""} — Page {currentPage}/{totalPages}
                             </span>
                         </div>
                     </div>
 
                     {viewMode === 'table' ? (
-                        <GenericTable columns={eventColumns} data={currentItems} />
+                        <>
+                            <GenericTable columns={eventColumns} data={evenements} />
+                            {openEventId !== null && (
+                                <div className="mt-4">
+                                    <EvenementDureeVie eventId={openEventId} />
+                                </div>
+                            )}
+                        </>
                     ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                            {currentItems.map((ev, idx) => (
-                                <EventCard key={ev.id ?? idx} ev={ev} />
+                            {evenements.map((ev, idx) => (
+                                <EventCard
+                                    key={ev.id ?? idx}
+                                    ev={ev}
+                                    isOpen={openEventId === ev.id}
+                                    onToggle={() => setOpenEventId(prev => prev === ev.id ? null : ev.id)}
+                                />
                             ))}
                         </div>
                     )}
@@ -329,28 +353,25 @@ function ListeEvent() {
                         </div>
                     )}
 
-                    {/* Pagination */}
-                    {totalPages > 1 && (
-                        <div className="flex justify-center items-center gap-4 mt-8 pb-4">
-                            <button
-                                className="pagination-btn"
-                                disabled={currentPage === 1}
-                                onClick={() => setCurrentPage(currentPage - 1)}
-                            >
-                                Précédent
-                            </button>
-                            <div className="pagination-indicator">
-                                {currentPage} <span className="pagination-separator">/</span> {totalPages}
-                            </div>
-                            <button
-                                className="pagination-btn"
-                                disabled={currentPage === totalPages}
-                                onClick={() => setCurrentPage(currentPage + 1)}
-                            >
-                                Suivant
-                            </button>
+                    {loading && evenements.length > 0 && (
+                        <div className="mt-4">
+                            <TableSkeleton rows={2} />
                         </div>
                     )}
+
+                    {/* Pagination */}
+                    <Pagination
+                        page={currentPage}
+                        pageSize={pageSize}
+                        totalPages={totalPages}
+                        total={total}
+                        loading={loading}
+                        onPageChange={setCurrentPage}
+                        onPageSizeChange={(size) => {
+                            setPageSize(size);
+                            setCurrentPage(1);
+                        }}
+                    />
                 </>
             )}
         </PageLayout>

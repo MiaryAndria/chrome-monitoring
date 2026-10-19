@@ -21,6 +21,15 @@ export const createConfiguration = async (t, v) => {
     }
 };
 
+export const getDetailConfiguration = async(id)=>{
+    try{
+        const response = await api_service.get(`configuration/${id}`)
+        return response.data
+    }catch(e){
+        console.log(e)
+    }
+};
+
 export const updateConfiguration = async (id, t, v) => {
     try {
         return await api_service.put(`configuration/${id}/update`, {

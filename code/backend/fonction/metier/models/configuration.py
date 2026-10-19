@@ -7,7 +7,7 @@ class ConfigurationData(BaseModel):
     valeur: Any
 
 class ConfigurationResponse(BaseModel):
-    id: int
+    id:int
     type: str
     valeur: Any
-    date: datetime | None = None
+    date: datetime | None = None

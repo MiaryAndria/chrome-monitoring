@@ -13,3 +13,8 @@ from .disk import (
     delete_disk_by_type,
     delete_all_disk,
 )
+
+from .disk_device import (
+    insert_disk_device,
+    get_latest_by_device,
+)

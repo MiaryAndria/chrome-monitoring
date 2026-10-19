@@ -1,0 +1,104 @@
+ Exactement, tu as compris
+Voici la synthèse claire.
+
+🎯 Deux familles de données chez Google
+Famille 1 — Snapshots d'état (RAM, CPU, DISK, battery, réseau…)
+Google te renvoie une seule photo : le dernier état connu de l'appareil pour ce type de rapport.
+
+Si le device est actif → photo récente
+
+Si le device est éteint depuis 2 mois → photo du dernier jour où il a parlé
+
+Pas d'historique : la photo précédente est écrasée à chaque nouvel envoi côté Google
+
+Sources : memoryStatusReport, cpuStatusReport, storageStatusReport, batteryStatusReport, networkStatusReport, etc.
+
+C'est ce qui alimente t_device_ram, t_device_cpu, t_disk_device, t_rapport_device.
+
+Famille 2 — Événements (USB, crash, réseau…)
+Google te renvoie une liste d'événements survenus dans une fenêtre temporelle. Chaque événement a son propre reportTime. Tu peux en avoir plusieurs dizaines par device.
+
+USB inséré → 1 événement daté
+
+Crash kernel → 1 événement daté
+
+Changement réseau → 1 événement daté
+
+Historique conservé côté Google sur une fenêtre (souvent 30-90 jours selon le type)
+
+Sources : usbPeripheralReport, crashReport, networkStateChange…
+
+C'est ce qui alimente t_evenement_device.
+
+📋 Tableau récapitulatif
+Table	Type	Source Google	Google renvoie	Historique côté Google
+t_device_ram	Snapshot	memoryStatusReport	1 point (dernier)	❌ Non
+t_device_cpu	Snapshot	cpuStatusReport	1 point (dernier)	❌ Non
+t_disk_device	Snapshot	storageInfo (live)	1 point (dernier)	❌ Non
+t_rapport_device	Snapshot	tous les *Report	1 point par type	❌ Non
+t_evenement_device	Événement	usbPeripheralReport, crashReport…	Plusieurs points	✅ Oui
+t_device	État actuel	Directory API	1 point (actuel)	❌ Non
+t_device_statut	État actuel	Directory API	1 point (actuel)	❌ Non
+🔍 Nuance importante sur t_rapport_device
+C'est un peu hybride. Selon le type :
+
+MEMORY_STATUS, CPU_STATUS, STORAGE_STATUS, BATTERY_STATUS, GRAPHICS_STATUS, HEARTBEAT_STATUS, NETWORK_STATUS, NETWORK_DIAGNOSTICS, NETWORK_BANDWIDTH, OS_UPDATE_STATUS, BOOT_PERFORMANCE, AUDIO_STATUS, PERIPHERALS_REPORT → snapshots (1 seul point)
+
+USB_ADDED, USB_REMOVED, NETWORK_STATE_CHANGE (via crashs) → événements (plusieurs points)
+
+C'est pour ça que dans t_rapport_device tu peux avoir plusieurs lignes par device pour certains types d'événements, mais une seule par device pour la RAM, CPU, disk, etc.
+
+Vérifie par exemple :
+
+sql
+SELECT tt.type, 
+       COUNT(*) AS total, 
+       COUNT(DISTINCT tr.id_device) AS nb_devices,
+       ROUND(COUNT(*)::numeric / NULLIF(COUNT(DISTINCT tr.id_device), 0), 2) AS moyenne_par_device
+FROM t_rapport_device tr
+JOIN t_type_rapport tt ON tt.id = tr.id_type_rapport
+GROUP BY tt.type
+ORDER BY moyenne_par_device DESC;
+Tu vas voir :
+
+MEMORY_STATUS → moyenne ≈ 1 (snapshot)
+
+CPU_STATUS → moyenne ≈ 1 (snapshot)
+
+STORAGE_STATUS → moyenne ≈ 1 (snapshot)
+
+USB_ADDED / événements → moyenne > 1 (plusieurs points par device)
+
+Cette requête te confirmera visuellement la différence.
+
+🎯 Donc la réponse à ta question
+« t_evenement ça remonte mais disk, ram, rapport etc sont en fonction du dernier état du PC ? »
+
+✅ Oui, exactement.
+
+Événements → historiques, plusieurs points par device, remontent dans le temps
+
+RAM, CPU, DISK, battery, etc. → un seul point, celui du dernier état du PC
+
+💡 Ce que ça change pour ton interface
+Pour RAM/CPU/DISK : tu ne peux pas faire de vraie courbe temporelle avant aujourd'hui. Chaque nouveau point viendra d'une nouvelle synchro de ta part.
+
+Pour les événements : tu peux afficher une vraie timeline, car Google t'envoie plusieurs événements passés. C'est pour ça que dans t_evenement_device tu as plusieurs points (35 pour device 1, 16 pour device 258, etc.) alors que dans t_device_ram tu n'en as qu'un par device.
+
+Conséquence UI :
+
+Timeline événements : riche, plusieurs points depuis plusieurs semaines
+
+Graphique RAM/CPU/DISK : ne commencera qu'aujourd'hui, puis s'enrichira à chaque synchro
+
+TL;DR
+Snapshot (RAM/CPU/DISK)	Événement (USB/crash/réseau)
+Points par appel API	1 (le dernier)	Plusieurs (dans la fenêtre)
+Historique côté Google	❌ Non	✅ Oui (30-90 jours)
+Ce que tu peux afficher	État actuel uniquement	Timeline historique
+Ce qui alimente	t_device_ram, t_device_cpu, t_disk_device	t_evenement_device
+Ta base accumule	À chaque synchro	À chaque événement détecté
+Tu as parfaitement cerné la distinction. C'est une des choses les moins intuitives de l'API Chrome Management, et tu l'as comprise.
+
+donnée renvoi par google evenements misy fenetre temporelle recuperation anle izy 
+tandis que donnée ram , disk , cpu etc et rapport en fonction derniere activité du pc ny donnée azo pour ça misy date samihafa

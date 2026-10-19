@@ -1,16 +1,23 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { HardDrive, TrendingUp } from 'lucide-react';
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid,
     Tooltip as RechartsTooltip, ResponsiveContainer
 } from 'recharts';
-import { extractStorageSummary } from '../../../fonction/deviceFonction';
+import { extractStorageSummary, getDiskLatest } from '../../../fonction/deviceFonction';
 import { getUtilBarColor, getUtilColor, formatBytes, formatDate, usagePercent, exportPdf, exportExcel } from '../../../fonction/utils/util';
 import ExportModal from '../../../components/ExportModal';
 import NoData from './NoData';
 
 function StorageTab({ reports, device, deviceId }) {
     const [modal, setModal] = useState(false);
+    const [latest, setLatest] = useState(null);
+
+    useEffect(() => {
+        if (!deviceId) return;
+        getDiskLatest(deviceId).then(setLatest);
+    }, [deviceId]);
+
     const handleExport = async (format) => {
         try {
             const exportFn = format === 'pdf' ? exportPdf : exportExcel;
@@ -22,8 +29,11 @@ function StorageTab({ reports, device, deviceId }) {
 
     const summary = extractStorageSummary(reports);
     const disks = summary?.disks ?? [];
+    const volumes = disks.length
+        ? disks
+        : (latest ? [{ volumeId: latest.disk_model || 'Disque principal' }] : []);
 
-    if (!disks.length) {
+    if (!volumes.length) {
         return <NoData title="Stockage" />;
     }
 
@@ -34,15 +44,15 @@ function StorageTab({ reports, device, deviceId }) {
                 <div className="flex items-center gap-2 mb-4">
                     <HardDrive className="w-4 h-4 text-amber-400" />
                     <span className="text-sm font-semibold text-zinc-200">Volumes de stockage</span>
-                    <span className="text-[10px] text-zinc-500 ml-auto">{formatDate(summary?.time)}</span>
+                    <span className="text-[10px] text-zinc-500 ml-auto">{formatDate(latest?.date ?? summary?.time)}</span>
                 </div>
                 <div className="space-y-4">
-                    {disks.map((disk, i) => {
-                        const total = device?.disk_total ?? null;
+                    {volumes.map((disk, i) => {
+                        const total = latest?.total_reel ?? device?.disk_total ?? null;
                         const freeFromDisk = disk.storageFreeBytes ?? null;
                         const usedFromDisk = disk.storageUsedBytes ?? null;
-                        const free = freeFromDisk ?? (total !== null && usedFromDisk !== null ? Math.max(total - usedFromDisk, 0) : device?.disk_free ?? null);
-                        const used = usedFromDisk ?? (total !== null && free !== null ? Math.max(total - free, 0) : device?.disk_used ?? null);
+                        const free = latest?.disponible ?? freeFromDisk ?? (total !== null && usedFromDisk !== null ? Math.max(total - usedFromDisk, 0) : device?.disk_free ?? null);
+                        const used = latest?.total_utiliser ?? usedFromDisk ?? (total !== null && free !== null ? Math.max(total - free, 0) : device?.disk_used ?? null);
                         const pct = total !== null && free !== null ? usagePercent(free, total) : null;
                         return (
                             <div key={i} className="p-4 rounded-xl bg-zinc-800/40 border border-white/5">

@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Settings, Plus, Pencil, Trash2 } from 'lucide-react';
 import PageLayout from '../../components/PageLayout';
 import GenericTable from '../../components/GenericTable';
+import TableSkeleton from '../../components/skeletons/TableSkeleton';
 import '../../css/liste.css';
 import '../../css/configuration.css';
 
@@ -67,10 +68,8 @@ function ConfigurationListe() {
             }
         >
             <div className="space-y-6">
-                {loading ? (
-                    <div className="flex justify-center p-12">
-                        <span className="loading loading-infinity loading-lg text-cyan-500"></span>
-                    </div>
+                {loading && conf.length === 0 ? (
+                    <TableSkeleton />
                 ) : !conf || conf.length === 0 ? (
                     <div className="empty-state">
                         <Settings className="empty-state-icon" />

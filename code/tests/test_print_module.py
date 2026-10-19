@@ -66,8 +66,8 @@ class TestPrintModule(unittest.TestCase):
 
         self.assertTrue(_should_skip_historical_insert(cursor, "t_device_ram", 42, past_date))
 
-    @patch("backend.fonction.metier.service.statistique_service.get_device_by_statut")
-    @patch("backend.fonction.metier.service.statistique_service.get_liste_statut")
+    @patch("backend.fonction.metier.service.dashboard_service.get_device_by_statut")
+    @patch("backend.fonction.metier.service.dashboard_service.get_liste_statut")
     def test_nombre_device_by_statut_keeps_only_dashboard_statuses(
         self, mock_get_liste_statut, mock_get_device_by_statut
     ):
@@ -88,7 +88,7 @@ class TestPrintModule(unittest.TestCase):
         mock_get_device_by_statut.side_effect = fake_get_device_by_statut
 
         result = __import__(
-            "backend.fonction.metier.service.statistique_service",
+            "backend.fonction.metier.service.dashboard_service",
             fromlist=["nombreDeviceByStatut"],
         ).nombreDeviceByStatut(object())
 

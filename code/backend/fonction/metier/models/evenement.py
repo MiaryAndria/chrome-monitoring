@@ -23,6 +23,14 @@ class EvenementResponse(BaseModel):
 class ReponseEvenements(BaseModel):
     total: int
     evenements: List[EvenementResponse]
+
+
+class EvenementsPageResponse(BaseModel):
+    items: List[EvenementResponse]
+    total: int
+    page: int
+    page_size: int
+    total_pages: int
     
 class ResponseTypeEvenements(BaseModel):
     id:int

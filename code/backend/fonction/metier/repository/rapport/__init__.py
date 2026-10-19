@@ -5,9 +5,11 @@ from .rapport_device import (
     get_rapport_by_device_and_type,
     create_rapport_device,
     get_rapport_by_device_type_and_period,
+    get_rapport_by_device_type_and_datetime,
     insert_rapport_lot,
     get_liste_rapport_device,
-    recuperation_json_brut
+    recuperation_json_brut,
+    get_latest_battery_by_device,
 )
 
 from .type_rapport import (

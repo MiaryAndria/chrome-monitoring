@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { Building2, Laptop, ChevronRight, Server, Activity, LayoutGrid, List } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import Sidebar from "../../components/Sidebar";
 import Navbar from "../../components/Navbar";
 import MouseSpotlight from "../../components/MouseSpotlight";
 import GenericTable from "../../components/GenericTable";
+import CardGridSkeleton from "../../components/skeletons/CardGridSkeleton";
 import '../../css/liste.css';
 import '../../css/filiale.css';
 import { getListeFiliale } from "../../fonction/filialeFonction";
@@ -59,7 +59,6 @@ function ListeFiliale() {
     return (
         <div className="device-layout" data-theme="dark">
             <MouseSpotlight />
-            <Sidebar />
 
             <div className="flex-1 flex flex-col h-screen overflow-hidden relative z-10">
                 <div className="bg-glow-cyan"></div>
@@ -119,10 +118,8 @@ function ListeFiliale() {
                             </div>
                         </div>
 
-                        {loading ? (
-                            <div className="flex justify-center p-12">
-                                <span className="loading loading-infinity loading-lg text-cyan-500"></span>
-                            </div>
+                        {loading && filiales.length === 0 ? (
+                            <CardGridSkeleton />
                         ) : filiales.length === 0 ? (
                             <div className="empty-state">
                                 <Building2 className="empty-state-icon" />

@@ -53,6 +53,30 @@ ALTER TABLE t_type_rapport
 
 ALTER TABLE t_cpu
     ADD CONSTRAINT uq_cpu_model UNIQUE (cpu_model);
+    
+ALTER TABLE t_configuration 
+ADD CONSTRAINT uq_configuration_type UNIQUE (type);
+
+ALTER TABLE t_evenement_device
+ADD CONSTRAINT uq_evenement_device UNIQUE (id_device, id_type_evenement, date_evenement);
+
+ALTER TABLE t_disk_device
+ADD CONSTRAINT uq_disk_device_device_disk_date UNIQUE (id_device, id_disk, date);
+ALTER TABLE t_disk_device DROP CONSTRAINT uq_disk_device_device_disk_date; 
+
+ALTER TABLE t_imprimante
+ADD CONSTRAINT uq_imprimante_combo UNIQUE (vid, pid, vendor, nom);
+ALTER TABLE t_device_reseau ADD COLUMN date TIMESTAMPTZ DEFAULT NOW();
+
+ALTER TABLE t_seuil 
+ADD CONSTRAINT uq_configuration_cle UNIQUE(cle);
+
+ALTER TABLE t_seuil_statut
+ADD CONSTRAINT uq_seuil_statut UNIQUE(id_seuil,id_statut,date);
+
+ALTER TABLE t_configuration_statut
+ADD CONSTRAINT uq_config_statut_combo 
+UNIQUE (id_configuration, id_statut, date);
 
 ALTER TABLE t_device_filiale
     ADD CONSTRAINT uq_device_filiale UNIQUE (id_device, id_filiale);

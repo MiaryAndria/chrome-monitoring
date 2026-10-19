@@ -359,7 +359,8 @@ CREATE TABLE t_disk_device (
     disponible_formater VARCHAR(50),
     total_formater VARCHAR(50),
     total_utiliser_formater VARCHAR(50),
-    date TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    date TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE(id_device,id_disk,date)
 );
 
 CREATE TABLE t_device_statut (
@@ -415,13 +416,15 @@ CREATE TABLE t_evenement_device (
     id_device INT NOT NULL REFERENCES t_device(id),
     id_type_evenement INT NOT NULL REFERENCES t_type_evenement(id),
     date_evenement TIMESTAMPTZ NOT NULL,
-    details JSONB
+    details JSONB,
+    UNIQUE(id_device,id_type_evenement,date_evenement)
 );
 
 CREATE TABLE t_device_reseau(
     id SERIAL PRIMARY KEY ,
     id_device INT NOT NULL REFERENCES t_device(id),
     id_reseau INT NOT NULL REFERENCES t_reseau(id),
+    date TIMESTAMPTZ NOT NULL DEFAULT NOW()
     UNIQUE (id_device, id_reseau)
 );
 
@@ -430,7 +433,8 @@ CREATE TABLE t_imprimante (
     vid INT,
     pid INT,
     vendor VARCHAR(255),
-    nom VARCHAR(255)
+    nom VARCHAR(255),
+    UNIQUE (vid, pid, vendor, nom)
 );
 
 CREATE TABLE t_imprimante_device (
@@ -473,21 +477,24 @@ CREATE TABLE t_device_alerte_statut(
 CREATE TABLE t_seuil(
     id SERIAL PRIMARY KEY ,
     cle VARCHAR(100) UNIQUE NOT NULL,
-    valeur INT NOT NULL
+    valeur INT NOT NULL,
+    UNIQUE(cle)
 );
 
 CREATE TABLE t_configuration (
     id SERIAL PRIMARY KEY,
     type VARCHAR(100) NOT NULL,
     valeur VARCHAR(255) NOT NULL,
-    date TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    date TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE(type)
 );
 
 CREATE TABLE t_configuration_statut (
     id SERIAL PRIMARY KEY,
     id_configuration INT NOT NULL REFERENCES t_configuration(id),
     id_statut INT NOT NULL REFERENCES t_statut(id),
-    date TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    date TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE (id_configuration, id_statut, date)
 );
 
 CREATE TABLE t_seuil_statut (
@@ -495,6 +502,7 @@ CREATE TABLE t_seuil_statut (
     id_seuil INT NOT NULL REFERENCES t_seuil(id),
     id_statut INT NOT NULL REFERENCES t_statut(id),
     date TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    UNIQUE(id_seuil,id_statut,date)
 );
 
 CREATE TABLE t_synchronisation_historique (

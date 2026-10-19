@@ -40,6 +40,35 @@ export const formatDate = (dateStr) => {
     } catch { return dateStr; }
 };
 
+const ADMIN_TIMEZONE = import.meta.env.VITE_ADMIN_TIMEZONE || 'Indian/Antananarivo';
+
+export const formatDateTime = (dateStr) => {
+    if (!dateStr) return '—';
+    try {
+        return new Intl.DateTimeFormat('fr-FR', {
+            day: '2-digit', month: '2-digit', year: 'numeric',
+            hour: '2-digit', minute: '2-digit', second: '2-digit',
+            hour12: false,
+            timeZone: ADMIN_TIMEZONE
+        }).format(new Date(dateStr));
+    } catch {
+        return dateStr;
+    }
+};
+
+export const formatDuration = (seconds) => {
+    if (seconds === null || seconds === undefined) return '—';
+
+    const total = Math.max(0, Math.floor(seconds));
+    const jours = Math.floor(total / 86400);
+    const heures = Math.floor((total % 86400) / 3600);
+    const minutes = Math.floor((total % 3600) / 60);
+
+    if (jours > 0) return `${jours} j ${heures} h`;
+    if (heures > 0) return `${heures} h ${minutes} min`;
+    return `${minutes} min`;
+};
+
 export const usagePercent = (free, total) => {
     const f = parseInt(free), t = parseInt(total);
     if (isNaN(f) || isNaN(t) || t === 0) return null;
