@@ -24,6 +24,34 @@ def get_liste_configuration(cur):
     return cur.fetchall()
 
 
+def find_configurations_paginated(cur, page=1, page_size=10):
+    offset = (page - 1) * page_size
+    cur.execute(
+        """
+        SELECT c.id, c.type, c.valeur, c.date, COUNT(*) OVER() AS total
+        FROM t_configuration c
+        WHERE c.id = (
+            SELECT cs.id_configuration
+            FROM t_configuration_statut cs
+            WHERE cs.id_configuration = c.id
+            ORDER BY cs.date DESC, cs.id DESC
+            LIMIT 1
+        )
+        AND (
+            SELECT cs2.id_statut
+            FROM t_configuration_statut cs2
+            WHERE cs2.id_configuration = c.id
+            ORDER BY cs2.date DESC, cs2.id DESC
+            LIMIT 1
+        ) <> 14
+        ORDER BY c.id ASC
+        LIMIT %s OFFSET %s
+        """,
+        (page_size, offset),
+    )
+    return cur.fetchall()
+
+
 def get_liste_archiver(cur):
     cur.execute(
         """
@@ -45,6 +73,34 @@ def get_liste_archiver(cur):
         ) = 14
         ORDER BY c.id ASC
         """
+    )
+    return cur.fetchall()
+
+
+def find_configurations_archived_paginated(cur, page=1, page_size=10):
+    offset = (page - 1) * page_size
+    cur.execute(
+        """
+        SELECT c.id, c.type, c.valeur, c.date, COUNT(*) OVER() AS total
+        FROM t_configuration c
+        WHERE c.id = (
+            SELECT cs.id_configuration
+            FROM t_configuration_statut cs
+            WHERE cs.id_configuration = c.id
+            ORDER BY cs.date DESC, cs.id DESC
+            LIMIT 1
+        )
+        AND (
+            SELECT cs2.id_statut
+            FROM t_configuration_statut cs2
+            WHERE cs2.id_configuration = c.id
+            ORDER BY cs2.date DESC, cs2.id DESC
+            LIMIT 1
+        ) = 14
+        ORDER BY c.id ASC
+        LIMIT %s OFFSET %s
+        """,
+        (page_size, offset),
     )
     return cur.fetchall()
 

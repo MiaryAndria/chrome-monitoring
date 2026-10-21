@@ -126,14 +126,12 @@ def executer_synchronisation():
         _verrou.release()
 
 def auto_synchronisation(intervalle=INTERVALLE_SECONDE):
-    """Boucle : synchronise, attend, recommence, jusqu'à l'arrêt."""
     while not _arret.is_set():
         executer_synchronisation()
         _arret.wait(intervalle)      
 
 
 def demarrer_auto_synchronisation(intervalle=INTERVALLE_SECONDE):
-    """À appeler une seule fois au démarrage de l'application."""
     global _thread
     if _thread is not None and _thread.is_alive():
         return _thread              

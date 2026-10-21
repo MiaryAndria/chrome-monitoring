@@ -329,3 +329,17 @@ controllers courts.
 - Revenir sur une page vue plus tard → nouvel appel (pas de cache).
 - `loading` ne concerne que la page courante ; `Skeleton` local en bas
   de liste (pas de spinner global).
+
+## 12. Pagination + cache — liste des filiales (même système que device/événements)
+
+- Endpoint paginé dédié : `GET /filiale/liste/page?page=&page_size=&recherche=`
+  → `{ items, total, page, page_size, total_pages }` (`FilialePageResponse`).
+- `GET /filiale/liste` reste **complet** (non paginé) : il alimente les
+  dropdowns de filiale.
+- Repository : `find_filiales_paginated` (`COUNT(*) OVER()` + `LIMIT/OFFSET`).
+- Service : `get_filiales_page` caché sous le préfixe `filiales:` (TTL 60 s),
+  invalidé après `commit` de synchronisation.
+- Frontend : `page/filiale/liste.jsx` utilise `usePaginatedData`
+  (préchargement N+1/N+2) + composant `Pagination` (5/10).
+- `/filiale/{id}/devices` (devices d'une filiale) avait déjà pagination +
+  cache via `getDevicesPage` (clé `devices:`) : aucun changement requis.

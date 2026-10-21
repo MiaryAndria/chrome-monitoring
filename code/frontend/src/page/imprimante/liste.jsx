@@ -5,6 +5,7 @@ import PageLayout from "../../components/PageLayout";
 import EmptyState from "../../components/EmptyState";
 import Pagination from "../../components/Pagination";
 import PrinterListSkeleton from "../../components/skeletons/PrinterListSkeleton";
+import usePaginatedData from "../../hooks/usePaginatedData";
 import DateHeureFilter from "../component/DateHeureFilter";
 import { getImprimantes } from "../../fonction/imprimanteFonction";
 import ImprimanteCard from "../component/component_imprimante";
@@ -13,14 +14,9 @@ import '../../css/filiale.css';
 import { useNavigate } from 'react-router-dom';
 
 function ListeImprimante() {
-    const [imprimantes, setImprimantes] = useState([]);
-    const [loading, setLoading] = useState(false);
     const [search, setSearch] = useState("");
-    const [error, setError] = useState(null);
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
-    const [total, setTotal] = useState(0);
-    const [totalPages, setTotalPages] = useState(0);
     const [viewMode, setViewMode] = useState('grid');
     const [dateDebut, setDateDebut] = useState('');
     const [heureDebut, setHeureDebut] = useState('00:00');
@@ -30,6 +26,17 @@ function ListeImprimante() {
     const [datetimeTo, setDatetimeTo] = useState('');
     const navigate = useNavigate();
 
+    const { items: imprimantes, total, totalPages, loading, error } = usePaginatedData(
+        getImprimantes,
+        currentPage,
+        pageSize,
+        {
+            recherche: search || undefined,
+            datetime_from: datetimeFrom || undefined,
+            datetime_to: datetimeTo || undefined,
+        }
+    );
+
     const imprimanteColumns = [
         { header: "Fabricant", render: (imp) => <span className="font-bold text-zinc-100">{imp.vendor || '-'}</span> },
         { header: "Modèle / Nom", accessor: "nom" },
@@ -37,34 +44,10 @@ function ListeImprimante() {
         { header: "PID", render: (imp) => <span className="font-mono text-zinc-400">{imp.pid || '-'}</span> },
     ];
 
-    const charger = async () => {
-        try {
-            setLoading(true);
-            setError(null);
-            const data = await getImprimantes({
-                page: currentPage,
-                page_size: pageSize,
-                recherche: search || undefined,
-                datetime_from: datetimeFrom || undefined,
-                datetime_to: datetimeTo || undefined,
-            });
-            setImprimantes(data?.items || []);
-            setTotal(data?.total || 0);
-            setTotalPages(data?.total_pages || 0);
-        } catch (e) {
-            console.error(e);
-            setError("Impossible de charger les imprimantes.");
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    useEffect(() => { charger(); }, [currentPage, pageSize, search, datetimeFrom, datetimeTo]);
-
-    // Reset pagination when search changes
+    // Revenir à la page 1 quand un filtre change
     useEffect(() => {
         setCurrentPage(1);
-    }, [search]);
+    }, [search, datetimeFrom, datetimeTo]);
 
     const filtrerParDate = () => {
         if (!dateDebut || !dateFin) return;
@@ -128,7 +111,7 @@ function ListeImprimante() {
                     {loading && imprimantes.length === 0 ? (
                         <PrinterListSkeleton viewMode={viewMode} />
                     ) : error ? (
-                        <EmptyState icon={Printer} title={error} />
+                        <EmptyState icon={Printer} title="Impossible de charger les imprimantes." />
                     ) : total === 0 ? (
                         <EmptyState
                             icon={Printer}

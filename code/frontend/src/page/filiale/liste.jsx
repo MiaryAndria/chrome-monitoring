@@ -1,13 +1,15 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Building2, Laptop, ChevronRight, Server, Activity, LayoutGrid, List } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from "../../components/Navbar";
 import MouseSpotlight from "../../components/MouseSpotlight";
 import GenericTable from "../../components/GenericTable";
+import Pagination from "../../components/Pagination";
 import CardGridSkeleton from "../../components/skeletons/CardGridSkeleton";
+import usePaginatedData from "../../hooks/usePaginatedData";
 import '../../css/liste.css';
 import '../../css/filiale.css';
-import { getListeFiliale } from "../../fonction/filialeFonction";
+import { getListeFilialePage } from "../../fonction/filialeFonction";
 
 const CARD_VARIANTS = ['cyan', 'purple', 'emerald', 'amber'];
 
@@ -23,10 +25,17 @@ function getOrgDepth(path) {
 }
 
 function ListeFiliale() {
-    const [filiales, setFiliales] = useState([]);
-    const [loading, setLoading] = useState(false);
     const [viewMode, setViewMode] = useState('grid');
+    const [currentPage, setCurrentPage] = useState(1);
+    const [pageSize, setPageSize] = useState(10);
     const navigate = useNavigate();
+
+    const { items: filiales, total, totalPages, loading } = usePaginatedData(
+        getListeFilialePage,
+        currentPage,
+        pageSize,
+        {}
+    );
 
     const filialeColumns = [
         { header: "ID", accessor: "id" },
@@ -40,22 +49,6 @@ function ListeFiliale() {
         ) }
     ];
 
-    const recupererFiliales = async () => {
-        try {
-            setLoading(true);
-            const data = await getListeFiliale();
-            setFiliales(data || []);
-        } catch (e) {
-            console.log(e);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        recupererFiliales();
-    }, []);
-
     return (
         <div className="device-layout" data-theme="dark">
             <MouseSpotlight />
@@ -67,38 +60,13 @@ function ListeFiliale() {
                 <Navbar />
 
                 <div className="flex-1 overflow-y-auto p-6 lg:p-8 space-y-8 z-10">
-
-                    {/* Stats */}
-                    <div className="stats stats-container glass-panel">
-                        <div className="stat place-items-center">
-                            <div className="stat-title text-zinc-400">Total Filiales</div>
-                            <div className="stat-value neon-text-cyan text-4xl">{filiales.length}</div>
-                            <div className="stat-desc text-zinc-500 flex items-center gap-1 mt-1">
-                                <Building2 className="w-3 h-3 text-emerald-500" /> Unités organisationnelles
-                            </div>
-                        </div>
-                        <div className="stat place-items-center border-t md:border-t-0 md:border-l border-white/5">
-                            <div className="stat-title text-zinc-400">Infrastructure</div>
-                            <div className="stat-value text-emerald-400 text-4xl">
-                                <Activity className="w-8 h-8 mx-auto animate-pulse" />
-                            </div>
-                            <div className="stat-desc text-zinc-500">Système de suivi actif</div>
-                        </div>
-                        <div className="stat place-items-center border-t md:border-t-0 md:border-l border-white/5">
-                            <div className="stat-title text-zinc-400">Navigation</div>
-                            <div className="stat-value text-purple-400 text-4xl">
-                                <Laptop className="w-8 h-8 mx-auto" />
-                            </div>
-                            <div className="stat-desc text-zinc-500">Cliquez sur une filiale pour ses devices</div>
-                        </div>
-                    </div>
-
                     {/* Liste filiales */}
                     <div>
                         <div className="section-header flex justify-between items-center">
                             <div>
                                 <h2 className="section-title">Filiales &amp; Unités Organisationnelles</h2>
-                                <span className="section-count">{filiales.length} unité(s)</span>
+                                <h3 className="section-subtitle">Cliquez sur une filiale pour voir ses devices</h3>
+                                <span className="section-count">{total} unité(s)</span>
                             </div>
                             <div className="flex bg-zinc-900 rounded-lg p-1 border border-white/10">
                                 <button 
@@ -172,6 +140,19 @@ function ListeFiliale() {
                                 })}
                             </div>
                         )}
+
+                        <Pagination
+                            page={currentPage}
+                            pageSize={pageSize}
+                            totalPages={totalPages}
+                            total={total}
+                            loading={loading}
+                            onPageChange={setCurrentPage}
+                            onPageSizeChange={(size) => {
+                                setPageSize(size);
+                                setCurrentPage(1);
+                            }}
+                        />
                     </div>
                 </div>
             </div>

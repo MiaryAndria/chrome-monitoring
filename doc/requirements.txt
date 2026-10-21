@@ -12,5 +12,6 @@ python-jose[cryptography]
 python-multipart
 pwdlib[argon2]
 install openpyxl reportlab
+passlib[bcrypt]
 
 installation recharts en react 

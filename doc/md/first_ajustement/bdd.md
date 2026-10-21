@@ -153,7 +153,6 @@ tris, jointures et agrégations**. Ils sont définis dans
 
 | Index | Table | Colonnes | Rôle | Requête accélérée |
 |---|---|---|---|---|
-| `idx_t_device_reseau_device` | `t_device_reseau` | `(id_device)` | Retrouver rapidement les liaisons d'un device | `find_devices_without_network` (`NOT EXISTS`), synchro des réseaux |
 | `idx_t_device_statut_device_date` | `t_device_statut` | `(id_device, date DESC, id DESC)` | Trouver le **dernier statut** d'un device sans tri complet | CTE `dernier_statut` de `v_appareils_filtres` et `v_tableau_de_bord_resume` |
 | `idx_t_device_utilisateur_recent_device_date` | `t_device_utilisateur_recent` | `(id_device, date_observation DESC)` | Agréger les utilisateurs récents par device | CTE `utilisateurs_recents` de `v_appareils_filtres` |
 | `idx_t_device_date_creation` | `t_device` | `(date_creation DESC)` | Filtrer les devices par date de création | `GET /device/liste?datetime_from=&datetime_to=` |
@@ -162,15 +161,12 @@ tris, jointures et agrégations**. Ils sont définis dans
 
 ### 4.1 Détail par index
 
-#### `idx_t_device_reseau_device`
-- **Rôle** : accélérer la recherche des liaisons d'un device.
-- **Utilisé par** : `find_devices_without_network` (synchro C0,
-  `NOT EXISTS (SELECT 1 FROM t_device_reseau dr WHERE dr.id_device = d.id)`),
-  `get_by_device_and_reseau`.
-- **Remarque** : la contrainte `uq_device_reseau UNIQUE (id_device,
-  id_reseau)` crée déjà un index dont la **première colonne est
-  `id_device`**. Cet index explicite est donc en grande partie
-  redondant ; il reste inoffensif et explicite l'intention.
+> **Index réseau redondant retiré** : `idx_t_device_reseau_device`
+> n'est pas nécessaire. La contrainte `uq_device_reseau UNIQUE
+> (id_device, id_reseau)` crée déjà un index dont la première colonne
+> est `id_device`, ce qui couvre `get_by_device_and_reseau`
+> (`WHERE id_device = ... AND id_reseau = ...`). Sa suppression est
+> livrée dans `code/bdd/drop_indexes.sql`.
 
 #### `idx_t_device_statut_device_date`
 - **Rôle** : obtenir le dernier statut par device via un parcours

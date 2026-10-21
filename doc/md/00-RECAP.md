@@ -1,7 +1,8 @@
 # 00 — RÉCAPITULATIF DES AJUSTEMENTS
 
-Source d'instructions : `doc/md/AI_AGENT_GUIDE_MONITORING_PLATFORM.md`,
-complété par `doc/md/POST_AJUSTEMENT.md`.
+Sources d'instructions : `doc/md/first_ajustement/`
+(guide `AI_AGENT_GUIDE_MONITORING_PLATFORM_FIRST_CORRECTION.md` +
+`POST_AJUSTEMENT.md`).
 
 ## Convention de chemins
 
@@ -37,7 +38,7 @@ complété par `doc/md/POST_AJUSTEMENT.md`.
 
 | # | Correction | Statut | Notes |
 |---|---|---|---|
-| C0 | Insertion `t_device_reseau` + audit doublons | ✅ fait | `t_device.id_reseau` absent → fallback IP ; index livré |
+| C0 | Insertion `t_device_reseau` + audit doublons | ✅ fait | liaison insérée dans `insertion_device` (pré-check `get_by_device_and_reseau`) ; `reseau_service` supprimé ; audit validé |
 | C1 | Performance pagination devices/événements | ✅ code fait | VIEWS réécrites **à ré-exécuter** ; index livrés |
 | C2 | Dashboard : redirections + cartes cliquables | ✅ fait | `/liste/imprimante` → `/imprimantes` |
 | C3 | Life remaining → page événements | ✅ fait | `life_*` fusionnés dans `evenement_*` |
@@ -117,6 +118,7 @@ Endpoints supprimés : `/life/{id}`, `/cpu/{id}/summary`,
 | `statistique_service.py` | `dashboard_service.py` | mêmes agrégats dashboard |
 | `repository/ram/__init.__.py` (typo) | supprimé | fichier orphelin, jamais importé |
 | `sum_range` / `get_*_range_summary` | `get_*_device_date` | simplification C4 |
+| `service/reseau_service.py` | supprimé | insertion directe dans `insertion_device` ; plus de second passage |
 
 Non fusionnés (domaines distincts, légitimes) : `cpu_*`, `ram_*`,
 `disk_*`, `device_*`, `imprimante_*`, `rapport_*`, `reseau_*`,
@@ -134,7 +136,8 @@ Non fusionnés (domaines distincts, légitimes) : `cpu_*`, `ram_*`,
 - `frontend/src/page/component/EvenementDureeVie.jsx` (C3)
 - `code/bdd/views.sql`, `code/bdd/drop_views.sql`,
   `code/bdd/indexes.sql` (C0/C1, à exécuter manuellement)
-- `doc/md/bdd.md` — rôle détaillé de chaque VIEW et de chaque INDEX
+- `doc/md/first_ajustement/bdd.md` — rôle détaillé de chaque VIEW et
+  de chaque INDEX
 
 ## Questions ouvertes
 

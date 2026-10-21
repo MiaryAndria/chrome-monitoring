@@ -84,6 +84,34 @@ def get_cpu_device_date(cur, id_device, date_debut, date_fin):
         {"date": row[0], "valeur": float(row[1]) if row[1] is not None else 0.0}
         for row in rows
     ]
+    
+
+def get_cpu_device_one_date(cur, id_device, date):
+    """
+    Relevés CPU bruts (date, utilisation) d'un device
+    pour une date donnée.
+    """
+    cur.execute(
+        """
+        SELECT date, cpu_utiliser
+        FROM t_device_cpu
+        WHERE id_device = %s
+          AND date = %s
+        ORDER BY date ASC, id ASC
+        """,
+        (id_device, date)
+    )
+
+    rows = cur.fetchall()
+
+    return [
+        {
+            "date": row[0],
+            "valeur": float(row[1]) if row[1] is not None else 0.0
+        }
+        for row in rows
+    ]
+
 
 
 __all__ = [

@@ -1,49 +1,46 @@
-import { useState, useEffect } from 'react';
-import { getListeArchiver, restaurerConfiguration } from '../../fonction/configurationFonction';
-import { useNavigate } from 'react-router-dom';
+import { useState } from 'react';
+import { getListeArchiverPage, restaurerConfiguration } from '../../fonction/configurationFonction';
 import { Archive, RotateCcw } from 'lucide-react';
 import PageLayout from '../../components/PageLayout';
 import GenericTable from '../../components/GenericTable';
+import Pagination from '../../components/Pagination';
 import TableSkeleton from '../../components/skeletons/TableSkeleton';
+import usePaginatedData from '../../hooks/usePaginatedData';
 import '../../css/liste.css';
 import '../../css/configuration.css';
 
 function ArchivedConfiguration() {
-    const [conf, setConf] = useState([]);
-    const [loading, setLoading] = useState(false);
-    const navigate = useNavigate();
+    const [currentPage, setCurrentPage] = useState(1);
+    const [pageSize, setPageSize] = useState(10);
+    const [refresh, setRefresh] = useState(0);
 
-    const getConfiguration = async () => {
-        try {
-            setLoading(true);
-            const response = await getListeArchiver();
-            setConf(Array.isArray(response?.data) ? response.data : []);
-        } catch (e) {
-            console.log('Erreur récupération configuration archivée :', e);
-        } finally {
-            setLoading(false);
-        }
-    };
+    const { items: conf, total, totalPages, loading } = usePaginatedData(
+        getListeArchiverPage,
+        currentPage,
+        pageSize,
+        { refresh }
+    );
 
     const restaurer = async (id) => {
         try {
             await restaurerConfiguration(id);
-            await getConfiguration();
+            setRefresh(r => r + 1);
         } catch (e) {
             console.log(e);
         }
     };
 
-    useEffect(() => {
-        getConfiguration();
-    }, []);
-
     const columns = [
-        { header: 'Type', render: (c) => <span className="font-bold text-zinc-100">{c.type}</span> },
-        { header: 'Valeur', render: (c) => <span className="text-zinc-300">{c.valeur}</span> },
-        { header: 'Date', render: (c) => <span className="text-zinc-400 text-xs font-mono">{c.date ? new Date(c.date).toLocaleString() : '-'}</span> },
+        { header: 'Type', className: 'w-[18%]', render: (c) => <span className="font-bold text-zinc-100">{c.type}</span> },
+        { header: 'Valeur', className: 'w-[55%]', render: (c) => <span className="text-zinc-300">{c.valeur}</span> },
+        { header: 'Date', className: 'w-[12%] text-right', render: (c) => c.date ? (
+            <span className="text-zinc-400 text-xs font-mono">
+                <span className="block">{new Date(c.date).toLocaleDateString('fr-FR')}</span>
+                <span className="block">{new Date(c.date).toLocaleTimeString('fr-FR')}</span>
+            </span>
+        ) : <span className="text-zinc-500">-</span> },
         {
-            header: 'Actions', render: (c) => (
+            header: 'Actions', sticky: true, className: 'w-[15%] text-right', render: (c) => (
                 <div className="config-table-actions">
                     <button onClick={() => restaurer(c.id)} className="config-btn config-btn-success" style={{ padding: '0.4rem 0.75rem', fontSize: '0.7rem' }}>
                         <RotateCcw className="w-3.5 h-3.5" /> Restaurer
@@ -73,10 +70,23 @@ function ArchivedConfiguration() {
                         <div className="section-header">
                             <div>
                                 <h2 className="section-title">Liste des configurations archivées</h2>
-                                <span className="section-count">{conf.length} archivée(s)</span>
+                                <span className="section-count">{total} archivée(s)</span>
                             </div>
                         </div>
                         <GenericTable columns={columns} data={conf} />
+
+                        <Pagination
+                            page={currentPage}
+                            pageSize={pageSize}
+                            totalPages={totalPages}
+                            total={total}
+                            loading={loading}
+                            onPageChange={setCurrentPage}
+                            onPageSizeChange={(size) => {
+                                setPageSize(size);
+                                setCurrentPage(1);
+                            }}
+                        />
                     </>
                 )}
             </div>

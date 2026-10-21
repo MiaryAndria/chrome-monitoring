@@ -70,3 +70,35 @@ Si tu repars de zéro avec une base propre ou une recréation des tables, elle n
 
 correction dans base depart derniere date_debut car aussi c'est date_debut repere pas date_fin car si date_fin c'est date_fin action dcp il aura des données non reperer 
 old date_debut - 1 ou 72(debut_receuil) -> date_debut reel(fin_receuil) 
+
+dans auto_synch.py
+suivi.update({"statut": "TERMINER", "nb_lignes": nb_lignes}) d'où viens le update utiliser dans synch_auto ?
+Copy
+update n'a rien de custom : c'est la méthode native de dict (Python built-in), parce que suivi est un simple dictionnaire déclaré localement.
+
+Dans code/backend/google_api/auto_synch.py, ligne 44 :
+
+python
+
+suivi = {"source": "google", "statut": "ECHEC", "erreur": None, "nb_lignes": 0}
+Donc suivi.update(...) = dict.update(...). Aucun import, aucune classe, aucun objet — c'est un dict pur (il est aussi passé à synchroniser_tout(..., suivi=suivi) qui le reçoit en paramètre, import_service.py §456).
+
+⚠️ Attention, la ligne 74 est buggée :
+
+python
+
+suivi.update({lancement_isoformat ,fenetre_debut_isoformat,fenetre_fin_isoformat,marge_heures_isoformat,fenetre_heures_isoformat})
+{...} sans clé: valeur = un set, pas un dict. dict.update(un_set) va itérer les éléments et tenter de les lire comme des paires clé/valeur → ValueError (sauf si chaque élément fait exactement 2 éléments).
+En plus, lignes 69, 71, 72 ont des virgules traînantes → fenetre_debut_isoformat, marge_heures_isoformat, fenetre_heures_isoformat deviennent des tuples (valeur,), pas des chaînes.
+Si l'intention est d'enrichir suivi, il faut un vrai dict, par exemple :
+
+python
+
+suivi.update({
+    "lancement": lancement_isoformat,
+    "fenetre_debut": fenetre_debut_isoformat,
+    "fenetre_fin": fenetre_fin_isoformat,
+    "marge_heures": marge_heures_isoformat,
+    "fenetre_heures": fenetre_heures_isoformat,
+})
+Les lignes 95 ({"statut": ..., "nb_lignes": ...}), 101, 117, 118 sont correctes : ce sont bien des appels à dict.update / affectations sur le dict.

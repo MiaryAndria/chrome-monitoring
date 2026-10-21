@@ -1,24 +1,13 @@
 -- ============================================================
--- INDEX — synchro des réseaux + pagination
+-- INDEX — pagination
 -- À exécuter MANUELLEMENT par l'utilisateur.
 -- L'agent IA ne crée jamais les index.
--- Explication détaillée : doc/md/bdd.md
+-- Explication détaillée : doc/md/first_ajustement/bdd.md
+--
+-- Note : idx_t_device_reseau_device a été retiré de ce fichier car
+-- il est redondant avec uq_device_reseau UNIQUE (id_device, id_reseau).
+-- Voir code/bdd/drop_indexes.sql.
 -- ============================================================
-
--- ------------------------------------------------------------
--- idx_t_device_reseau_device
--- Table      : t_device_reseau
--- Colonnes   : (id_device)
--- Rôle       : retrouver rapidement les liaisons réseau d'un device.
--- Accélère   : find_devices_without_network (NOT EXISTS sur id_device),
---              get_by_device_and_reseau, la synchro C0.
--- Remarque   : la contrainte uq_device_reseau UNIQUE (id_device,
---              id_reseau) crée déjà un index dont la 1re colonne est
---              id_device. Cet index explicite est donc redondant mais
---              inoffensif.
--- ------------------------------------------------------------
-CREATE INDEX IF NOT EXISTS idx_t_device_reseau_device
-    ON t_device_reseau (id_device);
 
 -- ------------------------------------------------------------
 -- idx_t_device_statut_device_date

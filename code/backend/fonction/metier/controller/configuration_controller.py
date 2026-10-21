@@ -1,14 +1,20 @@
 from typing import List
 from datetime import datetime
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 
-from backend.fonction.metier.models.configuration import ConfigurationResponse, ConfigurationData
+from backend.fonction.metier.models.configuration import (
+    ConfigurationResponse,
+    ConfigurationData,
+    ConfigurationPageResponse,
+)
 from backend.fonction.metier.service.configuration_service import (
     InsertConfiguration as insert_config_service,
     UpdateConfiguration as update_config_service,
     deleteConfiguration as delete_config_service,
     getListeArchiveConfiguration,
     getListeConfiguration,
+    getConfigurationsPage,
+    getConfigurationsArchivePage,
     getDetailConfiguration,
     reStaurer as restore_config_service,
 )
@@ -19,6 +25,14 @@ router = APIRouter()
 def get_liste():
     try:
         return getListeConfiguration()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/liste/page", response_model=ConfigurationPageResponse)
+def get_liste_page(page: int = Query(1, ge=1), page_size: int = Query(10, ge=1, le=100)):
+    try:
+        return getConfigurationsPage(page=page, page_size=page_size)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -50,6 +64,14 @@ def delete_configuration(id: int):
 def get_list_archive():
     try:
         return getListeArchiveConfiguration()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/liste/archiver/page", response_model=ConfigurationPageResponse)
+def get_list_archive_page(page: int = Query(1, ge=1), page_size: int = Query(10, ge=1, le=100)):
+    try:
+        return getConfigurationsArchivePage(page=page, page_size=page_size)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

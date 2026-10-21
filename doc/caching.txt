@@ -1,0 +1,39 @@
+Cache côté frontend (préchargement one-shot via usePaginatedData, sans cache persistant)
+
+device/liste.jsx — précharge N+1/N+2
+event/liste.jsx — précharge N+1/N+2
+filiale/liste.jsx — précharge N+1/N+2
+imprimante/liste.jsx — précharge N+1/N+2
+filiale/liste_device.jsx — précharge N+1/N+2
+configuration/liste.jsx — précharge N+1/N+2
+configuration/archived.jsx — précharge N+1/N+2
+Cache côté serveur (listes paginées, TTL 60 s)
+
+/device/liste (clé devices:) → device/liste.jsx
+/filiale/{id}/devices → getDevicesPage (clé devices:) → filiale/liste_device.jsx
+/evenement/liste (clé events:) → event/liste.jsx
+/imprimante/liste (clé imprimantes:) → imprimante/liste.jsx
+/filiale/liste/page (clé filiales:) → filiale/liste.jsx
+/configuration/liste/page (clé configurations:) → configuration/liste.jsx
+/configuration/liste/archiver/page (clé configurations:archive:) → configuration/archived.jsx
+Invalidation : devices:, events:, imprimantes:, filiales: sont purgés après le commit de synchronisation ; configurations: / configurations:archive: sont purgés à chaque create / update / delete / restore de configuration.
+
+Sans aucun cache
+
+dashboard.jsx — cache serveur retiré, recompte à chaque appel
+device/detail_device.jsx + onglets (cpu_tab, ram_tab, storage_tab, batterie, reseau, peripheriques) — somme sans cache, détail toujours frais
+imprimante/detailImprimante.jsx
+configuration/create.jsx, configuration/update.jsx
+En résumé : 7 pages ont le préchargement client (usePaginatedData : device, événements, filiales, imprimantes, devices-d'une-filiale, configurations, configurations archivées), et 7 pages de liste passent par les 5 clés serveur devices: / events: / imprimantes: / filiales: / configurations:.
+
+Page	Endpoint	Clé cache serveur	Préchargement client (hook)
+page/device/liste.jsx	/device/liste	devices:	oui (usePaginatedData)
+page/filiale/liste_device.jsx	/filiale/{id}/devices	devices:	oui (usePaginatedData)
+page/event/liste.jsx	/evenement/liste	events:	oui (usePaginatedData)
+page/imprimante/liste.jsx	/imprimante/liste	imprimantes:	oui (usePaginatedData)
+page/filiale/liste.jsx	/filiale/liste/page	filiales:	oui (usePaginatedData)
+page/configuration/liste.jsx	/configuration/liste/page	configurations:	oui (usePaginatedData)
+page/configuration/archived.jsx	/configuration/liste/archiver/page	configurations:archive:	oui (usePaginatedData)
+Sans cache ni pagination : dashboard.jsx, device/detail_device.jsx (+ onglets CPU/RAM/Storage/Batterie/Réseau/Périphériques), imprimante/detailImprimante.jsx, et configuration/create.jsx + configuration/update.jsx (formulaires, pas des listes).
+
+⚠️ Rappel : le cache serveur est par worker uvicorn (chaque worker a son propre _cache) — d'où l'intérêt d'éventuellement n'en garder qu'un.

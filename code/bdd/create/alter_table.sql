@@ -71,8 +71,12 @@ ALTER TABLE t_device_reseau ADD COLUMN date TIMESTAMPTZ DEFAULT NOW();
 ALTER TABLE t_seuil 
 ADD CONSTRAINT uq_configuration_cle UNIQUE(cle);
 
+ALTER TABLE t_comparaison ADD COLUMN id_type_comparaison INT NOT NULL REFERENCES t_type_comparaison(id);
+
 ALTER TABLE t_seuil_statut
 ADD CONSTRAINT uq_seuil_statut UNIQUE(id_seuil,id_statut,date);
+
+ALTER TABLE t_comparaison drop column commentaires;
 
 ALTER TABLE t_configuration_statut
 ADD CONSTRAINT uq_config_statut_combo 

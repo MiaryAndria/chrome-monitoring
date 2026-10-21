@@ -5,3 +5,4 @@ INSERT INTO t_statut(nom)VALUES('TERMINER');
 INSERT INTO t_statut (nom) VALUES ('ECHEC');
 INSERT INTO t_statut (nom) VALUES ('CREER'),('MODIFIER'),('SUPPRIMER'), ('RESOLUE');
 INSERT INTO t_statut(nom)VALUES('RESTAURER')
+INSERT INTO t_type_comparaison(type)VALUES('Simple'),('Double');

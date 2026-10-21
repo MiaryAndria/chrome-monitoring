@@ -9,6 +9,16 @@ export const getListeFiliale = async () => {
     }
 };
 
+export const getListeFilialePage = async (params = {}) => {
+    try {
+        const response = await api_service.get('/filiale/liste/page', { params });
+        return response.data;
+    } catch (e) {
+        console.log(e);
+        return { items: [], total: 0, page: 1, page_size: params.page_size || 10, total_pages: 0 };
+    }
+};
+
 export const getDevicesByFiliale = async (id_filiale, params = {}) => {
     try {
         const response = await api_service.get(`/filiale/${id_filiale}/devices`, { params });

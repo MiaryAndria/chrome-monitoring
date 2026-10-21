@@ -363,6 +363,11 @@ CREATE TABLE t_disk_device (
     UNIQUE(id_device,id_disk,date)
 );
 
+CREATE TABLE t_type_comparaison (
+  id SERIAL PRIMARY KEY,
+  type TEXT NOT NULL UNIQUE   
+);
+
 CREATE TABLE t_device_statut (
     id SERIAL PRIMARY KEY,
     id_device INT NOT NULL REFERENCES t_device(id),
@@ -526,13 +531,12 @@ CREATE TABLE t_statut_synchronisation (
 CREATE TABLE t_comparaison (
     id SERIAL PRIMARY KEY,
     id_device_a INT NOT NULL REFERENCES t_device(id),
+    id_type_comparaison INT NOT NULL REFERENCES t_type_comparaison(id),
     id_device_b INT NOT NULL REFERENCES t_device(id),
     date_reference_a TIMESTAMPTZ,
     date_reference_b TIMESTAMPTZ,
     date_comparaison TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    resultat JSONB,
-    commentaires TEXT,
-    CONSTRAINT ck_comparaison_devices_diff CHECK (id_device_a <> id_device_b)
+    resultat JSONB
 );
 
 CREATE TABLE t_statut_comparaison(
@@ -562,3 +566,4 @@ CREATE TABLE t_device_ram(
     date TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     UNIQUE (id_device, date)
 );
+

@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Any
+from typing import Any, List
 from datetime import datetime
 
 class ConfigurationData(BaseModel):
@@ -11,3 +11,11 @@ class ConfigurationResponse(BaseModel):
     type: str
     valeur: Any
     date: datetime | None = None
+
+
+class ConfigurationPageResponse(BaseModel):
+    items: List[ConfigurationResponse]
+    total: int
+    page: int
+    page_size: int
+    total_pages: int

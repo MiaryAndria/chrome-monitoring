@@ -9,6 +9,16 @@ export const getListeConfiguration = async () => {
     }
 };
 
+export const getListeConfigurationPage = async (params = {}) => {
+    try {
+        const response = await api_service.get('configuration/liste/page', { params });
+        return response.data;
+    } catch (e) {
+        console.log(e);
+        return { items: [], total: 0, page: 1, page_size: params.page_size || 10, total_pages: 0 };
+    }
+};
+
 export const createConfiguration = async (t, v) => {
     try {
         return await api_service.post('configuration/create', {
@@ -57,6 +67,16 @@ export const getListeArchiver = async () => {
     } catch (e) {
         console.log(e);
         return { data: [] };
+    }
+};
+
+export const getListeArchiverPage = async (params = {}) => {
+    try {
+        const response = await api_service.get('configuration/liste/archiver/page', { params });
+        return response.data;
+    } catch (e) {
+        console.log(e);
+        return { items: [], total: 0, page: 1, page_size: params.page_size || 10, total_pages: 0 };
     }
 };
 

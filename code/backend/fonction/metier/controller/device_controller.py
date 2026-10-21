@@ -81,3 +81,5 @@ def getDetailDevice(id):
             status_code=500,
             detail=str(e)
         )
+
+

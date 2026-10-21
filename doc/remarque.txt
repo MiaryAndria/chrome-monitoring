@@ -17,15 +17,6 @@ f"Appareil : {model} (S/N: {serial})",
 deuxieme test utilisation et recupération via telemetry api
 création frontend avec react surtout page liste devices avec reo ambony reo et un page de connexion et design 
 
-à faire 
-token toutes les 30minutes 
-matetika fin de semaine ny mahita évenements
-GT
-page acceuil par filiale ny affichage
-
-get_devices -> fonction persistance en base 
-fonction get_base 
-get_base -> main
 
 version chromeOs et chrome je ne sais pas si possible obtention 
 
@@ -33,12 +24,6 @@ presentation
 ivelany miditra zany hoe ilay interface miditra hoe otranzao nanaovana anty 
 sujet mila azavaina tsara precisement izay azavaina mila ain'olona ny contexte rehetra dia ny valeur ajouterany hoe fa maninona no nanao aniny 
 typo ampitombona kely fond atao somary clair 
-base synchronisation
-active aussi à preciser si possible active ou en activité que signifie le mots active , recherche sur barre de recherche on fait recherche pour qu'on peut faire recherche filiale et truc suite
-
-asina version liste aussi ny carte
-imprimante reseau et usb 
-cups 
 
 Recupération imprimante via compte satria izay imprimante miasa liée amn'compte 
 Dia avy amn'compte no angalana anle imprimante etc dia dcp zany liée compte ny imprimante 
@@ -74,33 +59,16 @@ Badge cause	Signification
 ARRET_ANORMAL	La machine a été éteinte brutalement (coupure courant, arrêt forcé) — le crash de la session précédente est remonté au reboot suivant
 EN_SESSION	Le crash s'est produit pendant qu'un utilisateur était connecté et actif
 
-
-
-get_devices et get_telemetry_devices ne reçoivent pas debut. Ils récupèrent tous les appareils à chaque tour (d’où ~1160 lignes constantes)
-
-todo 
+todo et verification à faire 
+page liste_device filiale ou device simple barre de recherche pour effectuer recherche via numero de serie device_id utilisateur_recent filtre par type appareil
+caching et pagination liste comparaison 
 securisation du site 
 multi tier pour de bon 
 ia integré dans le systeme d'evenement
-
-dashboard aussi pas de caching 
+est ce que si il y a information device et reseau nouveau est ce que ça s'insert fin verifie pour toute si il y a device nouveau alors est ce que ça s'insert filiale ça s'insert ou c'est comment j'ai peur que des données ne vont pas s'inserer ou données vont rester donnée deja existant
+mila manao etude tsara à propos jwt_token.txt et security.txt
+cpu ram et stockage no afaka exploiterna
 
 C'est fait. Dans ram_tab.jsx, l'axe Y du graphe mémoire a maintenant un domain={[0, total]} : le haut de l'échelle correspond à la mémoire totale réelle du device (8,59 Go pour ce device), plus au max des valeurs reçues (6 Go). Les barres sont donc proportionnelles à la capacité réelle. Build frontend OK.
-Voici la liste exacte des pages concerneées par le caching.
 
-Cache côté frontend (préchargement one-shot via usePaginatedData, sans cache persistant)
 
-device/liste.jsx — précharge N+1/N+2
-event/liste.jsx — précharge N+1/N+2
-Cache côté serveur (listes paginées, TTL 60 s, invalidées à la synchro)
-
-device/liste.jsx → /device/liste (clé devices:)
-filiale/liste_device.jsx → /filiale/{id}/devices → getDevicesPage (clé devices:) — pas de hook client, il profite du cache serveur
-event/liste.jsx → /evenement/liste (clé events:)
-imprimante/liste.jsx → /imprimante/liste (clé imprimantes:) — pas de hook client, cache serveur
-Sans aucun cache
-
-dashboard.jsx — cache serveur retiré, recompte à chaque appel
-device/detail_device.jsx + onglets (cpu_tab, ram_tab, storage_tab, batterie, reseau, peripheriques) — somme sans cache, détail toujours frais
-imprimante/detailImprimante.jsx, configuration/*, statistiques
-En résumé : seul device/liste.jsx et event/liste.jsx ont un cache côté client (préchargement), et les 4 pages de liste (devices, filiale-devices, événements, imprimantes) passent par les 3 clés serveur devices:/events:/imprimantes:.

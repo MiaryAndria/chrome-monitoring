@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 def format_date(date):
     if not date:
         return "N/A"
@@ -36,3 +36,16 @@ def format_datetime_fr(iso_str):
         return dt_local.strftime("%d/%m/%Y %H:%M:%S")
     except (ValueError, AttributeError):
         return str(iso_str)
+
+
+def parse_google_datetime(value):
+    """
+    Convertit une date Google (RFC3339 ou datetime) en datetime UTC.
+    Retourne None si la valeur est absente ou invalide.
+    """
+    date_obj = parse_date_safe(value)
+    if date_obj is None:
+        return None
+    if date_obj.tzinfo is None:
+        return date_obj.replace(tzinfo=timezone.utc)
+    return date_obj.astimezone(timezone.utc)

@@ -1,13 +1,18 @@
+import traceback
 from typing import List, Optional
 from datetime import datetime
 
 from fastapi import APIRouter, HTTPException, Query
 
-from backend.fonction.metier.models.filiale import FilialeResponse
+from backend.fonction.metier.models.filiale import (
+    FilialeResponse,
+    FilialePageResponse,
+)
 from backend.fonction.metier.models.device import DevicePageResponse
 from backend.fonction.metier.service.filiale_service import (
     get_all_filiales,
     get_devices_by_filiale,
+    get_filiales_page,
 )
 from backend.utils.validation import is_valid_datetime_range
 
@@ -29,6 +34,19 @@ def getListeFiliale():
         }
         for f in filiales
     ]
+
+
+@router.get("/liste/page", response_model=FilialePageResponse)
+def getFilialesPage(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(10, ge=1, le=100),
+    recherche: Optional[str] = None,
+):
+    try:
+        return get_filiales_page(page=page, page_size=page_size, recherche=recherche)
+    except Exception as e:
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/{id_filiale}/devices", response_model=DevicePageResponse)

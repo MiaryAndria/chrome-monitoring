@@ -274,6 +274,14 @@
   color: #f4f4f5;
 }
 
+.section-subtitle {
+  font-size: 0.9rem;
+  font-weight: 400;
+  color: #a1a1aa;
+  letter-spacing: 0.01em;
+  margin-top: 0.25rem;
+}
+
 .section-count {
   font-size: 0.7rem;
   color: #71717a;

@@ -118,3 +118,34 @@ def get_comparaisons_device_b_by_period(cur,id_device_b,date_debut,date_fin):
     )
     result = cur.fetchall()
     return result
+
+def insert_comparaison_simple(cur, id1, id2, date1, date2, resultat, id_type_comparaison):
+    cur.execute(
+        """
+        INSERT INTO t_comparaison
+            (id_device_a, id_device_b, date_reference_a, date_reference_b, resultat, id_type_comparaison)
+        VALUES (%s, %s, %s, %s, %s, %s)
+        RETURNING id_comparaison
+        """,
+        (id1, id2, date1, date2, resultat, id_type_comparaison)
+    )
+    return cur.fetchone()
+
+def insert_comparaison_double(cur, id1, id2, date1, date2, resultat, id_type_comparaison):
+    cur.execute(
+        """
+        INSERT INTO t_comparaison
+            (id_device_a, id_device_b, date_reference_a, date_reference_b, resultat, id_type_comparaison)
+        VALUES (%s, %s, %s, %s, %s, %s)
+        RETURNING id_comparaison
+        """,
+        (id1, id2, date1, date2, resultat, id_type_comparaison)
+    )
+    return cur.fetchone()
+
+def insert_comparaison_statut(cur,id_comparaison,id_statut):
+    cur.execute(
+    """
+    INSERT INTO t_statut_comparaison(id_comparaison,id_statut)VALUES(%s,%s)
+    """,(id_comparaison,id_statut)
+    )

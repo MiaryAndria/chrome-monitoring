@@ -16,10 +16,6 @@ from .reseau_filiale import (
 )
 
 from .reseau_device import (
-    find_devices_without_network,
-    get_reseau_id_by_ip,
     get_by_device_and_reseau,
     insert_device_reseau,
-    create_savepoint_ligne_reseau,
-    rollback_savepoint_ligne_reseau,
 )

@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Laptop, Network, User, Users, X, Copy, Check, ChevronLeft, Building2, Server } from 'lucide-react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Navbar from "../../components/Navbar";
 import MouseSpotlight from "../../components/MouseSpotlight";
 import Pagination from "../../components/Pagination";
 import DeviceListSkeleton from "../../components/skeletons/DeviceListSkeleton";
+import usePaginatedData from "../../hooks/usePaginatedData";
 import '../../css/liste.css';
 import StatutDropdown from "../component/StatutDropdown";
 import ResetFiltreButton from "../component/ResetFiltreButton";
@@ -18,17 +19,25 @@ function ListeDeviceFiliale() {
     const navigate = useNavigate();
     const [listeStatuts, setListeStatuts] = useState([]);
     const [statut, setStatut] = useState("");
-    const [devices, setDevices] = useState([]);
     const [filialeInfo, setFilialeInfo] = useState(null);
-    const [loading, setLoading] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
-    const [total, setTotal] = useState(0);
-    const [totalPages, setTotalPages] = useState(0);
     const [activeCount, setActiveCount] = useState(0);
     const [filialeTotal, setFilialeTotal] = useState(0);
     const [selectedDevice, setSelectedDevice] = useState(null);
     const [copiedSN, setCopiedSN] = useState(null);
+
+    const fetchDevices = useCallback(
+        (params) => getDevicesByFiliale(id_filiale, params),
+        [id_filiale]
+    );
+
+    const { items: devices, total, totalPages, loading } = usePaginatedData(
+        fetchDevices,
+        currentPage,
+        pageSize,
+        { statut: statut || undefined }
+    );
 
     const getStatut = async () => {
         try {
@@ -57,38 +66,32 @@ function ListeDeviceFiliale() {
         setTimeout(() => setCopiedSN(null), 2000);
     };
 
-    const fetchData = async () => {
+    const chargerInfos = async () => {
         try {
-            setLoading(true);
             const filiales = await getListeFiliale();
             if (filiales) {
                 const current = filiales.find(f => f.id === parseInt(id_filiale));
                 if (current) setFilialeInfo(current);
             }
-            const [data, statsData, activeData] = await Promise.all([
-                getDevicesByFiliale(id_filiale, {
-                    page: currentPage,
-                    page_size: pageSize,
-                    statut: statut || undefined,
-                }),
+            const [statsData, activeData] = await Promise.all([
                 getDevicesByFiliale(id_filiale, { page: 1, page_size: 1 }),
                 getDevicesByFiliale(id_filiale, { page: 1, page_size: 1, statut: 'ACTIVE' }),
             ]);
-            setDevices(data?.items || []);
-            setTotal(data?.total || 0);
-            setTotalPages(data?.total_pages || 0);
             setActiveCount(activeData?.total || 0);
             setFilialeTotal(statsData?.total || 0);
         } catch (e) {
             console.log(e);
-        } finally {
-            setLoading(false);
         }
     };
 
     useEffect(() => {
-        fetchData();
-    }, [id_filiale, currentPage, pageSize, statut]);
+        chargerInfos();
+    }, [id_filiale]);
+
+    // Revenir à la page 1 quand le filtre change
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [statut]);
 
     const otherCount = filialeTotal - activeCount;
 
@@ -262,6 +265,7 @@ function ListeDeviceFiliale() {
                         pageSize={pageSize}
                         totalPages={totalPages}
                         total={total}
+                        loading={loading}
                         onPageChange={setCurrentPage}
                         onPageSizeChange={(size) => {
                             setPageSize(size);
