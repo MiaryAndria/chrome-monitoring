@@ -7,7 +7,8 @@ import Pagination from "../../components/Pagination";
 import PrinterListSkeleton from "../../components/skeletons/PrinterListSkeleton";
 import usePaginatedData from "../../hooks/usePaginatedData";
 import DateHeureFilter from "../component/DateHeureFilter";
-import { getImprimantes } from "../../fonction/imprimanteFonction";
+import { getImprimantes, getVendors } from "../../fonction/imprimanteFonction";
+import StatutDropdown from "../component/StatutDropdown";
 import ImprimanteCard from "../component/component_imprimante";
 import '../../css/liste.css';
 import '../../css/filiale.css';
@@ -24,7 +25,13 @@ function ListeImprimante() {
     const [heureFin, setHeureFin] = useState('23:59');
     const [datetimeFrom, setDatetimeFrom] = useState('');
     const [datetimeTo, setDatetimeTo] = useState('');
+    const [vendors, setVendors] = useState([]);
+    const [vendor, setVendor] = useState("");
     const navigate = useNavigate();
+
+    useEffect(() => {
+        getVendors().then(setVendors);
+    }, []);
 
     const { items: imprimantes, total, totalPages, loading, error } = usePaginatedData(
         getImprimantes,
@@ -32,6 +39,7 @@ function ListeImprimante() {
         pageSize,
         {
             recherche: search || undefined,
+            vendor: vendor || undefined,
             datetime_from: datetimeFrom || undefined,
             datetime_to: datetimeTo || undefined,
         }
@@ -47,7 +55,7 @@ function ListeImprimante() {
     // Revenir à la page 1 quand un filtre change
     useEffect(() => {
         setCurrentPage(1);
-    }, [search, datetimeFrom, datetimeTo]);
+    }, [search, vendor, datetimeFrom, datetimeTo]);
 
     const filtrerParDate = () => {
         if (!dateDebut || !dateFin) return;
@@ -84,11 +92,22 @@ function ListeImprimante() {
         >
             {/* Recherche */}
             <div className="glass-panel rounded-2xl p-5">
-                        <div className="relative max-w-md">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
-                            <input type="text" placeholder="Rechercher par fabricant, nom, VID, PID..."
-                                value={search} onChange={e => setSearch(e.target.value)}
-                                className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-zinc-900/60 border border-white/10 text-zinc-200 text-sm placeholder-zinc-500 focus:outline-none focus:border-amber-400/50 focus:ring-1 focus:ring-amber-400/20 transition-all" />
+                        <div className="flex flex-wrap items-center gap-4">
+                            <div className="relative max-w-md flex-1 min-w-[240px]">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+                                <input type="text" placeholder="Rechercher par fabricant, nom, VID, PID..."
+                                    value={search} onChange={e => setSearch(e.target.value)}
+                                    className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-zinc-900/60 border border-white/10 text-zinc-200 text-sm placeholder-zinc-500 focus:outline-none focus:border-amber-400/50 focus:ring-1 focus:ring-amber-400/20 transition-all" />
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <span className="text-[10px] text-zinc-500 uppercase font-semibold tracking-wider">Fabricant :</span>
+                                <StatutDropdown
+                                    listeStatuts={vendors.map(v => ({ nom: v }))}
+                                    statut={vendor}
+                                    setStatut={setVendor}
+                                    labelTous="Tous les fabricants"
+                                />
+                            </div>
                         </div>
 
                         <div className="mt-4 pt-4 border-t border-white/5">
@@ -116,7 +135,7 @@ function ListeImprimante() {
                         <EmptyState
                             icon={Printer}
                             title="Aucune imprimante trouvée"
-                            subtitle={search ? "Modifiez votre recherche" : "Aucune donnée disponible"}
+                            subtitle={search || vendor ? "Modifiez vos filtres" : "Aucune donnée disponible"}
                         />
                     ) : (
                         <>

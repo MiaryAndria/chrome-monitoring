@@ -292,6 +292,11 @@ CREATE TABLE t_reseau (
     valeur VARCHAR(255) UNIQUE NOT NULL
 );
 
+CREATE TABLE t_vendor (
+    id SERIAL PRIMARY KEY ,
+    vendor VARCHAR(255)UNIQUE NOT NULL
+);  
+
 CREATE TABLE t_statut(
     id SERIAL PRIMARY KEY ,
     nom VARCHAR(255) UNIQUE NOT NULL
@@ -429,7 +434,7 @@ CREATE TABLE t_device_reseau(
     id SERIAL PRIMARY KEY ,
     id_device INT NOT NULL REFERENCES t_device(id),
     id_reseau INT NOT NULL REFERENCES t_reseau(id),
-    date TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    date TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     UNIQUE (id_device, id_reseau)
 );
 
@@ -437,10 +442,11 @@ CREATE TABLE t_imprimante (
     id SERIAL PRIMARY KEY,
     vid INT,
     pid INT,
-    vendor VARCHAR(255),
+    id_vendor INT NOT NULL REFERENCES t_vendor(id),
     nom VARCHAR(255),
-    UNIQUE (vid, pid, vendor, nom)
+    UNIQUE (vid, pid,nom)
 );
+
 
 CREATE TABLE t_imprimante_device (
     id SERIAL PRIMARY KEY,
@@ -460,8 +466,15 @@ CREATE TABLE t_imprimante_user(
 
 CREATE TABLE t_alerte (
     id SERIAL PRIMARY KEY,
-    type VARCHAR(100) UNIQUE NOT NULL,
-    message TEXT
+    type VARCHAR(100) UNIQUE NOT NULL
+);
+
+CREATE TABLE t_alerte_statut(
+    id SERIAL PRIMARY KEY ,
+    id_alerte INT NOT NULL REFERENCES t_alerte(id),
+    id_statut INT NOT NULL REFERENCES t_statut(id),
+    date TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE (id_alerte,id_statut,date)
 );
 
 CREATE TABLE t_device_alerte (
@@ -482,8 +495,7 @@ CREATE TABLE t_device_alerte_statut(
 CREATE TABLE t_seuil(
     id SERIAL PRIMARY KEY ,
     cle VARCHAR(100) UNIQUE NOT NULL,
-    valeur INT NOT NULL,
-    UNIQUE(cle)
+    valeur INT NOT NULL
 );
 
 CREATE TABLE t_configuration (
@@ -506,7 +518,7 @@ CREATE TABLE t_seuil_statut (
     id SERIAL PRIMARY KEY,
     id_seuil INT NOT NULL REFERENCES t_seuil(id),
     id_statut INT NOT NULL REFERENCES t_statut(id),
-    date TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    date TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     UNIQUE(id_seuil,id_statut,date)
 );
 

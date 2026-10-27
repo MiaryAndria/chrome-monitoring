@@ -111,12 +111,3 @@ def get_cpu_device_one_date(cur, id_device, date):
         }
         for row in rows
     ]
-
-
-
-__all__ = [
-    "insert_cpu_device",
-    "update_date_cpu_device",
-    "get_latest_by_device",
-    "get_cpu_device_date",
-]

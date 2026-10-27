@@ -271,13 +271,9 @@ SELECT
 -- À exécuter dans code/bdd/views.sql puis sur la base.
 -- ------------------------------------------------------------
 CREATE OR REPLACE VIEW v_imprimantes_filtrees AS
-SELECT
-    i.id,
-    i.vid,
-    i.pid,
-    i.vendor,
-    i.nom,
-    MAX(idv.date) AS derniere_detection
+SELECT i.id, i.vid, i.pid, v.vendor, i.nom,
+       MAX(idv.date) AS derniere_detection
 FROM t_imprimante i
+LEFT JOIN t_vendor v ON v.id = i.id_vendor
 LEFT JOIN t_imprimante_device idv ON idv.id_imprimante = i.id
-GROUP BY i.id, i.vid, i.pid, i.vendor, i.nom;
+GROUP BY i.id, i.vid, i.pid, v.vendor, i.nom;

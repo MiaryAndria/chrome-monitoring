@@ -2,6 +2,7 @@ from .imprimante import (
     get_imprimante_by_vid,
     insert_imprimante,
     get_liste_imprimante,
+    get_liste_vendor,
     get_imprimante_by_id,
     get_or_create_imprimante,
     find_imprimantes_paginated

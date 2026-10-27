@@ -205,7 +205,7 @@ function ListeEvent() {
                 {/* Recherche */}
                 <div className="relative max-w-md">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
-                    <input type="text" placeholder="Rechercher par type, utilisateur, appareil..."
+                    <input type="text" placeholder="Rechercher par numéro de série…"
                         value={search} onChange={e => setSearch(e.target.value)}
                         className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-zinc-900/60 border border-white/10 text-zinc-200 text-sm placeholder-zinc-500 focus:outline-none focus:border-cyan-400/50 focus:ring-1 focus:ring-cyan-400/20 transition-all" />
                 </div>

@@ -22,9 +22,3 @@ def insert_device_reseau(cur, device_id, reseau_id):
     )
     row = cur.fetchone()
     return row[0] if row else None
-
-
-__all__ = [
-    "get_by_device_and_reseau",
-    "insert_device_reseau",
-]

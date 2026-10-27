@@ -6,6 +6,7 @@ from backend.fonction.metier.repository.ram import (
     get_latest_by_device as get_latest_by_device_repository,
     get_ram_device_date as get_ram_device_date_repository,
 )
+from backend.utils.format_valeur import usage_percent
 
 
 def get_max_total_ram(id_device, datetime_from=None, datetime_to=None):
@@ -26,13 +27,19 @@ def _serialize_latest_ram(row):
         return None
 
     date_ram = row.get("date")
+    ram_total = row.get("ram_total")
+    ram_libre = row.get("ram_libre")
+    ram_utiliser = row.get("ram_utiliser")
+    if ram_utiliser is None and ram_total is not None and ram_libre is not None:
+        ram_utiliser = max(ram_total - ram_libre, 0)
 
     return {
         "id": row.get("id"),
         "id_device": row.get("id_device"),
-        "ram_total": row.get("ram_total"),
-        "ram_utiliser": row.get("ram_utiliser"),
-        "ram_libre": row.get("ram_libre"),
+        "ram_total": ram_total,
+        "ram_utiliser": ram_utiliser,
+        "ram_libre": ram_libre,
+        "utilisation_pct": usage_percent(ram_utiliser, ram_total),
         "date": str(date_ram) if date_ram else None,
     }
 

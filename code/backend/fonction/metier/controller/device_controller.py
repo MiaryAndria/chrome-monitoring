@@ -9,6 +9,7 @@ from backend.fonction.metier.service.device_service import (
     getDeviceFiltered,
     getDeviceDetail,
     getDevicesPage,
+    get_modeles,
 )
 from backend.utils.validation import is_valid_datetime_range
 import traceback
@@ -24,6 +25,7 @@ def getListe(
     filiale: Optional[str] = None,
     statut: Optional[str] = None,
     type_appareil: Optional[str] = None,
+    modele: Optional[str] = None,
     recherche: Optional[str] = None,
     datetime_from: Optional[datetime] = None,
     datetime_to: Optional[datetime] = None,
@@ -41,6 +43,7 @@ def getListe(
             filiale=filiale,
             statut=statut,
             type_appareil=type_appareil,
+            modele=modele,
             recherche=recherche,
             datetime_from=datetime_from,
             datetime_to=datetime_to,
@@ -49,8 +52,16 @@ def getListe(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.get("/modeles", response_model=List[str])
+def getModeles():
+    try:
+        return get_modeles()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.get("/search", response_model=List[DeviceResponses])
-def getListeFiltrer(recherche : str = Query(...)):
+def getListeFiltrer(recherche: str = Query(...)):
     try:
         liste = getDeviceFiltered(recherche)
         return liste
@@ -81,5 +92,3 @@ def getDetailDevice(id):
             status_code=500,
             detail=str(e)
         )
-
-

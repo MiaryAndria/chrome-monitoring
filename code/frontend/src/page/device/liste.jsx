@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { Laptop, Network, User, Users, X, Copy, Check } from 'lucide-react';
+import { Laptop, Network, User, Users, X, Copy, Check, Search } from 'lucide-react';
 import GenericTable from "../../components/GenericTable";
 import PageLayout from "../../components/PageLayout";
 import EmptyState from "../../components/EmptyState";
@@ -14,7 +14,7 @@ import ResetFiltreButton from "../component/ResetFiltreButton";
 import ViewModeToggle from "../component/ViewModeToggle";
 import '../../css/liste.css';
 import '../../css/filiale.css';
-import { getListeDevice, getBadgeClass, getListeStatut } from "../../fonction/deviceFonction";
+import { getListeDevice, getBadgeClass, getListeStatut, getModeles } from "../../fonction/deviceFonction";
 import { getListeFiliale } from "../../fonction/filialeFonction";
 
 function ListeDevice() {
@@ -38,6 +38,13 @@ function ListeDevice() {
     const [listeStatuts, setListeStatuts] = useState([]);
     const [statut, setStatut] = useState("");
 
+    // Recherche
+    const [search, setSearch] = useState("");
+
+    // Filtre modèle
+    const [modeles, setModeles] = useState([]);
+    const [modele, setModele] = useState("");
+
     const { items: device, total, totalPages, loading } = usePaginatedData(
         getListeDevice,
         currentPage,
@@ -46,7 +53,8 @@ function ListeDevice() {
             statut: statut || filterStatus || undefined,
             filiale: filiale || undefined,
             type_appareil: filterType || undefined,
-            recherche: filterSearch || undefined,
+            modele: modele || undefined,
+            recherche: search || filterSearch || undefined,
         }
     );
 
@@ -89,18 +97,21 @@ function ListeDevice() {
     useEffect(() => {
         getFiliale();
         getStatut();
+        getModeles().then(setModeles);
     }, []);
 
     // Revenir à la page 1 quand un filtre change
     useEffect(() => {
         setCurrentPage(1);
-    }, [filiale, statut, filterSearch, filterStatus, filterType]);
+    }, [filiale, statut, search, modele, filterSearch, filterStatus, filterType]);
 
-    const filtresActifs = filiale !== "" || statut !== "";
+    const filtresActifs = filiale !== "" || statut !== "" || search !== "" || modele !== "";
 
     const reinitialiserFiltres = () => {
         setFiliale("");
         setStatut("");
+        setSearch("");
+        setModele("");
         setCurrentPage(1);
     };
 
@@ -122,6 +133,16 @@ function ListeDevice() {
 
                     {/* Filtres : filiale + statut */}
                     <div className="glass-panel rounded-2xl p-5 relative z-50">
+                        <div className="relative max-w-md mb-4">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+                            <input
+                                type="text"
+                                placeholder="Rechercher par numéro de série…"
+                                value={search}
+                                onChange={e => setSearch(e.target.value)}
+                                className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-zinc-900/60 border border-white/10 text-zinc-200 text-sm placeholder-zinc-500 focus:outline-none focus:border-cyan-400/50"
+                            />
+                        </div>
                         <div className="flex flex-wrap items-center gap-3">
                             <span className="text-[10px] text-zinc-500 uppercase font-semibold tracking-wider">Filiale :</span>
 
@@ -137,6 +158,14 @@ function ListeDevice() {
                                 listeStatuts={listeStatuts}
                                 statut={statut}
                                 setStatut={setStatut}
+                            />
+
+                            <span className="text-[10px] text-zinc-500 uppercase font-semibold tracking-wider ml-2">Modèle :</span>
+                            <StatutDropdown
+                                listeStatuts={modeles.map(m => ({ nom: m }))}
+                                statut={modele}
+                                setStatut={setModele}
+                                labelTous="Tous les modèles"
                             />
 
                             <ResetFiltreButton actif={filtresActifs} onClick={reinitialiserFiltres} />

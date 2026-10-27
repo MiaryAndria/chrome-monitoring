@@ -199,14 +199,8 @@ def _build_evenement_filter_clause(type_evenement=None, id_filiale=None,
         clauses.append("filiale = %s")
         params.append(filiale)
     if recherche:
-        terme = f"%{recherche}%"
-        clauses.append(
-            "(type_evenement ILIKE %s OR device_id ILIKE %s "
-            "OR serial_number ILIKE %s OR modele ILIKE %s "
-            "OR filiale ILIKE %s OR COALESCE(details->>'cause_class', '') ILIKE %s "
-            "OR COALESCE(details->>'last_user', '') ILIKE %s)"
-        )
-        params.extend([terme] * 7)
+        clauses.append("serial_number ILIKE %s")
+        params.append(f"%{recherche}%")
     if datetime_from is not None:
         clauses.append("date_evenement >= %s")
         params.append(datetime_from)

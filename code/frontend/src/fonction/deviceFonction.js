@@ -48,6 +48,16 @@ export const getListeDevice = async (params = {}) => {
     }
 }
 
+export const getModeles = async () => {
+    try {
+        const response = await api_service.get('/device/modeles');
+        return response.data || [];
+    } catch (e) {
+        console.log(e);
+        return [];
+    }
+};
+
 export const getDeviceDetail = async (id) => {
     try {
         const response = await api_service.get(`/device/${id}`)

@@ -15,6 +15,16 @@ export const getListeImprimante = async () => {
     return data?.items ?? [];
 };
 
+export const getVendors = async () => {
+    try {
+        const response = await api_service.get('/imprimante/vendors');
+        return response.data || [];
+    } catch (e) {
+        console.log(e);
+        return [];
+    }
+};
+
 export const getImprimanteDetail = async(id)=>{
     try{
         const response = await api_service.get(`/imprimante/${id}`)

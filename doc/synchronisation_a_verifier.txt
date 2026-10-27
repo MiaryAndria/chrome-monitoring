@@ -1,0 +1,31 @@
+J'ai audité le code et le schéma réel. Réponse courte : oui, tout s'insère pour un device nouveau. Voici le détail.
+
+New device → ce qui s'insère
+Donnée	Fonction	S'insère ?
+Filiale (org_unit_path)	get_or_create_filiale	✅ si nouvelle (ON CONFLICT DO NOTHING + relecture)
+Type d'appareil	get_or_create_type_appareil	✅ si nouveau
+Device	_upsert_device → insert_device	✅
+Device ↔ Filiale	insert_device_filiale	✅ si le lien n'existe pas (WHERE NOT EXISTS)
+Device ↔ Utilisateur	insert_device_utilisateur	✅ (ON CONFLICT DO NOTHING)
+Filiale ↔ Utilisateur	get_or_create_filiale_utilisateur	✅
+Réseau (ip)	get_or_create_reseau	✅ si nouveau (vérifié en base : uq_reseau_valeur)
+Réseau ↔ Filiale	insert_into_reseau_filiale	✅ (ON CONFLICT)
+Device ↔ Réseau	insert_device_reseau	✅ si le lien n'existe pas
+Statut	get_or_create_statut + insert_device_statut	✅
+Utilisateurs récents	insert_device_utilisateur_recent	✅ (historique)
+CPU / RAM / Disk / rapports	insert_* (upsert)	✅
+Imprimante + vendor	get_or_create_imprimante → insert_imprimante → get_or_create_vendor	✅ les deux
+Événements	create_evenement_device	✅ (upsert)
+⚠️ Les cas où ça peut « rester déjà existant » (à connaître)
+Changement de filiale d'un device : insert_device_filiale ajoute le nouveau lien mais ne ferme jamais l'ancien. Le device est alors dans 2 filiales, et la vue v_appareils_filtres prend le premier lien (ORDER BY df.id ASC) → elle peut afficher l'ancienne filiale.
+Changement de modèle/type : update_device met à jour modele mais pas id_type_appareil → la colonne type_appareil (jointure t_type_appareil) peut rester l'ancienne.
+Imprimante avec vid/pid = NULL : get_imprimante_by_vid_and_pid fait WHERE vid = NULL → ne matche jamais → doublon d'imprimante à chaque synchro.
+Imprimante existante (même vid/pid) mais vendor différent : elle est retournée telle quelle → le id_vendor n'est pas mis à jour.
+Relevé CPU sans CPU résolu (default_cpu_id = None) : t_device_cpu.id_cpu est NOT NULL → l'insert échoue (capté par try/except, ignoré silencieusement).
+Historiques t_device_statut et t_device_utilisateur_recent : pas d'UNIQUE → une ligne à chaque synchro (voulu ? sinon ça gonfle).
+repository/devices/device_filiale.py référence date_affectation/date_fin_affectation qui n'existent pas dans la table réelle. Ces fonctions ne sont pas appelées aujourd'hui, mais échoueraient si un jour utilisées.
+Ce qui est déjà OK (vérifié en base)
+t_device.date_creation est nullable → date_creation=None ne casse pas l'insert.
+t_device_filiale n'a que id_device/id_filiale → l'insert actuel est correct.
+t_reseau.valeur, t_vendor.vendor, t_device_utilisateur, t_device_reseau, t_imprimante, t_device_ram, t_device_cpu, t_rapport_device, t_evenement_device ont toutes les contraintes UNIQUE attendues par les ON CONFLICT.
+Les 4 points les plus importants à corriger (si tu veux) : 1 (filiale qui change), 2 (id_type_appareil non mis à jour), 3 (vid/pid NULL → doublons), 4 (vendor non mis à jour). Je peux les corriger — dis-moi lesquels.

@@ -56,6 +56,12 @@ export const formatDateTime = (dateStr) => {
     }
 };
 
+export const usagePercent = (free, total) => {
+    const f = parseInt(free), t = parseInt(total);
+    if (isNaN(f) || isNaN(t) || t === 0) return null;
+    return Math.round(((t - f) / t) * 100);   // (total - libre) / total * 100
+};
+
 export const formatDuration = (seconds) => {
     if (seconds === null || seconds === undefined) return '—';
 
@@ -67,12 +73,6 @@ export const formatDuration = (seconds) => {
     if (jours > 0) return `${jours} j ${heures} h`;
     if (heures > 0) return `${heures} h ${minutes} min`;
     return `${minutes} min`;
-};
-
-export const usagePercent = (free, total) => {
-    const f = parseInt(free), t = parseInt(total);
-    if (isNaN(f) || isNaN(t) || t === 0) return null;
-    return Math.round(((t - f) / t) * 100);
 };
 
 export const getUtilColor = (pct) => {

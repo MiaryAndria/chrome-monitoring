@@ -36,10 +36,14 @@ def format_frequency(khz):
 
 
 def usage_percent(used, total, decimals=1):
+    """Pourcentage d'utilisation (used / total * 100), borné à [0, 100].
+    Helper unique pour tout pourcentage de capacité (RAM, disque...).
+    Retourne None si une valeur manque ou si le total est <= 0."""
     u, t = to_number(used), to_number(total)
     if u is None or t is None or t <= 0:
         return None
-    return round(u / t * 100, decimals)
+    pct = u / t * 100
+    return round(min(max(pct, 0.0), 100.0), decimals)
 
 
 def format_used_over_total(used, total, decimals=1):

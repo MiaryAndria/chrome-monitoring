@@ -157,20 +157,3 @@ def delete_disk_by_type(cur, disk_type):
 
 def delete_all_disk(cur):
     cur.execute("TRUNCATE TABLE t_disk RESTART IDENTITY;")
-
-
-__all__ = [
-    "get_liste_disk",
-    "get_disk_by_id",
-    "get_disk_by_model",
-    "get_disk_by_type",
-    "get_disk_by_model_and_type",
-    "get_or_create_disk",
-    "insert_disk",
-    "insert_or_update_disk",
-    "update_disk",
-    "delete_disk_by_id",
-    "delete_disk_by_model",
-    "delete_disk_by_type",
-    "delete_all_disk",
-]

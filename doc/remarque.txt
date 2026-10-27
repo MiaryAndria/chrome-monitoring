@@ -60,15 +60,45 @@ ARRET_ANORMAL	La machine a été éteinte brutalement (coupure courant, arrêt f
 EN_SESSION	Le crash s'est produit pendant qu'un utilisateur était connecté et actif
 
 todo et verification à faire 
-page liste_device filiale ou device simple barre de recherche pour effectuer recherche via numero de serie device_id utilisateur_recent filtre par type appareil
-caching et pagination liste comparaison 
 securisation du site 
 multi tier pour de bon 
 ia integré dans le systeme d'evenement
-est ce que si il y a information device et reseau nouveau est ce que ça s'insert fin verifie pour toute si il y a device nouveau alors est ce que ça s'insert filiale ça s'insert ou c'est comment j'ai peur que des données ne vont pas s'inserer ou données vont rester donnée deja existant
-mila manao etude tsara à propos jwt_token.txt et security.txt
-cpu ram et stockage no afaka exploiterna
 
+mila manao etude tsara à propos jwt_token.txt et security.txt
+fonctionnement devices.py et import_service.py et auto_synch.py
 C'est fait. Dans ram_tab.jsx, l'axe Y du graphe mémoire a maintenant un domain={[0, total]} : le haut de l'échelle correspond à la mémoire totale réelle du device (8,59 Go pour ce device), plus au max des valeurs reçues (6 Go). Les barres sont donc proportionnelles à la capacité réelle. Build frontend OK.
 
+comparaison
+caching et pagination liste comparaison 
+comparaison simple et double 
+cpu ram et stockage no afaka exploiterna
 
+Table vide	Rôle
+t_alerte	Types d'alertes définis (aucune alerte configurée)
+t_device_alerte	Alertes rattachées aux devices
+t_device_alerte_statut	Historique de statut des alertes
+t_seuil	Seuils de configuration (ex. CPU > 90 %)
+t_seuil_statut	Historique de statut des seuils
+t_comparaison	Comparaisons enregistrées entre devices
+t_statut_comparaison	Historique de statut des comparaisons
+
+page liste alerte avec page dediée pour graph d'alerte filtrer par type d'alerte et date avec nombre d'alerte pour chaque type et avec detail pc qui est afficher avec statut jsp si c'est bien ou pas genre resoulue et actif ce jour ci 
+automatique daholo ny insertion na ny alerte na ny device na ny evenements na ny imprimante 
+gestion alerte 
+  
+verification si crud type d'alerte vraiment nécessaires 
+reajustation synchronsation_automatique et verification toutes les services.py pour verifier si il y a pas des trucs dans code comme ceci 
+
+SEUIL_CPU = "seuil_utilisation_cpu"
+SEUIL_RAM = "seuil_utilisation_ram"
+SEUIL_TEMPERATURE = "seuil_capteur_cpu"
+
+# Types d'alerte (t_alerte.type)
+TYPE_ALERTE_CPU = "ALERTE_CPU"
+TYPE_ALERTE_RAM = "ALERTE_RAM"
+TYPE_ALERTE_TEMPERATURE = "ALERTE_TEMPERATURE"
+
+# Noms de statuts (t_statut.nom) : les ids sont résolus en base, jamais codés en dur
+NOM_STATUT_ACTIVE = "ACTIVE"
+NOM_STATUT_RESOLUE = "RESOLUE"
+NOM_STATUT_CREER = "CREER" il faut que cela vient base de donnée pas en dur comme ceci fa lasa midependre anio 

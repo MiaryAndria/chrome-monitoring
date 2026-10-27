@@ -78,3 +78,34 @@ def _build_device_response(cur, d):
         "cpu_freq_max_label": format_frequency(cpu_info[1]) if cpu_info and cpu_info[1] is not None else None,
         "cpu_architecture": cpu_info[2] if cpu_info else None,
     }
+    
+    
+def _serialize_alerte(row):
+    return {
+        "id": row[0],
+        "type": row[1],
+        "date": row[2],
+    }
+
+
+def _serialize_alerte_resume(row):
+    return {
+        "id": row[0],
+        "id_device": row[1],
+        "serial_number": row[2],
+        "type": row[3],
+        "message": row[4],
+        "date": row[5],
+        "utilisateur_recent": row[6],
+    }
+
+def _serialize_device_alerte(row):
+    return {
+        "id": row[0],
+        "id_device": row[1],
+        "serial_number": row[2],
+        "type": row[3],
+        "message": row[4],
+        "date": row[5],
+        "utilisateur_recent": row[6],
+    }

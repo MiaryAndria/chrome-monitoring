@@ -55,6 +55,9 @@ def getDevicesByFiliale(
     page: int = Query(1, ge=1),
     page_size: int = Query(10, ge=1, le=100),
     statut: Optional[str] = None,
+    type_appareil: Optional[str] = None,
+    modele: Optional[str] = None,
+    recherche: Optional[str] = None,
     datetime_from: Optional[datetime] = None,
     datetime_to: Optional[datetime] = None,
 ):
@@ -69,6 +72,9 @@ def getDevicesByFiliale(
             page=page,
             page_size=page_size,
             statut=statut,
+            type_appareil=type_appareil,
+            modele=modele,
+            recherche=recherche,
             datetime_from=datetime_from,
             datetime_to=datetime_to,
         )

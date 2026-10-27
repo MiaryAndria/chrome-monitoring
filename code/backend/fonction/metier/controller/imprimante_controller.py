@@ -8,6 +8,7 @@ from backend.fonction.metier.service.imprimante_service import (
     get_imprimante,
     get_imprimante_detail,
     get_imprimantes_page,
+    get_vendors,
 )
 from backend.fonction.metier.models.imprimante import (
     ImprimanteResponse,
@@ -24,6 +25,7 @@ def getImprimantes(
     page: int = Query(1, ge=1),
     page_size: int = Query(10, ge=1, le=10000),
     recherche: Optional[str] = None,
+    vendor: Optional[str] = None,
     datetime_from: Optional[datetime] = None,
     datetime_to: Optional[datetime] = None,
 ):
@@ -37,9 +39,19 @@ def getImprimantes(
             page=page,
             page_size=page_size,
             recherche=recherche,
+            vendor=vendor,
             datetime_from=datetime_from,
             datetime_to=datetime_to,
         )
+    except Exception as e:
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/vendors", response_model=List[str])
+def getVendors():
+    try:
+        return get_vendors()
     except Exception as e:
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))

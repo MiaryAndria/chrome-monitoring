@@ -150,21 +150,3 @@ def get_latest_by_device(cur, id_device):
         "total_utiliser_formater": row[10],
         "date": row[11],
     }
-
-
-__all__ = [
-    "get_liste_disk_device",
-    "get_disk_device_by_id",
-    "get_disk_device_by_id_device",
-    "get_disk_device_by_id_disk",
-    "get_disk_device_by_id_device_and_id_disk",
-    "get_or_create_disk_device",
-    "insert_disk_device",
-    "insert_or_update_disk_device",
-    "update_disk_device",
-    "delete_disk_device_by_id",
-    "delete_disk_device_by_id_device",
-    "delete_disk_device_by_id_disk",
-    "delete_all_disk_device",
-    "get_latest_by_device",
-]

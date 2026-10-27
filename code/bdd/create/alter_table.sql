@@ -60,6 +60,9 @@ ADD CONSTRAINT uq_configuration_type UNIQUE (type);
 ALTER TABLE t_evenement_device
 ADD CONSTRAINT uq_evenement_device UNIQUE (id_device, id_type_evenement, date_evenement);
 
+ALTER TABLE t_imprimante drop column vendor ;
+ALTER TABLE t_imprimante add column id_vendor INT NOT NULL REFERENCES t_vendor(id);
+
 ALTER TABLE t_disk_device
 ADD CONSTRAINT uq_disk_device_device_disk_date UNIQUE (id_device, id_disk, date);
 ALTER TABLE t_disk_device DROP CONSTRAINT uq_disk_device_device_disk_date; 

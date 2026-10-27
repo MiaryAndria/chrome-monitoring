@@ -25,6 +25,3 @@ def get_summary(cur):
         "repartition_types": row[9] or {},
         "repartition_evenements": row[10] or {},
     }
-
-
-__all__ = ["get_summary"]

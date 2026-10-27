@@ -5,6 +5,7 @@ from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
 from datetime import datetime
 from backend.utils.chrono import _aware, chrono, memo
+from backend.fonction.metier.service.alerte_service import insertAlerte
 def _appel_chrono(etapes, label, callback, *args):
     with chrono(label, etapes):
         return callback(*args)
@@ -43,22 +44,6 @@ from backend.fonction.metier.repository.devices.device_utilisateur_recent import
 from backend.fonction.metier.repository.ram.ram import insert_into_device_ram
 from backend.fonction.metier.repository.cpu.device_cpu import insert_cpu_device
 from backend.core.cache import cache_invalidate_prefix
-
-
-# from backend.fonction.metier.service.backfill_service import backfill_all_devices_history, dedup_evenement_device
-
-
-# @contextmanager
-# def chrono(label):
-#     start = time.perf_counter()
-#     yield
-#     elapsed = time.perf_counter() - start
-#     print(f"[{label}] {elapsed:.2f}s")
-
-
-# def _appel_chrono(label, callback, *args, **kwargs):
-#     with chrono(label):
-#         return callback(*args, **kwargs)
 
 
 def _resoudre_ip_mac(d):
@@ -369,22 +354,28 @@ def insert_telemetry(cur, telemetry_devices_list, debut=None):
         insert_rapport_lot(cur, lignes)
     
 def _enregistrer_imprimante_device(cur, p):
-    device = get_device_by_device_id(cur, p["deviceId"])
+    device = get_device_by_device_id(cur, p.get("deviceId"))
     if not device:
         return
     id_device = device[0]
 
-    imprimante = get_or_create_imprimante(cur, p["vid"], p["pid"], p["vendor"], p["model"])
+    imprimante = get_or_create_imprimante(
+        cur,
+        p.get("vid"),
+        p.get("pid"),
+        p.get("vendor"),
+        p.get("model"),
+    )
     if not imprimante:
         return
 
     id_imprimante = imprimante[0][0]
-    if not insert_imprimante_device(cur, id_imprimante, id_device, p["lastSeen"]):
+    if not insert_imprimante_device(cur, id_imprimante, id_device, p.get("lastSeen")):
         return
 
     utilisateur = get_utilisateur_recent_by_device(cur, id_device)
     if utilisateur:
-        insert_imprimante_user(cur, id_imprimante, utilisateur[0], p["lastSeen"])
+        insert_imprimante_user(cur, id_imprimante, utilisateur[0], p.get("lastSeen"))
 
 
 def insert_imprimante(cur, telemetry_devices_list):
@@ -483,6 +474,7 @@ def synchroniser_tout(debut=None, fin=None, suivi=None):
         #     nb_events = dedup_evenement_device(cur)
 
         _importer_en_bdd(cur, dvc_list, telemetry_devices_list, crashes_data, filtre_debut, etapes)
+        insertAlerte(cur)
 
         # --- Backfill historique (décommenter si besoin de reconstituer CPU/RAM/DISK) ---
         # with chrono("db_backfill", etapes):

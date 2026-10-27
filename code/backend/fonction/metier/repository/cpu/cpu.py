@@ -158,20 +158,3 @@ def delete_cpu_by_architecture(cur, cpu_architecture):
 
 def delete_all_cpu(cur):
     cur.execute("TRUNCATE TABLE t_cpu RESTART IDENTITY;")
-
-
-__all__ = [
-    "get_liste_cpu",
-    "get_cpu_by_id",
-    "get_cpu_by_model",
-    "get_cpu_by_architecture",
-    "get_cpu_by_model_and_architecture",
-    "get_or_create_cpu",
-    "insert_cpu",
-    "insert_or_update_cpu",
-    "update_cpu",
-    "delete_cpu_by_id",
-    "delete_cpu_by_model",
-    "delete_cpu_by_architecture",
-    "delete_all_cpu",
-]

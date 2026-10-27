@@ -1,0 +1,122 @@
+Voici le guide, sans rien modifier — juste où mettre quoi, en réutilisant l'existant.
+
+Principe
+Le filtrage est backend : le front envoie un paramètre, le repository construit le WHERE. Donc pour chaque filtre, il faut : 1 paramètre au controller → service → repository, et l'état + le composant au front.
+
+1) Recherche = serial_number uniquement
+a) Device + device_filiale (même code backend)
+Fichier : backend/fonction/metier/repository/devices/devices.py
+Fonction : _build_device_filter_clause (l. 581-588)
+Remplacer le gros OR par :
+python
+
+    if recherche:
+        clauses.append("serial_number ILIKE %s")
+        params.append(f"%{recherche}%")
+→ Ça couvre /device/liste ET /filiale/{id}/devices (les deux passent par find_devices_paginated via getDevicesPage). Rien d'autre à toucher côté back.
+
+Front : page/device/liste.jsx et page/filiale/liste_device.jsx envoient déjà recherche → change juste le placeholder en « Rechercher par numéro de série… ».
+b) Événements
+Fichier : backend/fonction/metier/repository/evenement/evenement_device.py
+Fonction : _build_evenement_filter_clause (l. 201-209)
+Remplacer par :
+python
+
+    if recherche:
+        clauses.append("serial_number ILIKE %s")
+        params.append(f"%{recherche}%")
+Front : page/event/liste.jsx envoie déjà recherche → change le placeholder.
+c) Filiale
+Backend : déjà fait ! find_filiales_paginated filtre org_unit_path ILIKE %s (l. 45-47). Rien à modifier.
+Front : page/filiale/liste.jsx envoie déjà recherche → change le placeholder en « Rechercher par unité organisationnelle… ».
+2) Filtre par modèle (device + device_filiale)
+Backend (partagé par les deux)
+repository/devices/devices.py → _build_device_filter_clause : ajouter un paramètre modele=None et :
+python
+
+    if modele:
+        clauses.append("modele = %s")
+        params.append(modele)
+Même fichier → find_devices_paginated : ajouter modele=None et le transmettre à _build_device_filter_clause.
+Conseil : ajoute modele en fin de signature et passe-le par mot-clé (modele=modele) pour ne pas casser les appels positionnels.
+
+service/device_service.py : ajouter modele dans _fetch_devices_page, _devices_cache_key (sinon 2 modèles différents partagent le même cache !) et getDevicesPage.
+controller/device_controller.py → getListe : ajouter modele: Optional[str] = None et le passer.
+service/filiale_service.py → get_devices_by_filiale : ajouter modele et le passer à getDevicesPage.
+controller/filiale_controller.py → getDevicesByFiliale : ajouter modele et le passer.
+Source de la liste des modèles (n'existe pas encore)
+Ajoute un endpoint (le repository n'a pas de fonction dédiée) :
+
+repository/devices/devices.py :
+python
+
+def get_liste_modele(cur):
+    cur.execute("""
+        SELECT DISTINCT modele FROM v_appareils_filtres
+        WHERE modele IS NOT NULL AND modele <> ''
+        ORDER BY modele
+    """)
+    return [r[0] for r in cur.fetchall()]
+service/device_service.py : get_modeles() (même modèle que getListeDevice).
+controller/device_controller.py : GET /device/modeles (à placer avant /{id}), response_model=List[str].
+fonction/deviceFonction.js : getModeles() → api_service.get('/device/modeles').
+Frontend
+page/device/liste.jsx et page/filiale/liste_device.jsx : ajouter un état modele, charger getModeles(), puis réutiliser StatutDropdown :
+jsx
+
+<StatutDropdown
+    listeStatuts={modeles.map(m => ({ nom: m }))}
+    statut={modele}
+    setStatut={setModele}
+    labelTous="Tous les modèles"
+/>
+et ajouter modele: modele || undefined dans les params de usePaginatedData + dans l'effet de reset page 1.
+
+Alternative plus simple (sans endpoint) : champ texte + modele ILIKE %s (recherche partielle) au lieu de modele = %s.
+
+3) Filtre par type d'appareil
+Device — déjà supporté !
+/device/liste gère déjà type_appareil (controller + _build_device_filter_clause + getDevicesPage). Il manque seulement le composant front.
+
+device_filiale — pas encore supporté
+service/filiale_service.py → get_devices_by_filiale : ajouter type_appareil et le passer (type_appareil=type_appareil).
+controller/filiale_controller.py → getDevicesByFiliale : ajouter type_appareil: Optional[str] = None et le passer.
+Source de la liste des types
+La fonction repository existe déjà : get_liste_type_appareil(cur) dans repository/devices/type_appareil.py (retourne des tuples (id, nom)).
+Il faut juste l'exposer :
+service/device_service.py : get_types_appareil() → [r[1] for r in rows].
+controller/device_controller.py : GET /device/types (avant /{id}), List[str].
+fonction/deviceFonction.js : getTypesAppareil().
+(Ou réutiliser getDashboardSummary().repartition_types — mais c'est un appel plus lourd.)
+Frontend
+page/device/liste.jsx et page/filiale/liste_device.jsx : ajouter typeAppareil + StatutDropdown (labelTous="Tous les types") et type_appareil: typeAppareil || filterType || undefined.
+Attention sur device/liste.jsx : il y a déjà filterType venant de l'URL (?type= du dashboard) → garde typeAppareil || filterType.
+4) ⚠️ Points à ne pas oublier
+Cache : toute nouvelle paramètre doit être ajouté à _devices_cache_key (device) — sinon réponses fausses.
+Ordre des paramètres : ajoute modele en fin de signature (ou utilise des kwargs) pour ne pas décaler les appels positionnels existants.
+Dropdown : StatutDropdown est déjà générique (listeStatuts, statut, setStatut, labelTous) → réutilise-le pour modèle/type/fabricant, pas besoin d'en créer un.
+Endpoints : /device/types et /device/modeles doivent être déclarés avant GET /device/{id}, sinon FastAPI tentera de les parser comme un id entier.
+Recherche : après le changement, recherche ne matchera plus que serial_number — vérifie que le placeholder et le comportement attendu correspondent.
+Tu veux que je te donne, pour chaque fichier, le diff exact (avant/après) à coller ?
+
+Backend
+
+device_service.getDevicesPage : ajout de modele (il manquait → TypeError avec tes modifs), passage à _fetch_devices_page + _devices_cache_key.
+_devices_cache_key : : manquant entre {filiale} et {statut} corrigé.
+filiale_service.get_devices_by_filiale + filiale_controller : ajout de type_appareil (et modele typé Optional[str]).
+device_controller : ajout modele sur /liste, nouveaux GET /device/types et GET /device/modeles (avant /{id}), suppression du /search dupliqué.
+Nouveau get_liste_modele (repository) + get_modeles() / get_types_appareil() (service) ; get_liste_type_appareil existait déjà, réutilisé.
+Recherche confirmée : device + device_filiale → serial_number, événements → serial_number, filiale → org_unit_path (déjà en place).
+Frontend
+
+deviceFonction.js : getModeles() et getTypesAppareil().
+device/liste.jsx et filiale/liste_device.jsx : dropdowns Type et Modèle (réutilisation de StatutDropdown), chargés via les nouveaux endpoints, envoyés dans les params, reset page 1, bouton reset mis à jour.
+Placeholders : device/device_filiale/événements → « numéro de série » ; filiale → « unité organisationnelle ».
+Validations
+
+
+routes device  : ['/liste', '/types', '/modeles', '/search', '/{id}']
+routes filiale : ['/liste', '/liste/page', '/{id_filiale}/devices']
+modeles : 5 · types : 5
+filtre modele "Acer Chromebook Plus 515..." → total 2
+filtre type  "Chromebox Enterprise G4"      → total 522

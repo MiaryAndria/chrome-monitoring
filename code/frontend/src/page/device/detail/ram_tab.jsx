@@ -6,7 +6,7 @@ import {
 } from 'recharts';
 import ScrollableChart from '../../../styles/utils/ScrollableChart';
 import { extractRamSummary, getRamMaxTotal, getRamLatest, getRamSomme } from '../../../fonction/deviceFonction';
-import { usagePercent, getUtilColor, getUtilBarColor, formatDate, formatDateTime, formatBytes, exportPdf, exportExcel } from '../../../fonction/utils/util';
+import {getUtilColor, getUtilBarColor, formatDate, formatDateTime, formatBytes, exportPdf, exportExcel } from '../../../fonction/utils/util';
 import ExportModal from '../../../components/ExportModal';
 import Skeleton from '../../../components/Skeleton';
 import NoData from './NoData';
@@ -64,7 +64,7 @@ function RamTab({ reports, device, deviceId, datetimeFrom, datetimeTo }) {
     const free = latest?.ram_libre ?? summary?.free ?? null;
     const used = latest?.ram_utiliser
         ?? (total !== null && free !== null ? Math.max(total - free, 0) : null);
-    const pct = total !== null && free !== null ? usagePercent(free, total) : null;
+    const pct = latest?.utilisation_pct ?? null;
     const observedAt = latest?.date ?? summary?.time;
 
     return (

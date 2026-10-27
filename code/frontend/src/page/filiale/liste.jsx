@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Building2, Laptop, ChevronRight, Server, Activity, LayoutGrid, List } from 'lucide-react';
+import { useEffect, useState } from "react";
+import { Building2, Laptop, ChevronRight, Server, Activity, LayoutGrid, List, Search } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from "../../components/Navbar";
 import MouseSpotlight from "../../components/MouseSpotlight";
@@ -28,14 +28,19 @@ function ListeFiliale() {
     const [viewMode, setViewMode] = useState('grid');
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
+    const [search, setSearch] = useState("");
     const navigate = useNavigate();
 
     const { items: filiales, total, totalPages, loading } = usePaginatedData(
         getListeFilialePage,
         currentPage,
         pageSize,
-        {}
+        { recherche: search || undefined }
     );
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [search]);
 
     const filialeColumns = [
         { header: "ID", accessor: "id" },
@@ -60,6 +65,19 @@ function ListeFiliale() {
                 <Navbar />
 
                 <div className="flex-1 overflow-y-auto p-6 lg:p-8 space-y-8 z-10">
+                    <div className="glass-panel rounded-2xl p-5">
+                        <div className="relative max-w-md">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+                            <input
+                                type="text"
+                                placeholder="Rechercher par unité organisationnelle…"
+                                value={search}
+                                onChange={e => setSearch(e.target.value)}
+                                className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-zinc-900/60 border border-white/10 text-zinc-200 text-sm placeholder-zinc-500 focus:outline-none focus:border-cyan-400/50"
+                            />
+                        </div>
+                    </div>
+
                     {/* Liste filiales */}
                     <div>
                         <div className="section-header flex justify-between items-center">

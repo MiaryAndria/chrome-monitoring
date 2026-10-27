@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Laptop, Network, User, Users, X, Copy, Check, ChevronLeft, Building2, Server } from 'lucide-react';
+import { Laptop, Network, User, Users, X, Copy, Check, ChevronLeft, Building2, Server, Search } from 'lucide-react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Navbar from "../../components/Navbar";
 import MouseSpotlight from "../../components/MouseSpotlight";
@@ -9,7 +9,7 @@ import usePaginatedData from "../../hooks/usePaginatedData";
 import '../../css/liste.css';
 import StatutDropdown from "../component/StatutDropdown";
 import ResetFiltreButton from "../component/ResetFiltreButton";
-import { getListeStatut } from "../../fonction/deviceFonction";
+import { getListeStatut, getModeles } from "../../fonction/deviceFonction";
 import '../../css/filiale.css';
 import { getDevicesByFiliale, getListeFiliale } from "../../fonction/filialeFonction";
 import { getBadgeClass } from "../../fonction/deviceFonction";
@@ -19,6 +19,9 @@ function ListeDeviceFiliale() {
     const navigate = useNavigate();
     const [listeStatuts, setListeStatuts] = useState([]);
     const [statut, setStatut] = useState("");
+    const [search, setSearch] = useState("");
+    const [modeles, setModeles] = useState([]);
+    const [modele, setModele] = useState("");
     const [filialeInfo, setFilialeInfo] = useState(null);
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
@@ -36,7 +39,11 @@ function ListeDeviceFiliale() {
         fetchDevices,
         currentPage,
         pageSize,
-        { statut: statut || undefined }
+        {
+            statut: statut || undefined,
+            modele: modele || undefined,
+            recherche: search || undefined,
+        }
     );
 
     const getStatut = async () => {
@@ -50,12 +57,15 @@ function ListeDeviceFiliale() {
 
     useEffect(() => {
         getStatut();
+        getModeles().then(setModeles);
     }, []);
 
-    const filtresActifs = statut !== "";
+    const filtresActifs = statut !== "" || search !== "" || modele !== "";
 
     const reinitialiserFiltres = () => {
         setStatut("");
+        setSearch("");
+        setModele("");
         setCurrentPage(1);
     };
 
@@ -91,7 +101,7 @@ function ListeDeviceFiliale() {
     // Revenir à la page 1 quand le filtre change
     useEffect(() => {
         setCurrentPage(1);
-    }, [statut]);
+    }, [statut, search, modele]);
 
     const otherCount = filialeTotal - activeCount;
 
@@ -126,19 +136,6 @@ function ListeDeviceFiliale() {
                         </div>
                     </div>
 
-                    <div className="glass-panel rounded-2xl p-5 relative z-50">
-                        <div className="flex flex-wrap items-center gap-3">
-                            <span className="text-[10px] text-zinc-500 uppercase font-semibold tracking-wider">Statut :</span>
-                            <StatutDropdown
-                                listeStatuts={listeStatuts}
-                                statut={statut}
-                                setStatut={setStatut}
-                            />
-
-                            <ResetFiltreButton actif={filtresActifs} onClick={reinitialiserFiltres} />
-                        </div>
-                    </div>
-
                     {/* Stats */}
                     <div className="stats stats-container glass-panel">
                         <div className="stat place-items-center">
@@ -157,6 +154,38 @@ function ListeDeviceFiliale() {
                             <div className="stat-title text-zinc-400">Autres états</div>
                             <div className="stat-value text-purple-400 text-4xl">{otherCount}</div>
                             <div className="stat-desc text-zinc-500">Inactifs / Autres</div>
+                        </div>
+                    </div>
+
+
+                                        <div className="glass-panel rounded-2xl p-5 relative z-50">
+                        <div className="relative max-w-md mb-4">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+                            <input
+                                type="text"
+                                placeholder="Rechercher par numéro de série…"
+                                value={search}
+                                onChange={e => setSearch(e.target.value)}
+                                className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-zinc-900/60 border border-white/10 text-zinc-200 text-sm placeholder-zinc-500 focus:outline-none focus:border-cyan-400/50"
+                            />
+                        </div>
+                        <div className="flex flex-wrap items-center gap-3">
+                            <span className="text-[10px] text-zinc-500 uppercase font-semibold tracking-wider">Statut :</span>
+                            <StatutDropdown
+                                listeStatuts={listeStatuts}
+                                statut={statut}
+                                setStatut={setStatut}
+                            />
+
+                            <span className="text-[10px] text-zinc-500 uppercase font-semibold tracking-wider ml-2">Modèle :</span>
+                            <StatutDropdown
+                                listeStatuts={modeles.map(m => ({ nom: m }))}
+                                statut={modele}
+                                setStatut={setModele}
+                                labelTous="Tous les modèles"
+                            />
+
+                            <ResetFiltreButton actif={filtresActifs} onClick={reinitialiserFiltres} />
                         </div>
                     </div>
 

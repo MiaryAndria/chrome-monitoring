@@ -555,6 +555,18 @@ def get_map_devices(cur):
     return map_devices
 
 
+def get_liste_modele(cur):
+    cur.execute(
+        """
+        SELECT DISTINCT modele
+        FROM v_appareils_filtres
+        WHERE modele IS NOT NULL AND modele <> ''
+        ORDER BY modele ASC
+        """
+    )
+    return [r[0] for r in cur.fetchall()]
+
+
 def _rows_to_dicts(cur):
     colonnes = [desc[0] for desc in cur.description]
     return [dict(zip(colonnes, row)) for row in cur.fetchall()]
@@ -562,10 +574,12 @@ def _rows_to_dicts(cur):
 
 def _build_device_filter_clause(id_filiale=None, filiale=None, statut=None,
                                 type_appareil=None, recherche=None,
-                                datetime_from=None, datetime_to=None):
+                                datetime_from=None, datetime_to=None,modele=None):
     clauses = []
     params = []
-
+    if modele:
+        clauses.append("modele = %s")
+        params.append(modele)
     if id_filiale is not None:
         clauses.append("id_filiale = %s")
         params.append(id_filiale)
@@ -579,13 +593,8 @@ def _build_device_filter_clause(id_filiale=None, filiale=None, statut=None,
         clauses.append("UPPER(type_appareil) = UPPER(%s)")
         params.append(type_appareil)
     if recherche:
-        terme = f"%{recherche}%"
-        clauses.append(
-            "(device_id ILIKE %s OR serial_number ILIKE %s OR modele ILIKE %s "
-            "OR utilisateur_email ILIKE %s OR type_appareil ILIKE %s "
-            "OR status ILIKE %s OR filiale ILIKE %s)"
-        )
-        params.extend([terme] * 7)
+        clauses.append("serial_number ILIKE %s")
+        params.append(f"%{recherche}%")
     if datetime_from is not None:
         clauses.append("date >= %s")
         params.append(datetime_from)
@@ -599,10 +608,10 @@ def _build_device_filter_clause(id_filiale=None, filiale=None, statut=None,
 def find_devices_paginated(cur, page=1, page_size=10, id_filiale=None,
                            filiale=None, statut=None, type_appareil=None,
                            recherche=None, datetime_from=None,
-                           datetime_to=None):
+                           datetime_to=None,modele=None):
     clauses, params = _build_device_filter_clause(
         id_filiale, filiale, statut, type_appareil, recherche,
-        datetime_from, datetime_to
+        datetime_from, datetime_to,modele
     )
     where = "WHERE " + " AND ".join(clauses) if clauses else ""
     offset = (page - 1) * page_size

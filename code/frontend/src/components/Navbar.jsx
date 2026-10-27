@@ -2,31 +2,37 @@ import { useState, useEffect } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
     Activity, Building2, Laptop, Printer, Bell, BarChart3,
-    Settings, ChevronDown, RotateCcw, RefreshCw, LogOut
+    Settings, ChevronDown, RotateCcw, RefreshCw, LogOut, Gauge,Copy,Check
 } from 'lucide-react';
 import { resetData } from '../fonction/importResetFonction';
 import { Logout } from "../fonction/userFonction";
+import { getNombreAlerte, getDixPremierAlerte } from '../fonction/alerteFonction';
 
 export default function Navbar() {
     const navigate = useNavigate();
     const location = useLocation();
-    const [isLightMode, setIsLightMode] = useState(false);
+    // const [isLightMode, setIsLightMode] = useState(false);
     const [configOpen, setConfigOpen] = useState(false);
     const [deviceOpen, setDeviceOpen] = useState(false);
     const [compareOpen, setCompareOpen] = useState(false);
+    const [seuilOpen, setSeuilOpen] = useState(false);
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState('');
+    const [alerteOpen, setAlerteOpen] = useState(false);
+    const [alerteCount, setAlerteCount] = useState(0);
+    const [alertes, setAlertes] = useState([]);
+    const [copiedSN, setCopiedSN] = useState(null);
 
-    useEffect(() => {
-        const storedTheme = localStorage.getItem('theme');
-        if (storedTheme === 'light') {
-            setIsLightMode(true);
-            applyTheme('light');
-        } else {
-            setIsLightMode(false);
-            applyTheme('dark');
-        }
-    }, []);
+    // useEffect(() => {
+    //     const storedTheme = localStorage.getItem('theme');
+    //     if (storedTheme === 'light') {
+    //         setIsLightMode(true);
+    //         applyTheme('light');
+    //     } else {
+    //         setIsLightMode(false);
+    //         applyTheme('dark');
+    //     }
+    // }, []);
 
     // Fermer les dropdowns au clic extérieur
     useEffect(() => {
@@ -34,26 +40,37 @@ export default function Navbar() {
             if (!e.target.closest('.relative')) {
                 setConfigOpen(false);
                 setDeviceOpen(false);
+                setAlerteOpen(false);
                 setCompareOpen(false); // ← ajout
+                setSeuilOpen(false);
             }
         };
         document.addEventListener('click', handleClickOutside);
         return () => document.removeEventListener('click', handleClickOutside);
     }, []);
 
-    const applyTheme = (theme) => {
-        document.querySelectorAll('.device-layout').forEach(el => {
-            el.setAttribute('data-theme', theme);
-        });
-    };
+    useEffect(() => {
+        const charger = () => getNombreAlerte().then((d) => setAlerteCount(d?.nombre ?? 0));
+        charger();
+        const timer = setInterval(charger, 60000);   // toutes les 60 s
+        return () => clearInterval(timer);
+    }, []);
 
-    const toggleTheme = () => {
-        const newTheme = isLightMode ? 'dark' : 'light';
-        setIsLightMode(!isLightMode);
-        localStorage.setItem('theme', newTheme);
-        applyTheme(newTheme);
-    };
+    // const applyTheme = (theme) => {
+    //     document.querySelectorAll('.device-layout').forEach(el => {
+    //         el.setAttribute('data-theme', theme);
+    //     });
+    // };
 
+    // const toggleTheme = () => {
+    //     const newTheme = isLightMode ? 'dark' : 'light';
+    //     setIsLightMode(!isLightMode);
+    //     localStorage.setItem('theme', newTheme);
+    //     applyTheme(newTheme);
+    // };
+    const voirTout = async () => {
+        navigate('/alerte/device')
+    }
     const handleLogout = async () => {
         await Logout();
         navigate("/login", { replace: true });
@@ -72,6 +89,21 @@ export default function Navbar() {
             setLoading(false);
             setMessage("");
         }
+    };
+
+    const basculerAlertes = async () => {
+        const ouvert = !alerteOpen;
+        setAlerteOpen(ouvert);
+        if (ouvert) {
+            setAlertes(await getDixPremierAlerte());
+        }
+    };
+
+    const handleCopySN = (serialNumber) => {
+        if (!serialNumber) return;
+        navigator.clipboard.writeText(serialNumber);
+        setCopiedSN(serialNumber);
+        setTimeout(() => setCopiedSN(null), 2000);
     };
 
     const navItems = [
@@ -96,12 +128,20 @@ export default function Navbar() {
         { path: '/comparaison/double', label: 'Comparaison double' },
     ];
 
+    const seuilItems = [
+        { path: '/liste/seuil', label: 'Liste seuil' },
+        { path: '/creer/seuil', label: 'Créer seuil' },
+        { path: '/liste/seuil/archive', label: 'Archive seuil' },
+    ]
+
     const configPaths = ['/liste/configuration', '/creer/configuration', '/liste/configuration/archive'];
     const comparePaths = ['/comparaison/single', '/comparaison/double'];
     const devicePaths = ['/liste/device', '/imprimantes'];
+    const seuilPaths = ['/liste/seuil', '/creer/seuil', '/liste/seuil/archive'];
     const compareActive = comparePaths.some((c) => location.pathname.startsWith(c))
     const configActive = configPaths.some((p) => location.pathname.startsWith(p));
     const deviceActive = devicePaths.some((d) => location.pathname.startsWith(d));
+    const seuilActive = seuilPaths.some((s) => location.pathname.startsWith(s));
 
     return (
         <>
@@ -194,6 +234,32 @@ export default function Navbar() {
                         )}
                     </div>
 
+                    {/* Dropdown Seuil */}
+                    <div className="relative">
+                        <button
+                            onClick={() => setSeuilOpen(v => !v)}
+                            className={`topnav-link ${seuilActive ? 'topnav-link-active' : ''}`}
+                        >
+                            <Gauge className="w-4 h-4" />
+                            <span>Seuil</span>
+                            <ChevronDown className="w-3 h-3" />
+                        </button>
+                        {seuilOpen && (
+                            <div className="config-dropdown">
+                                {seuilItems.map((item) => (
+                                    <NavLink
+                                        key={item.path}
+                                        to={item.path}
+                                        onClick={() => setSeuilOpen(false)}
+                                        className="config-dropdown-item"
+                                    >
+                                        {item.label}
+                                    </NavLink>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
                     {/* Dropdown Comparaison */}
                     <div className="relative">
                         <button
@@ -221,8 +287,57 @@ export default function Navbar() {
                     </div>
                 </nav>
 
+                <div className="relative">
+                    <button onClick={basculerAlertes} className="topnav-link relative" title="Alertes">
+                        <Bell className="w-4 h-4" />
+                        {alerteCount > 0 && (
+                            <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
+                                {alerteCount}
+                            </span>
+                        )}
+                    </button>
+
+                    {alerteOpen && (
+                        <div className="config-dropdown alerte-dropdown">
+                            <div className="alerte-list">
+                                {alertes.length === 0 ? (
+                                    <div className="alerte-empty">Aucune alerte</div>
+                                ) : (
+                                    alertes.map((a) => (
+                                        <div key={a.id} className="alerte-item">
+                                            <div className="alerte-item-top">
+                                                <div className="flex items-center gap-1.5">
+                                                    <span className="text-zinc-300 font-mono">{a.serial_number}</span>
+                                                    <button
+                                                        onClick={() => handleCopySN(a.serial_number)}
+                                                        className="text-zinc-500 hover:text-cyan-400 transition-colors p-0.5 cursor-pointer"
+                                                        title="Copier le numéro de série"
+                                                    >
+                                                        {copiedSN === a.serial_number ? (
+                                                            <Check className="w-3.5 h-3.5 text-emerald-400" />
+                                                        ) : (
+                                                            <Copy className="w-3.5 h-3.5" />
+                                                        )}
+                                                    </button>
+                                                </div>
+                                                <span className="alerte-type">{a.type?.replace('ALERTE_', '')}</span>
+                                            </div>
+                                            <div className="alerte-meta">
+                                                {a.utilisateur_recent ?? 'utilisateur inconnu'} · {new Date(a.date).toLocaleString('fr-FR')}
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                            <button className="alerte-footer" onClick={voirTout}>
+                                Voir toutes les alertes
+                            </button>
+                        </div>
+                    )}
+                </div>
+
                 <div className="flex items-center gap-3">
-                    <button
+                    {/* <button
                         onClick={toggleTheme}
                         title="Basculer le thème"
                         className={`relative w-12 h-6 rounded border border-zinc-900 overflow-hidden shadow-[0_2px_5px_rgba(0,0,0,0.5)] flex items-center cursor-pointer ${isLightMode ? 'bg-zinc-300' : 'bg-zinc-800'}`}
@@ -239,7 +354,7 @@ export default function Navbar() {
                                 : 'translate-x-[82%] bg-gradient-to-r from-zinc-600 to-zinc-800 shadow-[-2px_0_3px_rgba(0,0,0,0.4)]'
                                 }`}
                         />
-                    </button>
+                    </button> */}
 
                     <button onClick={handleLogout} className="logout-btn" title="Se déconnecter">
                         <LogOut className="w-4 h-4" />

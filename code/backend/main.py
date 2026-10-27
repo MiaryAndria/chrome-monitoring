@@ -12,9 +12,11 @@ from backend.fonction.metier.controller.rapport_controller import router as rapp
 from backend.fonction.metier.controller.imprimante_controller import router as imprimante_router
 from backend.fonction.metier.controller.evenement_controller import router as evenement_router
 from backend.fonction.metier.controller.configuration_controller import router as configuration_router
+from backend.fonction.metier.controller.seuil_controller import router as seuil_router
 from backend.fonction.metier.controller.ram_controller import router as ram_router
 from backend.fonction.metier.controller.cpu_controller import router as cpu_router
 from backend.fonction.metier.controller.disk_controller import router as disk_router
+from backend.fonction.metier.controller.alerteController import router as alerte_router
 # from backend.fonction.metier.service.import_service import synchroniser_tout
 from backend.fonction.metier.service.reset_service import reset_data
 
@@ -43,9 +45,11 @@ app.include_router(rapport_router,       prefix="/rapport",       tags=["rapport
 app.include_router(imprimante_router,    prefix="/imprimante",    tags=["imprimante"],    dependencies=protected)
 app.include_router(evenement_router,     prefix="/evenement",     tags=["evenement"],     dependencies=protected)
 app.include_router(configuration_router, prefix="/configuration", tags=["configuration"], dependencies=protected)
+app.include_router(seuil_router,         prefix="/seuil",         tags=["seuil"],         dependencies=protected)
 app.include_router(ram_router,           prefix="/ram",           tags=["ram"],           dependencies=protected)
 app.include_router(cpu_router,           prefix="/cpu",           tags=["cpu"],           dependencies=protected)
 app.include_router(disk_router,          prefix="/disk",          tags=["disk"],          dependencies=protected)
+app.include_router(alerte_router,        prefix="/alerte",        tags=["alerte"],        dependencies=protected)
 
 @app.get("/")
 def accueil():

@@ -13,10 +13,15 @@ import ConfigurationCreate from './page/configuration/create'
 import ConfigurationListe from './page/configuration/liste'
 import ConfigurationUpdate from './page/configuration/update'
 import ArchivedConfiguration from './page/configuration/archived'
+import SeuilCreate from './page/seuil/create'
+import SeuilListe from './page/seuil/liste'
+import SeuilUpdate from './page/seuil/update'
+import ArchivedSeuil from './page/seuil/archived'
 import DetailImprimante from './page/imprimante/detailImprimante'
 import ComparaisonSingle from './page/comparaison/comparaison_single'
 import ComparaisonDouble from './page/comparaison/comparaison_double'
 import Comparaison from './page/comparaison/comparaison'
+import ListeDeviceAlerte from './page/alerte/device/liste'
 function App() {
   return (
     <main className="main-content">
@@ -40,9 +45,14 @@ function App() {
           <Route path="/liste/configuration" element={<ConfigurationListe />} />
           <Route path="/liste/configuration/archive" element={<ArchivedConfiguration />} />
           <Route path="/update/configuration/:id" element={<ConfigurationUpdate />} />
+          <Route path="/creer/seuil" element={<SeuilCreate />} />
+          <Route path="/liste/seuil" element={<SeuilListe />} />
+          <Route path="/liste/seuil/archive" element={<ArchivedSeuil />} />
+          <Route path="/update/seuil/:id" element={<SeuilUpdate />} />
           <Route path="/comparaison/liste" element={<Comparaison/>} />
           <Route path="/comparaison/single" element={<ComparaisonSingle />} />
           <Route path="/comparaison/double" element={<ComparaisonDouble />} />
+          <Route path="/alerte/device" element={<ListeDeviceAlerte />} />
         </Route>
 
         {/* "/" et toute URL inconnue → login (la PublicRoute renverra vers /dashboard si connecté) */}

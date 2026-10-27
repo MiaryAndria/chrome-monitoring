@@ -6,7 +6,7 @@ import {
     extractBatterySummary, extractPeripheralsSummary,
     getCpuLatest, getRamLatest, getDiskLatest
 } from '../../../fonction/deviceFonction';
-import { formatBytes, usagePercent, exportPdf, exportExcel } from '../../../fonction/utils/util';
+import { formatBytes, exportPdf, exportExcel,usagePercent } from '../../../fonction/utils/util';
 import ExportModal from '../../../components/ExportModal';
 
 const colorMap = {

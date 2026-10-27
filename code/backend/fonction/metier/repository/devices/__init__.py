@@ -20,6 +20,7 @@ from .devices import (
     _get_last_disk_info,
     _get_device_cpu_info,
     get_map_devices,
+    get_liste_modele,
     find_devices_paginated,
 )
 
@@ -41,4 +42,5 @@ from .device_utilisateur_recent import (
     get_dernier_utilisateur_device,
     _get_recent_users,
     get_utilisateur_recent_by_device,
+    
 )

@@ -1,6 +1,7 @@
 from backend.fonction.conn.connexion import get_connection, close_connection
 from backend.fonction.metier.repository.imprimante import (
     get_liste_imprimante,
+    get_liste_vendor,
     get_imprimante_by_id,
     get_utilisateurs_by_imprimante,
     get_devices_by_imprimante,
@@ -22,6 +23,18 @@ def get_imprimante():
             {"id": r[0], "vid": r[1], "pid": r[2], "vendor": r[3], "nom": r[4]}
             for r in rows
         ]
+    finally:
+        close_connection(connexion)
+
+def get_vendors():
+    connexion = get_connection()
+    if connexion is None:
+        return []
+    try:
+        cur = connexion.cursor()
+        rows = get_liste_vendor(cur)
+        cur.close()
+        return rows
     finally:
         close_connection(connexion)
 
@@ -54,7 +67,7 @@ def get_imprimante_detail(id_imprimante: int):
         close_connection(connexion)
 
 
-def _fetch_imprimantes_page(page=1, page_size=10, recherche=None,
+def _fetch_imprimantes_page(page=1, page_size=10, recherche=None, vendor=None,
                             datetime_from=None, datetime_to=None):
     connexion = get_connection()
     if connexion is None:
@@ -62,7 +75,7 @@ def _fetch_imprimantes_page(page=1, page_size=10, recherche=None,
     try:
         cur = connexion.cursor()
         rows = find_imprimantes_paginated(
-            cur, page, page_size, recherche, datetime_from, datetime_to
+            cur, page, page_size, recherche, vendor, datetime_from, datetime_to
         )
         total = rows[0]["total"] if rows else 0
         items = [
@@ -81,24 +94,24 @@ def _fetch_imprimantes_page(page=1, page_size=10, recherche=None,
         close_connection(connexion)
 
 
-def _imprimantes_cache_key(page, page_size, recherche, datetime_from,
+def _imprimantes_cache_key(page, page_size, recherche, vendor, datetime_from,
                            datetime_to):
     return (
-        f"imprimantes:{page}:{page_size}:{recherche}:"
+        f"imprimantes:{page}:{page_size}:{recherche}:{vendor}:"
         f"{datetime_from}:{datetime_to}"
     )
 
 
-def get_imprimantes_page(page=1, page_size=10, recherche=None,
+def get_imprimantes_page(page=1, page_size=10, recherche=None, vendor=None,
                          datetime_from=None, datetime_to=None):
     cle = _imprimantes_cache_key(
-        page, page_size, recherche, datetime_from, datetime_to
+        page, page_size, recherche, vendor, datetime_from, datetime_to
     )
     valeur = cache_get(cle)
     if valeur is not None:
         return valeur
 
     resultat = _fetch_imprimantes_page(
-        page, page_size, recherche, datetime_from, datetime_to
+        page, page_size, recherche, vendor, datetime_from, datetime_to
     )
     return cache_set(cle, resultat)
