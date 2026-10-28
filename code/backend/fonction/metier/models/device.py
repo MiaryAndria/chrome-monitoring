@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional
+from typing import List, Optional
 from pydantic import BaseModel
 
 class Device(BaseModel):
@@ -44,12 +44,6 @@ class DeviceResponses(BaseModel):
     cpu_freq_max: Optional[int] = None
     cpu_freq_max_label: Optional[str] = None
     cpu_architecture: Optional[str] = None
-
-class StatistiquesResponse(BaseModel):
-    total: int
-    par_statut: Dict[str,int]
-    par_type: Dict[str,int]
-
 
 class DevicePageResponse(BaseModel):
     items: List[DeviceResponses]

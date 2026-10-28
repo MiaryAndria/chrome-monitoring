@@ -2,10 +2,8 @@ from typing import List
 from datetime import datetime
 from pydantic import BaseModel
 
-
 class AlerteNombreResponse(BaseModel):
     nombre: int
-
 
 class AlerteResume(BaseModel):
     id: int
@@ -15,7 +13,10 @@ class AlerteResume(BaseModel):
     message: str | None = None
     date: datetime | None = None
     utilisateur_recent: str | None = None
-
+    
+class AlerteResponse(BaseModel):
+    id:int
+    type:str
 
 class AlerteResumePageResponse(BaseModel):
     items: List[AlerteResume]

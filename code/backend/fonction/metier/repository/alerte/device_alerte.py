@@ -24,8 +24,8 @@ def get_liste_device_alerte(cur):
 
 
 def get_liste_device_alerte_by_date(cur, date_debut=None, date_fin=None):
-    """Alertes enrichies (série, type, utilisateur), filtrées par date si fournies."""
-    query = """
+    """Alertes ACTIVE enrichies (série, type, utilisateur), filtrées par date si fournies."""
+    query = f"""
         SELECT da.id, da.id_device, d.serial_number, tr.type,
                da.message, da.date,
                (
@@ -36,25 +36,51 @@ def get_liste_device_alerte_by_date(cur, date_debut=None, date_fin=None):
                    ORDER BY ur.date_observation DESC
                    LIMIT 1
                ) AS utilisateur_recent
-        FROM t_device_alerte da 
+        FROM t_device_alerte da
         JOIN t_device d ON d.id = da.id_device
         JOIN t_alerte tr ON tr.id = da.id_alerte
-
-        
+        WHERE {DERNIER_STATUT_SQL} = 1
     """
     params = []
     if date_debut is not None:
-        query += " WHERE da.date >= %s"
+        query += " AND da.date >= %s"
         params.append(date_debut)
     if date_fin is not None:
-        query += (" AND " if date_debut is not None else " WHERE ") + "da.date <= %s"
+        query += " AND da.date <= %s"
         params.append(date_fin)
     query += " ORDER BY da.date DESC, da.id DESC"
-    query += "WHERE {DERNIER_STATUT_SQL} = 1"
 
     cur.execute(query, tuple(params))
     return cur.fetchall()
 
+def get_liste_device_alerte_by_date_resolue(cur, date_debut=None, date_fin=None):
+    query = f"""
+        SELECT da.id, da.id_device, d.serial_number, tr.type,
+               da.message, da.date,
+               (
+                   SELECT u.email
+                   FROM t_device_utilisateur_recent ur
+                   JOIN t_utilisateur u ON u.id = ur.id_utilisateur
+                   WHERE ur.id_device = da.id_device
+                   ORDER BY ur.date_observation DESC
+                   LIMIT 1
+               ) AS utilisateur_recent
+        FROM t_device_alerte da
+        JOIN t_device d ON d.id = da.id_device
+        JOIN t_alerte tr ON tr.id = da.id_alerte
+        WHERE {DERNIER_STATUT_SQL} = 15
+    """
+    params = []
+    if date_debut is not None:
+        query += " AND da.date >= %s"
+        params.append(date_debut)
+    if date_fin is not None:
+        query += " AND da.date <= %s"
+        params.append(date_fin)
+    query += " ORDER BY da.date DESC, da.id DESC"
+
+    cur.execute(query, tuple(params))
+    return cur.fetchall()
 
 def get_device_alerte_by_id(cur, id_device_alerte):
     cur.execute(
@@ -120,18 +146,6 @@ def get_alertes_resolues_by_device(cur, id_device):
     return cur.fetchall()
 
 
-def get_alertes_by_period(cur, id_device, date_debut, date_fin):
-    cur.execute(
-        """
-        SELECT id, id_device, id_alerte, message, date
-        FROM t_device_alerte
-        WHERE id_device = %s AND date BETWEEN %s AND %s
-        ORDER BY date DESC, id DESC
-        """,
-        (id_device, date_debut, date_fin),
-    )
-    return cur.fetchall()
-
 
 def get_derniere_alerte_device(cur, id_device):
     cur.execute(
@@ -153,6 +167,17 @@ def get_nombre_alerte_active(cur):
         SELECT COUNT(*)
         FROM t_device_alerte da
         WHERE {DERNIER_STATUT_SQL} = 1
+        """
+    )
+    row = cur.fetchone()
+    return row[0] if row else 0
+
+def get_nombre_alerte_resolue(cur):
+    cur.execute(
+        f"""
+        SELECT COUNT(*)
+        FROM t_device_alerte da
+        WHERE {DERNIER_STATUT_SQL} = 15
         """
     )
     row = cur.fetchone()
@@ -261,9 +286,10 @@ def get_dernieres_alertes(cur, limit):
     )
     return cur.fetchall()
 
-def find_device_alertes_paginated(cur, page=1, page_size=10, date_debut=None, date_fin=None):
+def find_device_alertes_paginated(cur, page=1, page_size=10, date_debut=None, date_fin=None, type_alerte=None,search_params=None):
+    """Alertes ACTIVE paginées (série, type, utilisateur)."""
     offset = (page - 1) * page_size
-    query = """
+    query = f"""
         SELECT da.id, da.id_device, d.serial_number, tr.type,
                da.message, da.date,
                (
@@ -278,19 +304,78 @@ def find_device_alertes_paginated(cur, page=1, page_size=10, date_debut=None, da
         FROM t_device_alerte da
         JOIN t_device d ON d.id = da.id_device
         JOIN t_alerte tr ON tr.id = da.id_alerte
+        WHERE {DERNIER_STATUT_SQL} = 1
     """
     params = []
     if date_debut is not None:
-        query += " WHERE da.date >= %s"
+        query += " AND da.date >= %s"
         params.append(date_debut)
     if date_fin is not None:
-        query += (" AND " if date_debut is not None else " WHERE ") + "da.date <= %s"
+        query += " AND da.date <= %s"
         params.append(date_fin)
+    if type_alerte is not None:          # ← ajout
+        query += " AND tr.type = %s"     # ← ajout
+        params.append(type_alerte)
+    if search_params:
+        motif = f"%{search_params}%"
+        query += """ AND (
+            d.serial_number ILIKE %s
+            OR da.message ILIKE %s
+            OR tr.type ILIKE %s
+        )"""
+        params.extend([motif, motif, motif])
     query += " ORDER BY da.date DESC, da.id DESC LIMIT %s OFFSET %s"
     params.extend([page_size, offset])
 
     cur.execute(query, tuple(params))
     return cur.fetchall()
+
+
+
+def find_device_alertes_resolues_paginated(cur, page=1, page_size=10, date_debut=None, date_fin=None,type_alerte=None,search_params=None):
+    """Alertes RESOLUE paginées (série, type, utilisateur)."""
+    offset = (page - 1) * page_size
+    query = f"""
+        SELECT da.id, da.id_device, d.serial_number, tr.type,
+               da.message, da.date,
+               (
+                   SELECT u.email
+                   FROM t_device_utilisateur_recent ur
+                   JOIN t_utilisateur u ON u.id = ur.id_utilisateur
+                   WHERE ur.id_device = da.id_device
+                   ORDER BY ur.date_observation DESC
+                   LIMIT 1
+               ) AS utilisateur_recent,
+               COUNT(*) OVER() AS total
+        FROM t_device_alerte da
+        JOIN t_device d ON d.id = da.id_device
+        JOIN t_alerte tr ON tr.id = da.id_alerte
+        WHERE {DERNIER_STATUT_SQL} = 15
+    """
+    params = []
+    if date_debut is not None:
+        query += " AND da.date >= %s"
+        params.append(date_debut)
+    if date_fin is not None:
+        query += " AND da.date <= %s"
+        params.append(date_fin)
+    if type_alerte is not None:          # ← ajout
+        query += " AND tr.type = %s"     # ← ajout
+        params.append(type_alerte)       # ← ajout
+    if search_params:
+        motif = f"%{search_params}%"
+        query += """ AND (
+            d.serial_number ILIKE %s
+            OR da.message ILIKE %s
+            OR tr.type ILIKE %s
+        )"""
+        params.extend([motif, motif, motif])
+    query += " ORDER BY da.date DESC, da.id DESC LIMIT %s OFFSET %s"
+    params.extend([page_size, offset])
+
+    cur.execute(query, tuple(params))
+    return cur.fetchall()
+
 
 def insert_device_alerte_statut(cur, id_device_alerte, id_statut, date=None):
     date_value = date or datetime.now()
@@ -302,3 +387,25 @@ def insert_device_alerte_statut(cur, id_device_alerte, id_statut, date=None):
         (id_device_alerte, id_statut, date_value),
     )
     return True
+
+
+def _compter_alertes(cur, type_alerte, id_statut, date_debut=None, date_fin=None):
+    query = f"""
+        SELECT COUNT(*)
+        FROM t_device_alerte da
+        JOIN t_alerte tr ON tr.id = da.id_alerte
+        WHERE tr.type = %s
+          AND {DERNIER_STATUT_SQL} = %s
+    """
+    params = [type_alerte, id_statut]
+    if date_debut is not None:
+        query += " AND da.date >= %s"
+        params.append(date_debut)
+    if date_fin is not None:
+        query += " AND da.date <= %s"
+        params.append(date_fin)
+
+    cur.execute(query, tuple(params))
+    row = cur.fetchone()
+    return row[0] if row else 0
+

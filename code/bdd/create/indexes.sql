@@ -75,3 +75,6 @@ CREATE INDEX IF NOT EXISTS idx_t_device_filiale_filiale
 -- ------------------------------------------------------------
 CREATE INDEX IF NOT EXISTS idx_t_evenement_device_date
     ON t_evenement_device (date_evenement DESC, id DESC);
+
+CREATE INDEX IF NOT EXISTS idx_device_alerte_statut_device
+    ON t_device_alerte_statut (id_device_alerte, date DESC, id DESC);

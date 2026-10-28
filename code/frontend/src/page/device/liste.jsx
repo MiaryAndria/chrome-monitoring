@@ -130,7 +130,6 @@ function ListeDevice() {
             contentClassName="space-y-6"
             headerRight={<ViewModeToggle viewMode={viewMode} setViewMode={setViewMode} />}
         >
-
                     {/* Filtres : filiale + statut */}
                     <div className="glass-panel rounded-2xl p-5 relative z-50">
                         <div className="relative max-w-md mb-4">

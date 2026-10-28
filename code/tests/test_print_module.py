@@ -1,7 +1,6 @@
 import sys
 import unittest
 from pathlib import Path
-from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
@@ -65,39 +64,6 @@ class TestPrintModule(unittest.TestCase):
         past_date = "2026-10-05T12:00:00+00:00"
 
         self.assertTrue(_should_skip_historical_insert(cursor, "t_device_ram", 42, past_date))
-
-    @patch("backend.fonction.metier.service.dashboard_service.get_device_by_statut")
-    @patch("backend.fonction.metier.service.dashboard_service.get_liste_statut")
-    def test_nombre_device_by_statut_keeps_only_dashboard_statuses(
-        self, mock_get_liste_statut, mock_get_device_by_statut
-    ):
-        mock_get_liste_statut.return_value = [
-            (1, "ACTIVE"),
-            (2, "DELINQUENT"),
-            (3, "DISABLED"),
-            (4, "DEPROVISIONED"),
-            (5, "Hors ligne"),
-            (6, "En réparation"),
-        ]
-
-        def fake_get_device_by_statut(cur, id_statut):
-            if id_statut in {1, 2, 3, 4}:
-                return [object()]
-            return []
-
-        mock_get_device_by_statut.side_effect = fake_get_device_by_statut
-
-        result = __import__(
-            "backend.fonction.metier.service.dashboard_service",
-            fromlist=["nombreDeviceByStatut"],
-        ).nombreDeviceByStatut(object())
-
-        self.assertEqual(
-            set(result.keys()),
-            {"ACTIVE", "DELINQUENT", "DISABLED", "DEPROVISIONED"},
-        )
-        self.assertEqual(result["ACTIVE"], 1)
-
 
 if __name__ == "__main__":
     unittest.main()

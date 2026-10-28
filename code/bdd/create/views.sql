@@ -199,12 +199,28 @@ LEFT JOIN derniere_filiale fi ON fi.id_device = d.id;
 -- ------------------------------------------------------------
 CREATE OR REPLACE VIEW v_tableau_de_bord_resume AS
 WITH derniers_statuts AS (
-    SELECT DISTINCT ON (ds.id_device)
-        ds.id_device,
-        s.nom
-    FROM t_device_statut ds
+    SELECT d.id AS id_device, s.nom
+    FROM t_device d
+    JOIN LATERAL (
+        SELECT ds.id_statut
+        FROM t_device_statut ds
+        WHERE ds.id_device = d.id
+        ORDER BY ds.date DESC, ds.id DESC
+        LIMIT 1
+    ) ds ON TRUE
     JOIN t_statut s ON s.id = ds.id_statut
-    ORDER BY ds.id_device, ds.date DESC, ds.id DESC
+),
+derniers_statuts_alerte AS (
+    SELECT da.id AS id_device_alerte,
+           (
+               SELECT s.nom
+               FROM t_device_alerte_statut das
+               JOIN t_statut s ON s.id = das.id_statut
+               WHERE das.id_device_alerte = da.id
+               ORDER BY das.date DESC NULLS LAST, das.id DESC
+               LIMIT 1
+           ) AS nom
+    FROM t_device_alerte da
 ),
 repartition_statuts AS (
     SELECT COALESCE(jsonb_object_agg(nom, nb), '{}'::jsonb) AS valeur
@@ -253,7 +269,10 @@ SELECT
     (SELECT COUNT(*) FROM t_imprimante) AS nb_imprimantes,
     (SELECT valeur FROM repartition_statuts) AS repartition_statuts,
     (SELECT valeur FROM repartition_types) AS repartition_types,
-    (SELECT valeur FROM repartition_evenements) AS repartition_evenements;
+    (SELECT valeur FROM repartition_evenements) AS repartition_evenements,
+    (SELECT COUNT(*) FROM derniers_statuts_alerte ) AS total_alerte,
+    (SELECT COUNT(*) FROM derniers_statuts_alerte WHERE nom = 'ACTIVE') AS alerte_active,
+    (SELECT COUNT(*) FROM derniers_statuts_alerte WHERE nom = 'RESOLUE') AS alerte_resolue;
 
 -- ------------------------------------------------------------
 -- v_imprimantes_filtrees

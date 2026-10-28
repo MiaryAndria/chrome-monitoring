@@ -11,6 +11,11 @@ from backend.fonction.metier.repository.alerte import (
     insert_device_alerte_statut,
     get_dernieres_alertes,
     find_device_alertes_paginated,
+    find_device_alertes_resolues_paginated,
+    _compter_alertes,
+    get_liste_device_alerte_by_date_resolue,
+    get_nombre_alerte_resolue,
+    get_type_alerte,
 )
 from backend.fonction.metier.repository.cpu import get_latest_by_device as get_latest_cpu
 from backend.fonction.metier.repository.ram import get_latest_by_device as get_latest_ram
@@ -48,7 +53,6 @@ def _id_statut(cur, nom):
 
 
 def _get_or_create_alerte(cur, type_):
-    """Id du type d'alerte ; le crée avec un statut CREER s'il n'existe pas encore."""
     existante = get_alerte_by_type(cur, type_)
     if existante is not None:
         return existante[0]
@@ -57,13 +61,7 @@ def _get_or_create_alerte(cur, type_):
         insert_alerte_statut(cur, id_alerte, _id_statut(cur, NOM_STATUT_CREER))
     return id_alerte
 
-
-# --------------------------------------------------------------------------
-# Lecture (cloche + page alertes)
-# --------------------------------------------------------------------------
-
 def getNombreAlerte():
-    """Nombre d'occurrences d'alerte actuellement ACTIVE."""
     connexion = get_connection()
     if connexion is None:
         return 0
@@ -73,6 +71,32 @@ def getNombreAlerte():
     finally:
         close_connection(connexion)
 
+def getNombreAlerteResolue():
+    connexion = get_connection()
+    if connexion is None :
+        return 0
+    try:
+        cur = connexion.cursor()
+        return get_nombre_alerte_resolue(cur)
+    finally:
+        close_connection(connexion)
+        
+def getTypeAlerte():
+    connexion = get_connection()
+    if connexion is None :
+        return []
+    try:
+        result = []
+        cur=connexion.cursor()
+        t = get_type_alerte(cur)
+        for type in t:
+            result.append({
+                "id":type[0],
+                "type":type[1],
+            })
+        return result 
+    finally:
+        close_connection(connexion)
 
 def getDernieresAlertes(limit):
     connexion = get_connection()
@@ -97,14 +121,45 @@ def getListeDeviceAlerteDate(date_debut=None, date_fin=None):
     finally:
         close_connection(connexion)
 
-
-def _fetch_device_alertes_page(page, page_size, date_debut, date_fin):
+def getListeDeviceAlerteDateResolue(date_debut=None, date_fin=None):
+    connexion = get_connection()
+    if connexion is None:
+        return []
+    try:
+        cur = connexion.cursor()
+        rows = get_liste_device_alerte_by_date_resolue(cur, date_debut, date_fin)
+        return [_serialize_alerte_resume(r) for r in rows]
+    finally:
+        close_connection(connexion)
+        
+def _fetch_device_alertes_page(page, page_size, date_debut, date_fin,type,search):
     connexion = get_connection()
     if connexion is None:
         return build_page([], 0, page, page_size)
     try:
         cur = connexion.cursor()
-        rows = find_device_alertes_paginated(cur, page, page_size, date_debut, date_fin)
+        rows = find_device_alertes_paginated(cur, page, page_size, date_debut, date_fin,type,search)
+        total = rows[0][7] if rows else 0
+        items = [_serialize_alerte_resume(r) for r in rows]
+        return build_page(items, total, page, page_size)
+    finally:
+        close_connection(connexion)
+
+def getDeviceAlertesPage(page=1, page_size=10, date_debut=None, date_fin=None,type=None,search=None):
+    cle = f"alertes:device:{page}:{page_size}:{date_debut}:{date_fin}:{type}:{search}"
+    valeur = cache_get(cle)
+    if valeur is not None:
+        return valeur
+    return cache_set(cle, _fetch_device_alertes_page(page, page_size, date_debut, date_fin,type,search))
+
+
+def _fetch_device_alertes_resolues_page(page, page_size, date_debut, date_fin,type,search):
+    connexion = get_connection()
+    if connexion is None:
+        return build_page([], 0, page, page_size)
+    try:
+        cur = connexion.cursor()
+        rows = find_device_alertes_resolues_paginated(cur, page, page_size, date_debut, date_fin,type,search)
         total = rows[0][7] if rows else 0
         items = [_serialize_alerte_resume(r) for r in rows]
         return build_page(items, total, page, page_size)
@@ -112,25 +167,19 @@ def _fetch_device_alertes_page(page, page_size, date_debut, date_fin):
         close_connection(connexion)
 
 
-def getDeviceAlertesPage(page=1, page_size=10, date_debut=None, date_fin=None):
-    cle = f"alertes:device:{page}:{page_size}:{date_debut}:{date_fin}"
+def getDeviceAlertesResoluesPage(page=1, page_size=10, date_debut=None, date_fin=None,type=None,search=None):
+    cle = f"alertes:device:resolues:{page}:{page_size}:{date_debut}:{date_fin}:{type}:{search}"
     valeur = cache_get(cle)
     if valeur is not None:
         return valeur
-    return cache_set(cle, _fetch_device_alertes_page(page, page_size, date_debut, date_fin))
+    return cache_set(cle, _fetch_device_alertes_resolues_page(page, page_size, date_debut, date_fin,type,search))
 
-
-# --------------------------------------------------------------------------
-# Moteur d'évaluation : t_seuil -> t_device_alerte
-# --------------------------------------------------------------------------
 
 def _seuils_actifs(cur):
-    """Seuils non archivés sous forme {cle: valeur}."""
     return {r[1]: r[2] for r in get_liste_seuil(cur)}
 
 
 def _metriques_device(cur, id_device):
-    """Dernières métriques exploitables d'un device : cpu (%), ram (%), temperature (°C)."""
     cpu = get_latest_cpu(cur, id_device)
     ram = get_latest_ram(cur, id_device)
     cpu_pct = float(cpu["cpu_utiliser"]) if cpu and cpu.get("cpu_utiliser") is not None else None
@@ -144,14 +193,12 @@ def _metriques_device(cur, id_device):
 
 def _appliquer_etat(cur, id_device, id_alerte, message, depasse,
                     id_statut_active, id_statut_resolue):
-    """Ouvre une occurrence ACTIVE si le seuil est dépassé, la passe RESOLUE sinon."""
     active = get_device_alerte_active_by_device_and_alerte(cur, id_device, id_alerte)
     if depasse and active is None:
         id_device_alerte = insert_device_alerte(cur, id_device, id_alerte, message)
         insert_device_alerte_statut(cur, id_device_alerte, id_statut_active)
     elif (not depasse) and active is not None:
         insert_device_alerte_statut(cur, active[0], id_statut_resolue)
-
 
 def _executer_moteur(cur):
     id_statut_active = _id_statut(cur, NOM_STATUT_ACTIVE)
@@ -196,9 +243,72 @@ def _executer_moteur(cur):
                 id_statut_active, id_statut_resolue,
             )
 
-
 def insertAlerte(cur):
-    """Moteur d'alerte : compare les seuils (t_seuil) aux dernières métriques et met à
-    jour t_device_alerte, dans la transaction du curseur fourni. L'appelant commit."""
     _executer_moteur(cur)
     cache_invalidate_prefix("alertes:")
+    
+def getStatsAlerteCpuActive(date_debut=None, date_fin=None):
+    connexion = get_connection()
+    if connexion is None:
+        return 0
+    try:
+        cur = connexion.cursor()
+        return _compter_alertes(cur, "ALERTE_CPU", 1, date_debut, date_fin)
+    finally:
+        close_connection(connexion)
+
+
+def getStatsAlerteRamActive(date_debut=None, date_fin=None):
+    connexion = get_connection()
+    if connexion is None:
+        return 0
+    try:
+        cur = connexion.cursor()
+        return _compter_alertes(cur, "ALERTE_RAM", 1, date_debut, date_fin)
+    finally:
+        close_connection(connexion)
+
+
+def getStatsAlerteTemperatureActive(date_debut=None, date_fin=None):
+    connexion = get_connection()
+    if connexion is None:
+        return 0
+    try:
+        cur = connexion.cursor()
+        return _compter_alertes(cur, "ALERTE_TEMPERATURE", 1, date_debut, date_fin)
+    finally:
+        close_connection(connexion)
+
+
+def getStatsAlerteCpuResolue(date_debut=None, date_fin=None):
+    connexion = get_connection()
+    if connexion is None:
+        return 0
+    try:
+        cur = connexion.cursor()
+        return _compter_alertes(cur, "ALERTE_CPU", 15, date_debut, date_fin)
+    finally:
+        close_connection(connexion)
+
+
+def getStatsAlerteRamResolue(date_debut=None, date_fin=None):
+    connexion = get_connection()
+    if connexion is None:
+        return 0
+    try:
+        cur = connexion.cursor()
+        return _compter_alertes(cur, "ALERTE_RAM", 15, date_debut, date_fin)
+    finally:
+        close_connection(connexion)
+
+
+def getStatsAlerteTemperatureResolue(date_debut=None, date_fin=None):
+    connexion = get_connection()
+    if connexion is None:
+        return 0
+    try:
+        cur = connexion.cursor()
+        return _compter_alertes(cur, "ALERTE_TEMPERATURE", 15, date_debut, date_fin)
+    finally:
+        close_connection(connexion)
+

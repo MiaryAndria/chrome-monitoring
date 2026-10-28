@@ -42,18 +42,10 @@ def get_temperature_max_device(cur, id_device):
     row = cur.fetchone()
     return row[0] if row else None
 
-
-def get_stats_alerte_cpu(cur):
+def get_type_alerte(cur):
     cur.execute(
-        
+    """
+    SELECT * FROM t_alerte
+    """
     )
-    
-def get_stats_alerte_ram(cur):
-    cur.execute(
-        
-    )
-    
-def get_stats_alerte_temperature(cur):
-    cur.execute(
-        
-    )
+    return cur.fetchall()

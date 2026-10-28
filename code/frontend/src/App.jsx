@@ -22,6 +22,7 @@ import ComparaisonSingle from './page/comparaison/comparaison_single'
 import ComparaisonDouble from './page/comparaison/comparaison_double'
 import Comparaison from './page/comparaison/comparaison'
 import ListeDeviceAlerte from './page/alerte/device/liste'
+import ListeDeviceAlerteResolue from './page/alerte/device/resolue'
 function App() {
   return (
     <main className="main-content">
@@ -53,8 +54,9 @@ function App() {
           <Route path="/comparaison/single" element={<ComparaisonSingle />} />
           <Route path="/comparaison/double" element={<ComparaisonDouble />} />
           <Route path="/alerte/device" element={<ListeDeviceAlerte />} />
+          <Route path="/alerte/device/resolue" element={<ListeDeviceAlerteResolue />} />
         </Route>
-
+        
         {/* "/" et toute URL inconnue → login (la PublicRoute renverra vers /dashboard si connecté) */}
         <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="*" element={<Navigate to="/login" replace />} />

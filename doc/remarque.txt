@@ -102,3 +102,10 @@ TYPE_ALERTE_TEMPERATURE = "ALERTE_TEMPERATURE"
 NOM_STATUT_ACTIVE = "ACTIVE"
 NOM_STATUT_RESOLUE = "RESOLUE"
 NOM_STATUT_CREER = "CREER" il faut que cela vient base de donnée pas en dur comme ceci fa lasa midependre anio 
+
+dans page detail appareil aussi on affiche evenemets liée à l'appareil 
+
+page liste alerte ajoute section pour voir statut resolue 
+
+graph pour afficher statut active et resolue on va faire comment 
+filtrage par type dans page alerte 

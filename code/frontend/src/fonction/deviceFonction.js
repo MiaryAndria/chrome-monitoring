@@ -1,15 +1,6 @@
 import api_service from "../api/api_service";
 import { CheckCircle2, Activity, XOctagon, ShieldAlert } from 'lucide-react';
 
-export const getDashboardStats = async () => {
-    try {
-        const response = await api_service.get('/dashboard/stats');
-        return response.data;
-    } catch (e) {
-        console.log(e);
-    }
-};
-
 export const getDashboardSummary = async () => {
     try {
         const response = await api_service.get('/dashboard/summary');

@@ -15,3 +15,6 @@ class DashboardSummaryResponse(BaseModel):
     repartition_statuts: Dict[str, int]
     repartition_types: Dict[str, int]
     repartition_evenements: Dict[str, int]
+    total_alerte: int
+    alerte_active: int
+    alerte_resolue: int

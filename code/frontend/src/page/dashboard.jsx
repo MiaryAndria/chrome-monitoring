@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Server, Laptop, Bell, Printer, Zap, Cpu, Monitor } from 'lucide-react';
+import { Server, Laptop, Bell, BellRing, Printer, Zap, Cpu, Monitor } from 'lucide-react';
 import Navbar from "../components/Navbar";
 import MouseSpotlight from "../components/MouseSpotlight";
 import { getDashboardSummary, getStatusStyle } from "../fonction/deviceFonction";
@@ -48,6 +48,11 @@ function Dashboard() {
     const otherEvents = totalEvents - kernelEvents - ecEvents - appEvents;
     const totalPrinters = summary?.nb_imprimantes || 0;
 
+    // Alertes (issues du résumé backend)
+    const totalAlertes = summary?.total_alerte || 0;
+    const alertesActives = summary?.alerte_active || 0;
+    const alertesResolues = summary?.alerte_resolue || 0;
+
 
     return (
         <div className="device-layout" data-theme="dark">
@@ -75,16 +80,16 @@ function Dashboard() {
                         <DashboardSkeleton />
                     ) : (
                         <div className="space-y-8">
-                            
+
                             {/* Section Appareils */}
                             <div>
                                 <div className="section-header">
                                     <h2 className="section-title">État des Appareils</h2>
                                 </div>
-                                <div 
+                                <div
                                     className="device-card group bg-cyan-500/5 border-cyan-500/30 cursor-pointer"
                                     onClick={() => navigate("/liste/device")}
-                                    style={{ 
+                                    style={{
                                         '--card-glow': 'radial-gradient(circle at top right, rgba(6, 182, 212, 0.08), transparent 70%)',
                                         '--card-border-hover': 'rgba(6, 182, 212, 0.5)',
                                         '--card-shadow': 'rgba(6, 182, 212, 0.2)'
@@ -98,14 +103,14 @@ function Dashboard() {
                                         </div>
                                         <div className="text-4xl font-bold text-zinc-100 mb-1">{stats.total || 0}</div>
                                         <div className="text-sm font-medium text-zinc-400 mb-4">Tous les appareils enregistrés</div>
-                                        
+
                                         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 mt-4 pt-4 border-t border-white/5">
                                             {stats?.par_statut && Object.entries(stats.par_statut).map(([statut, nombre], idx) => {
                                                 const style = getStatusStyle(idx);
                                                 const Icon = style.icon;
                                                 return (
-                                                    <div 
-                                                        key={idx} 
+                                                    <div
+                                                        key={idx}
                                                         className={`bg-white/5 rounded-xl p-3 text-center border border-white/5 hover:bg-white/10 transition-colors`}
                                                         onClick={(e) => {
                                                             e.stopPropagation();
@@ -129,8 +134,8 @@ function Dashboard() {
                                                     {Object.entries(stats.par_type).map(([nomType, nombre], idx) => {
                                                         const style = getStatusStyle(idx + Object.keys(stats.par_statut || {}).length);
                                                         return (
-                                                            <div 
-                                                                key={idx} 
+                                                            <div
+                                                                key={idx}
                                                                 className={`bg-white/5 rounded-xl p-3 text-center border border-white/5 hover:bg-white/10 transition-colors`}
                                                                 onClick={(e) => {
                                                                     e.stopPropagation();
@@ -151,14 +156,14 @@ function Dashboard() {
                                     </div>
                                 </div>
                             </div>
-                            
+
                             {/* Section Événements & Imprimantes */}
-                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                                 {/* Carte Événements */}
-                                <div 
+                                <div
                                     className="device-card group bg-red-500/5 border-red-500/30"
                                     onClick={() => navigate("/liste/event")}
-                                    style={{ 
+                                    style={{
                                         '--card-glow': 'radial-gradient(circle at top right, rgba(239, 68, 68, 0.08), transparent 70%)',
                                         '--card-border-hover': 'rgba(239, 68, 68, 0.5)',
                                         '--card-shadow': 'rgba(239, 68, 68, 0.2)'
@@ -172,7 +177,7 @@ function Dashboard() {
                                         </div>
                                         <div className="text-4xl font-bold text-zinc-100 mb-1">{totalEvents}</div>
                                         <div className="text-sm font-medium text-zinc-400 mb-4">Événements d'infrastructure</div>
-                                        
+
                                         <div className="grid grid-cols-4 gap-2 mt-4 pt-4 border-t border-white/5">
                                             <div
                                                 className="bg-red-500/10 rounded-lg p-2 text-center border border-red-500/20 cursor-pointer hover:bg-red-500/20 transition-colors"
@@ -213,12 +218,51 @@ function Dashboard() {
                                         </div>
                                     </div>
                                 </div>
-                                
+                                {/* Carte Alertes */}
+                                <div
+                                    className="device-card group bg-rose-500/5 border-rose-500/30"
+                                    onClick={() => navigate("/alerte/device")}
+                                    style={{
+                                        '--card-glow': 'radial-gradient(circle at top right, rgba(244, 63, 94, 0.08), transparent 70%)',
+                                        '--card-border-hover': 'rgba(244, 63, 94, 0.5)',
+                                        '--card-shadow': 'rgba(244, 63, 94, 0.2)'
+                                    }}
+                                >
+                                    <div className="relative z-10 flex flex-col h-full">
+                                        <div className="flex justify-between items-start mb-4">
+                                            <div className="p-3 bg-white/5 rounded-xl text-rose-400 border border-rose-500/20">
+                                                <BellRing className="w-6 h-6" />
+                                            </div>
+                                        </div>
+                                        <div className="text-4xl font-bold text-zinc-100 mb-1">{totalAlertes}</div>
+                                        <div className="text-sm font-medium text-zinc-400 mb-4">Alertes détectées (total)</div>
+
+                                        <div className="grid grid-cols-2 gap-3 mt-auto pt-4 border-t border-white/5">
+                                            <div
+                                                className="bg-rose-500/10 rounded-lg p-3 text-center border border-rose-500/20 cursor-pointer hover:bg-rose-500/20 transition-colors"
+                                                onClick={(e) => { e.stopPropagation(); navigate("/alerte/device"); }}
+                                                title="Voir les alertes actives"
+                                            >
+                                                <p className="text-[9px] text-zinc-500 uppercase">Actives</p>
+                                                <p className="text-lg font-bold text-rose-300">{alertesActives}</p>
+                                            </div>
+                                            <div
+                                                className="bg-emerald-500/10 rounded-lg p-3 text-center border border-emerald-500/20 cursor-pointer hover:bg-emerald-500/20 transition-colors"
+                                                onClick={(e) => { e.stopPropagation(); navigate("/alerte/device/resolue"); }}
+                                                title="Voir les alertes résolues"
+                                            >
+                                                <p className="text-[9px] text-zinc-500 uppercase">Résolues</p>
+                                                <p className="text-lg font-bold text-emerald-300">{alertesResolues}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
                                 {/* Carte Imprimantes */}
-                                <div 
+                                <div
                                     className="device-card group bg-amber-500/5 border-amber-500/30"
                                     onClick={() => navigate("/imprimantes")}
-                                    style={{ 
+                                    style={{
                                         '--card-glow': 'radial-gradient(circle at top right, rgba(245, 158, 11, 0.08), transparent 70%)',
                                         '--card-border-hover': 'rgba(245, 158, 11, 0.5)',
                                         '--card-shadow': 'rgba(245, 158, 11, 0.2)'
@@ -239,8 +283,10 @@ function Dashboard() {
                                         </div>
                                     </div>
                                 </div>
+
+
                             </div>
-                            
+
                         </div>
                     )}
                 </div>

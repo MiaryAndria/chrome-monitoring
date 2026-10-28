@@ -54,7 +54,7 @@ function Connexion() {
                                 className="login-input"
                                 value={nom}
                                 onChange={(e) => { setNom(e.target.value); setError(false); }}
-                                placeholder="Nom d'utilisateur"
+                                placeholder="utilisateur@gmail.com"
                                 autoComplete="username"
                             />
                         </div>
