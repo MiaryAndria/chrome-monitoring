@@ -10,7 +10,7 @@ Type=simple
 User=__RUN_USER__
 WorkingDirectory=__APP_DIR__/code
 Environment=PYTHONUNBUFFERED=1
-ExecStart=__APP_DIR__/code/venv/bin/uvicorn backend.main:app --host 0.0.0.0 --port 8000
+ExecStart=__APP_DIR__/code/venv/bin/uvicorn backend.main:app --host 127.0.0.1 --port 8000
 Restart=always
 RestartSec=5
 

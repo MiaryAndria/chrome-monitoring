@@ -1,24 +1,42 @@
-# Déploiement Ubuntu (systemd)
+# Déploiement Ubuntu (systemd + nginx)
 
-Deux services systemd, sans modification du code :
-
-- `chrome-monitoring-api` → l'API FastAPI (`uvicorn backend.main:app`, port 8000).
+- `chrome-monitoring-api` → l'API FastAPI (`uvicorn backend.main:app`, écoute sur `127.0.0.1:8000`).
 - `chrome-monitoring-synchro` → la synchro Google automatique (`python -m backend.worker`).
 
 Ils démarrent **au boot** de la machine et **redémarrent seuls** en cas de crash.
+nginx sert le front buildé et proxifie `/api/` vers l'API (même origine → pas de CORS).
 
 ## Prérequis (une seule fois sur le serveur)
 
-1. Copier le projet sur le serveur, ex. `/opt/chrome-monitoring`.
-2. Créer le venv et installer les dépendances :
+1. Récupérer le projet :
+   ```bash
+   git clone https://github.com/MiaryAndria/chrome-monitoring.git /opt/chrome-monitoring
+   ```
+2. Déposer `code/.env` et le dossier `credential/` (secrets, **non versionnés**) via SFTP.
+3. Créer le venv et installer les dépendances :
    ```bash
    cd /opt/chrome-monitoring/code
    python3 -m venv venv
    venv/bin/pip install -r ../doc/requirements.txt
    ```
-3. Configurer `code/.env` (copie de `code/.env.example`) et le dossier `credential/`.
+4. Construire le front :
+   ```bash
+   cd /opt/chrome-monitoring/code/frontend
+   npm install
+   npm run build
+   ```
 
-## Installation des services
+## nginx
+
+```bash
+sudo cp /opt/chrome-monitoring/deploy/nginx/chrome-monitoring.conf /etc/nginx/sites-available/chrome-monitoring
+sudo ln -s /etc/nginx/sites-available/chrome-monitoring /etc/nginx/sites-enabled/
+sudo rm -f /etc/nginx/sites-enabled/default
+sudo nginx -t && sudo systemctl reload nginx
+```
+> Penser à remplacer `server_name ton-domaine.com` par le domaine réel dans le fichier.
+
+## Installation des services systemd
 
 Depuis la racine du projet :
 ```bash
@@ -46,9 +64,8 @@ sudo systemctl disable chrome-monitoring-api chrome-monitoring-synchro
 
 ## À vérifier après déploiement
 
-- **Accès réseau** : l'API écoute sur `0.0.0.0:8000`. Pour l'exposer derrière un
-  nom de domaine, prévoir un **reverse proxy nginx** (et le HTTPS).
-- **CORS** : `backend/main.py` n'autorise que `http://localhost:5173`. Adapter les
-  origines autorisées à l'URL réelle du front en production.
-- **Frontend** : servir le build (`npm run build` → `dist/`) via nginx plutôt que
-  `npm run dev`.
+- **API interne** : uvicorn écoute sur `127.0.0.1:8000` ; seul nginx y accède. Ne pas
+  ouvrir le port 8000 dans le pare-feu.
+- **HTTPS** : `sudo certbot --nginx -d ton-domaine.com` puis passer `COOKIE_SECURE=true`
+  dans `code/.env` et redémarrer le service API.
+- **Secrets** : `code/.env` et `credential/` ne doivent jamais être committés.
