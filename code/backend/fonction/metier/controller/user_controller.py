@@ -15,7 +15,11 @@ router = APIRouter()
 
 @router.post("/login", response_model=UserResponse)
 def login(data: UserLogin, response: Response):
-    user = login_user(data.email, data.mdp)
+    try:
+        user = login_user(data.email, data.mdp)
+    except ValueError as erreur:
+        raise HTTPException(status_code=403, detail=str(erreur))
+
     if user is None:
         raise HTTPException(status_code=401, detail="Email ou mot de passe incorrect")
 

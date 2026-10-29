@@ -51,15 +51,23 @@ def login_user(email, mdp):
     try:
         cur = connexion.cursor()
         user = get_user_by_email(cur, email)
-        cur.close()
 
         if user is None:
+            cur.close()
             return None
 
         mot_de_passe_hache = user[3]
-
         if not verifier_password(mdp, mot_de_passe_hache):
+            cur.close()
             return None
+
+        id_statut_supprime = _id_statut(cur, NOM_STATUT_SUPPRIMER)
+        archive = get_user_archived(cur, user[0], id_statut_supprime)
+        cur.close()
+
+        if archive is not None:
+            raise ValueError("Ce compte a été supprimé")
+
         return user
     finally:
         close_connection(connexion)
@@ -143,13 +151,11 @@ def update_role(id_user, id_role):
             raise ValueError("Rôle inconnu")
 
         user = set_user_role(cur, id_user, id_role)
-        _id_statut_modifier = _id_statut(cur,NOM_STATUT_MODIFIER)
-        user_id = user[0]
-        insert_user_statut(cur,user_id,_id_statut_modifier)
         if user is None:
             cur.close()
             raise ValueError("Utilisateur introuvable")
 
+        insert_user_statut(cur, user[0], _id_statut(cur, NOM_STATUT_MODIFIER))
         connexion.commit()
         cur.close()
         return {"id": user[0], "nom": user[1], "email": user[2], "id_role": user[3]}

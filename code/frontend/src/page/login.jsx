@@ -8,7 +8,7 @@ import '../css/login.css';
 function Connexion() {
     const [password, setPassword] = useState('');
     const [nom, setNom] = useState('');
-    const [error, setError] = useState(false);
+    const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
 
     const navigate = useNavigate();
@@ -22,7 +22,7 @@ function Connexion() {
             navigate('/dashboard', { replace: true });
         } catch (e) {
             console.log(e);
-            setError(true);
+            setError(e.response?.data?.detail || "Identifiant ou mot de passe incorrect.");
         } finally {
             setLoading(false);
         }
@@ -53,7 +53,7 @@ function Connexion() {
                                 type="text"
                                 className="login-input"
                                 value={nom}
-                                onChange={(e) => { setNom(e.target.value); setError(false); }}
+                                onChange={(e) => { setNom(e.target.value); setError(''); }}
                                 placeholder="utilisateur@gmail.com"
                                 autoComplete="username"
                             />
@@ -68,7 +68,7 @@ function Connexion() {
                                 type="password"
                                 className="login-input"
                                 value={password}
-                                onChange={(e) => { setPassword(e.target.value); setError(false); }}
+                                onChange={(e) => { setPassword(e.target.value); setError(''); }}
                                 placeholder="••••••••"
                                 autoComplete="current-password"
                             />
@@ -77,7 +77,7 @@ function Connexion() {
 
                     {error && (
                         <div className="text-xs text-red-400 bg-red-500/10 border border-red-500/30 p-2.5 rounded-lg text-center">
-                            Identifiant ou mot de passe incorrect.
+                            {error}
                         </div>
                     )}
 
