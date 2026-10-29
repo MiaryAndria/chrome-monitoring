@@ -275,11 +275,24 @@
 CREATE DATABASE gt;
 \c gt
 
+CREATE TABLE t_role (
+    id SERIAL PRIMARY KEY,
+    role VARCHAR(255)UNIQUE NOT NULL
+);
+
 CREATE TABLE t_user (
     id SERIAL PRIMARY KEY ,
     nom VARCHAR(255) NOT NULL,
     email VARCHAR(255) UNIQUE NOT NULL,
-    mdp VARCHAR(255) NOT NULL
+    mdp VARCHAR(255) NOT NULL,
+    id_role INT NOT NULL REFERENCES t_role(id)
+);
+
+CREATE TABLE t_user_statut(
+    id SERIAL PRIMARY KEY ,
+    id_user INT NOT NULL REFERENCES t_user(id),
+    id_statut INT NOT NULL REFERENCES t_statut(id),
+    date TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE t_filiale (

@@ -85,6 +85,17 @@ function Connexion() {
                         {loading ? 'Connexion en cours…' : 'Se connecter'}
                     </button>
                 </form>
+
+                <p className="text-xs text-zinc-400 text-center mt-6">
+                    Pas encore de compte ?{' '}
+                    <button
+                        type="button"
+                        onClick={() => navigate('/register')}
+                        className="text-cyan-400 hover:text-cyan-300 font-medium cursor-pointer"
+                    >
+                        Créer un compte
+                    </button>
+                </p>
             </div>
         </div>
     );

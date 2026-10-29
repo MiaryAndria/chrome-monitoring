@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Server, Laptop, Bell, BellRing, Printer, Zap, Cpu, Monitor } from 'lucide-react';
+import { useLocation, useNavigate } from "react-router-dom";
+import { Server, Laptop, Bell, BellRing, Printer, Zap, Cpu, Monitor, CheckCircle2, X } from 'lucide-react';
 import Navbar from "../components/Navbar";
 import MouseSpotlight from "../components/MouseSpotlight";
 import { getDashboardSummary, getStatusStyle } from "../fonction/deviceFonction";
@@ -10,8 +10,10 @@ import '../css/filiale.css';
 
 function Dashboard() {
     const navigate = useNavigate();
+    const location = useLocation();
     const [loading, setLoading] = useState(false);
     const [summary, setSummary] = useState(null);
+    const [showWelcome, setShowWelcome] = useState(Boolean(location.state?.welcome));
 
     const fetchData = async () => {
         try {
@@ -28,6 +30,12 @@ function Dashboard() {
     useEffect(() => {
         fetchData();
     }, []);
+
+    useEffect(() => {
+        if (!location.state?.welcome) return;
+        const timer = setTimeout(() => setShowWelcome(false), 8000);
+        return () => clearTimeout(timer);
+    }, [location.state]);
 
     const stats = {
         total: summary?.nb_total_appareils || 0,
@@ -75,6 +83,24 @@ function Dashboard() {
                             </p>
                         </div>
                     </div>
+
+                    {showWelcome && (
+                        <div className="flex items-start justify-between gap-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
+                            <div className="flex items-center gap-2">
+                                <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+                                <span>
+                                    Compte créé avec succès. Bienvenue ! Votre accès par défaut est en <strong>lecture seule</strong>.
+                                </span>
+                            </div>
+                            <button
+                                onClick={() => setShowWelcome(false)}
+                                className="text-emerald-300 hover:text-emerald-100 transition-colors"
+                                title="Fermer"
+                            >
+                                <X className="w-4 h-4" />
+                            </button>
+                        </div>
+                    )}
 
                     {loading ? (
                         <DashboardSkeleton />

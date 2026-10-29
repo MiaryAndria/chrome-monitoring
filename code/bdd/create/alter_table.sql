@@ -1,4 +1,5 @@
 ALTER TABLE t_user ADD COLUMN vrai_mdp VARCHAR(255)NOT NULL;
+ALTER TABLE t_user ADD COLUMN id_role INT NOT NULL  REFERENCES t_role(id);
 ALTER TABLE t_utilisateur DROP COLUMN google_customer_id ;
 ALTER TABLE t_device ADD COLUMN mac_adress VARCHAR(255)NOT NULL;
 ALTER TABLE t_device ADD COLUMN ip_adress VARCHAR(255) NOT NULL; 

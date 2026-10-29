@@ -132,6 +132,27 @@ def get_configuration_by_id(cur, id):
     return cur.fetchone()
 
 
+def get_valeur_configuration(cur, type_):
+    cur.execute(
+        """
+        SELECT c.valeur
+        FROM t_configuration c
+        WHERE c.type = %s
+          AND (
+              SELECT cs.id_statut
+              FROM t_configuration_statut cs
+              WHERE cs.id_configuration = c.id
+              ORDER BY cs.date DESC, cs.id DESC
+              LIMIT 1
+          ) <> 14
+        ORDER BY c.id DESC
+        LIMIT 1
+        """,
+        (type_,),
+    )
+    return cur.fetchone()
+
+
 def insert_configuration(cur, type_, valeur, date=None):
     date_value = date or datetime.utcnow()
     cur.execute(

@@ -17,6 +17,7 @@ from backend.fonction.metier.repository.synchronisation import (
 
 logger = logging.getLogger(__name__)
 TZ_LOCAL = timezone(timedelta(hours=3))
+# TZ_LOCAL = get_configuration
 INTERVALLE_SECONDE = 2*60       # une synchro toutes les 1
 MARGE_72h = timedelta(hours=72)           # chevauchement pour les événements tardifs
 PREMIERE_SYNCHRO = timedelta(days=90)
@@ -26,6 +27,13 @@ _verrou = threading.Lock()           # empêche deux synchros en même temps
 _arret = threading.Event()           # pour arrêter proprement la boucle
 _thread = None
 
+
+# get_configuration(mots_clé):
+#     try:
+#         configuration = get_configuration_by_mots_clé()
+#         return configuration[2]
+#     finally:
+#         close_connection(connexion)
         
 def _changer_statut(conn, cur, id_sync, nom_statut):
     id_statut = get_or_create_statut(cur, nom_statut)

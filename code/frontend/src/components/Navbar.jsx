@@ -2,10 +2,10 @@ import { useState, useEffect } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
     Activity, Building2, Laptop, Printer, Bell, BarChart3,
-    Settings, ChevronDown, RotateCcw, RefreshCw, LogOut, Gauge,Copy,Check
+    Settings, ChevronDown, RotateCcw, RefreshCw, LogOut, Gauge,Copy,Check, Users
 } from 'lucide-react';
 import { resetData } from '../fonction/importResetFonction';
-import { Logout } from "../fonction/userFonction";
+import { Logout, GetMe } from "../fonction/userFonction";
 import { getNombreAlerte, getDixPremierAlerte } from '../fonction/alerteFonction';
 
 export default function Navbar() {
@@ -16,12 +16,14 @@ export default function Navbar() {
     const [deviceOpen, setDeviceOpen] = useState(false);
     const [compareOpen, setCompareOpen] = useState(false);
     const [seuilOpen, setSeuilOpen] = useState(false);
+    const [utilisateurOpen, setUtilisateurOpen] = useState(false);
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState('');
     const [alerteOpen, setAlerteOpen] = useState(false);
     const [alerteCount, setAlerteCount] = useState(0);
     const [alertes, setAlertes] = useState([]);
     const [copiedSN, setCopiedSN] = useState(null);
+    const [isAdmin, setIsAdmin] = useState(false);
 
     // useEffect(() => {
     //     const storedTheme = localStorage.getItem('theme');
@@ -43,6 +45,7 @@ export default function Navbar() {
                 setAlerteOpen(false);
                 setCompareOpen(false); // ← ajout
                 setSeuilOpen(false);
+                setUtilisateurOpen(false);
             }
         };
         document.addEventListener('click', handleClickOutside);
@@ -54,6 +57,12 @@ export default function Navbar() {
         charger();
         const timer = setInterval(charger, 60000);   // toutes les 60 s
         return () => clearInterval(timer);
+    }, []);
+
+    useEffect(() => {
+        GetMe()
+            .then((u) => setIsAdmin(u?.id_role === 1))
+            .catch(() => setIsAdmin(false));
     }, []);
 
     // const applyTheme = (theme) => {
@@ -111,6 +120,11 @@ export default function Navbar() {
         { path: '/liste/event', label: 'Événements', icon: Bell },
     ];
 
+    const utilisateurItems = [
+        { path: '/liste/utilisateur', label: 'Liste utilisateur' },
+        { path: '/liste/utilisateur/archive', label: 'Archive utilisateur' },
+    ];
+
     const deviceItems = [
         { path: '/liste/device', label: 'Devices', icon: Laptop },
         { path: '/imprimantes', label: 'Imprimantes', icon: Printer },
@@ -142,6 +156,8 @@ export default function Navbar() {
     const configActive = configPaths.some((p) => location.pathname.startsWith(p));
     const deviceActive = devicePaths.some((d) => location.pathname.startsWith(d));
     const seuilActive = seuilPaths.some((s) => location.pathname.startsWith(s));
+    const utilisateurPaths = ['/liste/utilisateur', '/liste/utilisateur/archive'];
+    const utilisateurActive = utilisateurPaths.some((u) => location.pathname.startsWith(u));
 
     return (
         <>
@@ -198,67 +214,99 @@ export default function Navbar() {
                         )}
                     </div>
 
-                    {/* Dropdown Configuration */}
-                    <div className="relative">
-                        <button
-                            onClick={() => setConfigOpen(v => !v)}
-                            className={`topnav-link ${configActive ? 'topnav-link-active' : ''}`}
-                        >
-                            <Settings className="w-4 h-4" />
-                            <span>Configuration</span>
-                            <ChevronDown className="w-3 h-3" />
-                        </button>
-                        {configOpen && (
-                            <div className="config-dropdown">
-                                {configItems.map((item) => (
-                                    <NavLink
-                                        key={item.path}
-                                        to={item.path}
-                                        onClick={() => setConfigOpen(false)}
-                                        className="config-dropdown-item"
-                                    >
-                                        {item.label}
-                                    </NavLink>
-                                ))}
+                    {/* Dropdown Configuration (admin uniquement) */}
+                    {isAdmin && (
+                        <div className="relative">
+                            <button
+                                onClick={() => setConfigOpen(v => !v)}
+                                className={`topnav-link ${configActive ? 'topnav-link-active' : ''}`}
+                            >
+                                <Settings className="w-4 h-4" />
+                                <span>Configuration</span>
+                                <ChevronDown className="w-3 h-3" />
+                            </button>
+                            {configOpen && (
+                                <div className="config-dropdown">
+                                    {configItems.map((item) => (
+                                        <NavLink
+                                            key={item.path}
+                                            to={item.path}
+                                            onClick={() => setConfigOpen(false)}
+                                            className="config-dropdown-item"
+                                        >
+                                            {item.label}
+                                        </NavLink>
+                                    ))}
 
-                                <div className="config-dropdown-divider" />
-                                <button
-                                    onClick={() => { setConfigOpen(false); resetAll(); }}
-                                    disabled={loading}
-                                    className="config-dropdown-item config-dropdown-danger"
-                                >
-                                    <RotateCcw className="w-4 h-4" />
-                                    Réinitialiser données
-                                </button>
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Dropdown Seuil */}
-                    <div className="relative">
-                        <button
-                            onClick={() => setSeuilOpen(v => !v)}
-                            className={`topnav-link ${seuilActive ? 'topnav-link-active' : ''}`}
-                        >
-                            <Gauge className="w-4 h-4" />
-                            <span>Seuil</span>
-                            <ChevronDown className="w-3 h-3" />
-                        </button>
-                        {seuilOpen && (
-                            <div className="config-dropdown">
-                                {seuilItems.map((item) => (
-                                    <NavLink
-                                        key={item.path}
-                                        to={item.path}
-                                        onClick={() => setSeuilOpen(false)}
-                                        className="config-dropdown-item"
+                                    <div className="config-dropdown-divider" />
+                                    <button
+                                        onClick={() => { setConfigOpen(false); resetAll(); }}
+                                        disabled={loading}
+                                        className="config-dropdown-item config-dropdown-danger"
                                     >
-                                        {item.label}
-                                    </NavLink>
-                                ))}
-                            </div>
-                        )}
-                    </div>
+                                        <RotateCcw className="w-4 h-4" />
+                                        Réinitialiser données
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Dropdown Seuil (admin uniquement) */}
+                    {isAdmin && (
+                        <div className="relative">
+                            <button
+                                onClick={() => setSeuilOpen(v => !v)}
+                                className={`topnav-link ${seuilActive ? 'topnav-link-active' : ''}`}
+                            >
+                                <Gauge className="w-4 h-4" />
+                                <span>Seuil</span>
+                                <ChevronDown className="w-3 h-3" />
+                            </button>
+                            {seuilOpen && (
+                                <div className="config-dropdown">
+                                    {seuilItems.map((item) => (
+                                        <NavLink
+                                            key={item.path}
+                                            to={item.path}
+                                            onClick={() => setSeuilOpen(false)}
+                                            className="config-dropdown-item"
+                                        >
+                                            {item.label}
+                                        </NavLink>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Dropdown Utilisateurs (admin uniquement) */}
+                    {isAdmin && (
+                        <div className="relative">
+                            <button
+                                onClick={() => setUtilisateurOpen(v => !v)}
+                                className={`topnav-link ${utilisateurActive ? 'topnav-link-active' : ''}`}
+                            >
+                                <Users className="w-4 h-4" />
+                                <span>Utilisateurs</span>
+                                <ChevronDown className="w-3 h-3" />
+                            </button>
+                            {utilisateurOpen && (
+                                <div className="config-dropdown">
+                                    {utilisateurItems.map((item) => (
+                                        <NavLink
+                                            key={item.path}
+                                            to={item.path}
+                                            onClick={() => setUtilisateurOpen(false)}
+                                            className="config-dropdown-item"
+                                        >
+                                            {item.label}
+                                        </NavLink>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
 
                     {/* Dropdown Comparaison */}
                     <div className="relative">

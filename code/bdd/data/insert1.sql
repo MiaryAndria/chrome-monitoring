@@ -12,3 +12,6 @@ SELECT DISTINCT i.vendor
 FROM t_imprimante i
 WHERE i.vendor IS NOT NULL AND i.vendor <> ''
   AND NOT EXISTS (SELECT 1 FROM t_vendor v WHERE v.vendor = i.vendor);
+
+INSERT INTO t_role(role)VALUES('admin'),('lecture');
+INSERT INTO t_user(id_role)VALUES(1);
