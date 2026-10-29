@@ -66,3 +66,20 @@ Thumbs.db
 output/
 code/output/
 **/output/
+
+# =========================
+# Notes, documentation interne & rapports (NON versionnés)
+# =========================
+# Documents Markdown (on garde les README)
+*.md
+!README.md
+
+# Notes et rapports texte (on garde requirements.txt)
+*.txt
+!requirements.txt
+
+# Rapports d'export / import générés
+export/
+
+# Identifiants serveur — NE DOIT JAMAIS être versionné
+deploy/information.txt

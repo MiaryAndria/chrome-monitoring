@@ -1,1 +1,0 @@
-ESLint plus rapide avec beaucoup de plugin 
