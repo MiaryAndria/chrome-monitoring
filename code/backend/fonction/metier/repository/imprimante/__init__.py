@@ -1,5 +1,4 @@
 from .imprimante import (
-    get_imprimante_by_vid,
     insert_imprimante,
     get_liste_imprimante,
     get_liste_vendor,
@@ -11,8 +10,6 @@ from .imprimante import (
 from .imprimante_device import (
     insert_imprimante_device,
     get_devices_by_imprimante,
-    get_liste_imprimante_device_by_id_device_id_imprimante,
-    get_imprimante_device_by_id_imprimante,
     get_devices_by_imprimante
 )   
 

@@ -1,11 +1,3 @@
-def get_liste_utilisateur(cur):
-
-    cur.execute("""
-        SELECT * FROM t_utilisateur
-    """)
-
-    result = cur.fetchall()
-    return result
 
 
 def get_utilisateur_by_id(cur, id):

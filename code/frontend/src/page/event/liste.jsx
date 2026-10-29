@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { useSearchParams } from "react-router-dom";
 import {
     Bell, Search, Monitor,
@@ -43,6 +44,15 @@ function ListeEvent() {
     const [pageSize, setPageSize] = useState(10);
     const [viewMode, setViewMode] = useState('grid');
     const [openEventId, setOpenEventId] = useState(null);
+
+    // Bloque le défilement de la zone scrollable tant que le modal est ouvert
+    useEffect(() => {
+        if (!selectedExplanation) return;
+        const cible = document.querySelector('.device-layout .overflow-y-auto') || document.documentElement;
+        const precedent = cible.style.overflow;
+        cible.style.overflow = 'hidden';
+        return () => { cible.style.overflow = precedent; };
+    }, [selectedExplanation]);
 
     const {
         items: evenements,
@@ -306,8 +316,8 @@ function ListeEvent() {
                     )}
 
                     {/* Modal d'explication */}
-                    {selectedExplanation && (
-                        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+                    {selectedExplanation && createPortal(
+                        <div className="modal-overlay"
                             style={{ animation: "fadeIn 200ms ease-out" }}
                             onClick={() => setSelectedExplanation(null)}>
                             <div
@@ -350,7 +360,8 @@ function ListeEvent() {
                                     )}
                                 </div>
                             </div>
-                        </div>
+                        </div>,
+                        document.body
                     )}
 
                     {loading && evenements.length > 0 && (

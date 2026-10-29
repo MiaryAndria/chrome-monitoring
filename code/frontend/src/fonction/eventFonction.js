@@ -20,11 +20,6 @@ export const getDureeVieEvenement = async (eventId) => {
     }
 };
 
-export const getListeEvenement = async () => {
-    const data = await getEvenements({ page: 1, page_size: 10000 });
-    return data?.items ?? [];
-};
-
 export const getListeTypeEvenement = async()=>{
     try{
         const response = await api_service.get('evenement/liste/type');

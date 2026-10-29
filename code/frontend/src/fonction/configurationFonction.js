@@ -1,14 +1,5 @@
 import api_service from "../api/api_service";
 
-export const getListeConfiguration = async () => {
-    try {
-        return await api_service.get('configuration/liste');
-    } catch (e) {
-        console.log(e);
-        return { data: [] };
-    }
-};
-
 export const getListeConfigurationPage = async (params = {}) => {
     try {
         const response = await api_service.get('configuration/liste/page', { params });
@@ -58,15 +49,6 @@ export const deleteConfiguration = async (id) => {
     } catch (e) {
         console.log(e);
         return null;
-    }
-};
-
-export const getListeArchiver = async () => {
-    try {
-        return await api_service.get('configuration/liste/archiver');
-    } catch (e) {
-        console.log(e);
-        return { data: [] };
     }
 };
 

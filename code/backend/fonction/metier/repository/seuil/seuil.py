@@ -146,14 +146,6 @@ def get_seuil_by_id(cur, id_seuil):
     return cur.fetchone()
 
 
-def get_seuil_by_cle(cur, cle):
-    cur.execute(
-        "SELECT id, cle, valeur FROM t_seuil WHERE cle = %s",
-        (cle,),
-    )
-    return cur.fetchone()
-
-
 def insert_seuil(cur, cle, valeur):
     cur.execute(
         """

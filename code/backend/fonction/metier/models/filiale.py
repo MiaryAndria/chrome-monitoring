@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List
 from pydantic import BaseModel
 
 class Filiale(BaseModel):
@@ -14,8 +14,3 @@ class FilialePageResponse(BaseModel):
     page: int
     page_size: int
     total_pages: int
-
-# class FilialeWithDevicesResponse(BaseModel):
-#     id: int
-#     org_unit_path: str
-#     nombre_devices: Optional[int] = 0

@@ -1,14 +1,5 @@
 import api_service from "../api/api_service";
 
-export const getListeComparaison = async () => {
-    try {
-        return await api_service.post('comparaison/liste');
-    } catch (e) {
-        console.log(e);
-        return null;
-    }
-};
-
 export const effectuerComparaisonSimple = async(id1,id2)=>{
     try{
         return await api_service.post('comparaison/simple',{

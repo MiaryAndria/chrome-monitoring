@@ -10,11 +10,6 @@ export const getImprimantes = async (params = {}) => {
     }
 };
 
-export const getListeImprimante = async () => {
-    const data = await getImprimantes({ page: 1, page_size: 10000 });
-    return data?.items ?? [];
-};
-
 export const getVendors = async () => {
     try {
         const response = await api_service.get('/imprimante/vendors');

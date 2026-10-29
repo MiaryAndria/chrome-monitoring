@@ -13,9 +13,6 @@ def get_liste_statut(cur):
     )
     return cur.fetchall()
 
-def get_statut_by_id(cur, id):
-    cur.execute("SELECT * FROM t_statut WHERE id = %s;", (id,))
-    return cur.fetchone()
 
 def get_statut_by_name(cur, nom):
     cur.execute("SELECT * FROM t_statut WHERE nom = %s;", (nom,))
@@ -45,19 +42,6 @@ def insert_device_statut(cur, id_device, id_statut):
         (id_device, id_statut)
     )
 
-
-# def get_statut_stat_device(cur):
-#     cur.execute(
-#         """
-#         SELECT *
-#         FROM t_statut
-#         WHERE nom IN ('ACTIVE', 'DELINQUENT', 'DISABLED', 'DEPROVISIONED')
-#         """
-#     )
-#     result = cur.fetchall()
-#     return result
-
-
 def get_status_actuel_device(cur, id_device):
     cur.execute(
         """
@@ -73,6 +57,3 @@ def get_status_actuel_device(cur, id_device):
     result = cur.fetchone()
     return result[0] if result else "UNKNOWN"
 
-def get_statut_id_by_nom(cur, nom):
-    cur.execute("SELECT id FROM t_statut WHERE nom = %s", (nom,))
-    return cur.fetchone()[0]

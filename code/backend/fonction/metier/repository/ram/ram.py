@@ -91,27 +91,3 @@ def get_ram_device_date(cur, id_device, date_debut, date_fin):
     ]
 
 
-def get_ram_device_one_date(cur, id_device, date):
-    """
-    Relevés RAM bruts (date, octets utilisés) d'un device
-    pour une date donnée.
-    """
-    cur.execute(
-        """
-        SELECT date, ram_utiliser
-        FROM t_device_ram
-        WHERE id_device = %s
-          AND date = %s
-        """,
-        (id_device, date)
-    )
-
-    rows = cur.fetchall()
-
-    return [
-        {
-            "date": row[0],
-            "valeur": int(row[1]) if row[1] is not None else 0
-        }
-        for row in rows
-    ]

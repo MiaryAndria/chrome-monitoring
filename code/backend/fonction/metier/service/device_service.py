@@ -6,8 +6,9 @@ from backend.fonction.metier.repository.devices import (
     get_liste_modele,
     recherche_multicritere,
     find_devices_paginated,
+    _get_recent_users,
 )
-from backend.utils.builder import _build_device_response
+from backend.utils.builder import _build_device_response, _serialize_device_row
 from backend.utils.format_valeur import format_bytes, format_frequency
 from backend.utils.pagination import build_page
 from backend.core.cache import cache_get, cache_set
@@ -58,53 +59,6 @@ def getDeviceFiltered(recherche):
         close_connection(connexion)
 
 
-def _serialize_device_row(row):
-    ram_total = row.get("ram_total")
-    disk_total = row.get("disk_total")
-    disk_free = row.get("disk_free")
-    disk_used = row.get("disk_used")
-
-    if disk_free is None and disk_total is not None and disk_used is not None:
-        disk_free = max(disk_total - disk_used, 0)
-    if disk_used is None and disk_total is not None and disk_free is not None:
-        disk_used = max(disk_total - disk_free, 0)
-
-    date_creation = row.get("date")
-
-    return {
-        "id": row.get("id"),
-        "id_device": row.get("device_id"),
-        "serial_number": row.get("serial_number"),
-        "modele": row.get("modele"),
-        "id_type_appareil": row.get("id_type_appareil"),
-        "type_appareil": row.get("type_appareil"),
-        "chromeos_version": row.get("chromeos_version"),
-        "chrome_version": row.get("chrome_version"),
-        "mac_adress": row.get("mac_adress"),
-        "ip_adress": row.get("ip_adress"),
-        "date": str(date_creation) if date_creation else None,
-        "ram_total": ram_total,
-        "ram_total_label": format_bytes(ram_total),
-        "disk_total": disk_total,
-        "disk_total_label": format_bytes(disk_total),
-        "disk_free": disk_free,
-        "disk_free_label": format_bytes(disk_free),
-        "disk_used": disk_used,
-        "disk_used_label": format_bytes(disk_used),
-        "disk_model": row.get("disk_model"),
-        "disk_type": row.get("disk_type"),
-        "cpu_model": row.get("cpu_model"),
-        "cpu_freq_max": row.get("cpu_freq_max"),
-        "cpu_freq_max_label": format_frequency(row.get("cpu_freq_max")),
-        "cpu_architecture": row.get("cpu_architecture"),
-        "id_utilisateur": row.get("id_utilisateur"),
-        "status": row.get("status") or "UNKNOWN",
-        "utilisateur_email": row.get("utilisateur_email") or "N/A",
-        "utilisateurs_recents": row.get("utilisateurs_recents") or [],
-        "filiale": row.get("filiale"),
-    }
-
-
 def _fetch_devices_page(page=1, page_size=10, id_filiale=None, filiale=None,
                         statut=None, type_appareil=None, recherche=None,
                         datetime_from=None, datetime_to=None,modele=None):
@@ -118,7 +72,11 @@ def _fetch_devices_page(page=1, page_size=10, id_filiale=None, filiale=None,
             statut, type_appareil, recherche, datetime_from, datetime_to,modele
         )
         total = rows[0]["total"] if rows else 0
-        items = [_serialize_device_row(row) for row in rows]
+        items = []
+        for row in rows:
+            item = _serialize_device_row(row)
+            item["utilisateurs_recents"] = _get_recent_users(cur, item["id"])
+            items.append(item)
         cur.close()
         return build_page(items, total, page, page_size)
     finally:

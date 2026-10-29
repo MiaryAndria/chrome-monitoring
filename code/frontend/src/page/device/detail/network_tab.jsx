@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Wifi } from 'lucide-react';
+import { Download, Wifi } from 'lucide-react';
 import { extractNetworkSummary } from '../../../fonction/deviceFonction';
 import { formatDate, exportPdf, exportExcel } from '../../../fonction/utils/util';
 import ExportModal from '../../../components/ExportModal';
@@ -49,7 +49,7 @@ function NetworkTab({ reports, deviceId }) {
                 </div>
             </div>
 
-            <button className="device-detail-btn" onClick={() => setModal(v => !v)}>Exporter</button>
+            <button className="device-detail-btn" onClick={() => setModal(v => !v)}><Download className="w-4 h-4" /> Exporter</button>
 
             <ExportModal
                 open={modal}

@@ -1,71 +1,9 @@
-def get_liste_evenement_device(cur):
-    cur.execute(
-        """
-        SELECT * FROM t_evenement_device
-        """
-    )
-    result = cur.fetchall()
-    return result
 
 def get_evenement_by_id(cur,id):
     cur.execute(
         """
         SELECT * FROM t_evenement_device WHERE id = %s
         """,(id,)
-    )
-    result = cur.fetchone()
-    return result
-
-def get_evenements_by_device(cur,id_device):
-    cur.execute(
-        """
-        SELECT * FROM t_evenement_device WHERE id_device = %s
-        ORDER BY date_evenement DESC
-        """,(id_device,)
-    )
-    result = cur.fetchall()
-    return result
-
-def get_evenements_by_type(cur,id_type_evenement):
-    cur.execute(
-        """
-        SELECT * FROM t_evenement_device WHERE id_type_evenement = %s
-        ORDER BY date_evenement DESC
-        """,(id_type_evenement,)
-    )
-    result = cur.fetchall()
-    return result
-
-def get_evenements_by_period(cur,date_debut,date_fin):
-    cur.execute(
-        """
-        SELECT * FROM t_evenement_device
-        WHERE date_evenement BETWEEN %s AND %s
-        ORDER BY date_evenement DESC
-        """,(date_debut,date_fin,)
-    )
-    result = cur.fetchall()
-    return result
-
-def get_evenements_device_by_period(cur,id_device,date_debut,date_fin):
-    cur.execute(
-        """
-        SELECT * FROM t_evenement_device
-        WHERE id_device = %s AND date_evenement BETWEEN %s AND %s
-        ORDER BY date_evenement DESC
-        """,(id_device,date_debut,date_fin,)
-    )
-    result = cur.fetchall()
-    return result
-
-def get_dernier_evenement_device(cur,id_device):
-    cur.execute(
-        """
-        SELECT * FROM t_evenement_device
-        WHERE id_device = %s
-        ORDER BY date_evenement DESC
-        LIMIT 1
-        """,(id_device,)
     )
     result = cur.fetchone()
     return result
@@ -82,66 +20,6 @@ def get_last_event_date(cur, id_device):
     )
     row = cur.fetchone()
     return row[0] if row else None
-
-def get_nombre_evenement(cur):
-    cur.execute(
-        """
-        SELECT COUNT(*) FROM t_evenement_device
-        """
-    )
-    result = cur.fetchone()
-    return result
-
-def get_nombre_evenement_device(cur,id_device):
-    cur.execute(
-        """
-        SELECT COUNT(*) FROM t_evenement_device WHERE id_device = %s
-        """,(id_device,)
-    )
-    result = cur.fetchone()
-    return result
-
-def get_nombre_evenement_type(cur,id_type_evenement):
-    cur.execute(
-        """
-        SELECT COUNT(*) FROM t_evenement_device WHERE id_type_evenement = %s
-        """,(id_type_evenement,)
-    )
-    result = cur.fetchone()
-    return result
-
-def get_evenements_by_device_and_type(cur,id_device,id_type_evenement):
-    cur.execute(
-        """
-        SELECT * FROM t_evenement_device
-        WHERE id_device = %s AND id_type_evenement = %s
-        ORDER BY date_evenement DESC
-        """,(id_device,id_type_evenement,)
-    )
-    result = cur.fetchall()
-    return result
-
-def get_evenements_by_device_type_and_period(cur,id_device,id_type_evenement,date_debut,date_fin):
-    cur.execute(
-        """
-        SELECT * FROM t_evenement_device
-        WHERE id_device = %s AND id_type_evenement = %s AND date_evenement BETWEEN %s AND %s
-        ORDER BY date_evenement DESC
-        """,(id_device,id_type_evenement,date_debut,date_fin,)
-    )
-    result = cur.fetchall()
-    return result
-
-def get_evenements_by_type_and_period(cur,id_type_evenement,date_debut,date_fin):
-    cur.execute(
-        """
-        SELECT * FROM t_evenement_device
-        WHERE id_type_evenement = %s AND date_evenement BETWEEN %s AND %s
-        ORDER BY date_evenement DESC
-        """,(id_type_evenement,date_debut,date_fin,)
-    )
-    result = cur.fetchall()
-    return result
 
 def create_evenement_device(cur,id_device,id_type_evenement,date_evenement,details):
     cur.execute(
@@ -185,7 +63,7 @@ def _rows_to_dicts(cur):
 
 def _build_evenement_filter_clause(type_evenement=None, id_filiale=None,
                                    filiale=None, recherche=None,
-                                   datetime_from=None, datetime_to=None):
+                                   datetime_from=None, datetime_to=None,id_device=None):
     clauses = []
     params = []
 
@@ -207,15 +85,17 @@ def _build_evenement_filter_clause(type_evenement=None, id_filiale=None,
     if datetime_to is not None:
         clauses.append("date_evenement <= %s")
         params.append(datetime_to)
+    if id_device is not None:
+        clauses.append("id_device = %s"); params.append(id_device)
 
     return clauses, params
 
 
 def find_evenements_paginated(cur, page=1, page_size=10, type_evenement=None,
                               id_filiale=None, filiale=None, recherche=None,
-                              datetime_from=None, datetime_to=None):
+                              datetime_from=None, datetime_to=None,id_device=None):
     clauses, params = _build_evenement_filter_clause(
-        type_evenement, id_filiale, filiale, recherche, datetime_from, datetime_to
+        type_evenement, id_filiale, filiale, recherche, datetime_from, datetime_to,id_device
     )
     where = "WHERE " + " AND ".join(clauses) if clauses else ""
     offset = (page - 1) * page_size

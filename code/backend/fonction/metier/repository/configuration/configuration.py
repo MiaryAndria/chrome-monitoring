@@ -132,50 +132,6 @@ def get_configuration_by_id(cur, id):
     return cur.fetchone()
 
 
-def get_historique_by_type(cur, type_):
-    cur.execute(
-        "SELECT * FROM t_configuration WHERE type = %s ORDER BY id DESC",
-        (type_,),
-    )
-    return cur.fetchall()
-
-
-def get_valeur_configuration(cur, type_):
-    cur.execute(
-        """
-        SELECT c.valeur
-        FROM t_configuration c
-        WHERE c.type = %s
-          AND (
-              SELECT cs.id_statut
-              FROM t_configuration_statut cs
-              WHERE cs.id_configuration = c.id
-              ORDER BY cs.date DESC, cs.id DESC
-              LIMIT 1
-          ) <> 14
-        ORDER BY c.id DESC
-        LIMIT 1
-        """,
-        (type_,),
-    )
-    return cur.fetchone()
-
-
-def get_dernier_statut(cur, id_configuration):
-    cur.execute(
-        """
-        SELECT id_statut
-        FROM t_configuration_statut
-        WHERE id_configuration = %s
-        ORDER BY date DESC, id DESC
-        LIMIT 1
-        """,
-        (id_configuration,),
-    )
-    result = cur.fetchone()
-    return result[0] if result else None
-
-
 def insert_configuration(cur, type_, valeur, date=None):
     date_value = date or datetime.utcnow()
     cur.execute(

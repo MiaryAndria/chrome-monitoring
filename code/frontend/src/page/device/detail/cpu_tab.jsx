@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import ScrollableChart from '../../../styles/utils/ScrollableChart';
-import { Gauge, Thermometer, TrendingUp } from 'lucide-react';
+import { Download, Gauge, Thermometer, TrendingUp } from 'lucide-react';
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid,
     Tooltip as RechartsTooltip, ResponsiveContainer
@@ -215,7 +215,7 @@ function CpuTab({ reports, deviceId, datetimeFrom, datetimeTo }) {
                 </div>
             )}
 
-            <button className="device-detail-btn" onClick={() => setModal(v => !v)}>Exporter</button>
+            <button className="device-detail-btn" onClick={() => setModal(v => !v)}><Download className="w-4 h-4" /> Exporter</button>
 
             <ExportModal
                 open={modal}

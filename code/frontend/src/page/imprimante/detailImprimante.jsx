@@ -7,7 +7,7 @@ import EmptyState from "../../components/EmptyState";
 import Skeleton from "../../components/Skeleton";
 import TableSkeleton from "../../components/skeletons/TableSkeleton";
 import { getImprimanteDetail } from "../../fonction/imprimanteFonction";
-import { formatDate , exportPdf, exportExcel} from "../../fonction/utils/util";
+import { formatDate, exportPdf, exportExcel } from "../../fonction/utils/util";
 import '../../css/liste.css';
 import ExportModal from '../../components/ExportModal';
 
@@ -88,12 +88,6 @@ function DetailImprimante() {
             titleIcon={Printer}
             contentClassName="space-y-8"
         >
-            <button
-                onClick={() => setModal(true)}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl border border-cyan-500/40 bg-cyan-500/10 text-cyan-200 text-sm font-semibold hover:bg-cyan-500/20 transition-colors"
-            >
-                <Download className="w-4 h-4" /> Exporter
-            </button>
 
             {/* Infos générales */}
             <div className="glass-panel rounded-2xl p-6 grid grid-cols-2 md:grid-cols-4 gap-6">
@@ -147,6 +141,14 @@ function DetailImprimante() {
                 ) : (
                     <GenericTable columns={userColumns} data={users} />
                 )}
+
+                <button
+                    onClick={() => setModal(true)}
+                    className="flex items-center gap-2 px-4 py-2 rounded-xl border border-cyan-500/40 bg-cyan-500/10 text-cyan-200 text-sm font-semibold hover:bg-cyan-500/20 transition-colors"
+                >
+                    <Download className="w-4 h-4" /> Exporter
+                </button>
+                
             </section>
             <ExportModal
                 open={modal}

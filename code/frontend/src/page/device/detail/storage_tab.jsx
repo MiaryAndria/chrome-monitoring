@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { HardDrive, TrendingUp } from 'lucide-react';
+import { Download, HardDrive, TrendingUp } from 'lucide-react';
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid,
     Tooltip as RechartsTooltip, ResponsiveContainer
@@ -136,7 +136,7 @@ function StorageTab({ reports, device, deviceId }) {
                 </div>
             )}
 
-            <button className="device-detail-btn" onClick={() => setModal(v => !v)}>Exporter</button>
+            <button className="device-detail-btn" onClick={() => setModal(v => !v)}><Download className="w-4 h-4" /> Exporter</button>
             <ExportModal
                 open={modal}
                 onClose={() => setModal(false)}

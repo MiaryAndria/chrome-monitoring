@@ -5,7 +5,6 @@ from .seuil import (
     find_seuils_archived_paginated,
     get_by_id_liste_archiver,
     get_seuil_by_id,
-    get_seuil_by_cle,
     insert_seuil,
     insert_seuil_statut,
     update_seuil,

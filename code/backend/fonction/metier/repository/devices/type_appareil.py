@@ -1,14 +1,3 @@
-from backend.fonction.conn.connexion import get_connection
-
-def get_liste_type_appareil(cur):
-    cur.execute(
-        """
-        SELECT * FROM t_type_appareil
-        """
-    )
-    result = cur.fetchall()
-    return result
-
 def get_type_appareil_by_id(cur,id):
     cur.execute(
     """
@@ -26,13 +15,6 @@ def get_type_appareil_by_name(cur,name):
     )
     result = cur.fetchone()
     return result 
-
-def delete_appareil(cur,id):
-    cur.execute(
-    """
-    DELETE FROM t_type_appareil WHERE id = %s
-    """,(id,)
-    )
 
 def delete_all(cur):
     cur.execute(
@@ -56,12 +38,3 @@ def get_or_create_type_appareil(cur, type_device):
     created = get_type_appareil_by_name(cur, type_device)
     return created[0] if created else None
 
-def get_device_by_type (cur,type):
-    cur.execute(
-    """
-    SELECT * FROM t_device where id_type = %s
-    """,(type)
-
-    )
-    result = cur.fetchall()
-    return result 

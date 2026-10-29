@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Activity, TrendingUp } from 'lucide-react';
+import { Download, Activity, TrendingUp } from 'lucide-react';
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid,
     Tooltip as RechartsTooltip, ResponsiveContainer
@@ -144,7 +144,7 @@ function RamTab({ reports, device, deviceId, datetimeFrom, datetimeTo }) {
                     <div className="space-y-3">
                         {!somme.same_day && somme.total !== null && somme.total !== undefined && (
                             <div className="flex flex-wrap items-baseline gap-2">
-                                <span className="text-[10px] uppercase text-zinc-500">Total</span>
+                                <span className="text-[10px] uppercase text-zinc-500">Total utilisé</span>
                                 <span className="text-2xl font-bold text-purple-400">
                                     {formatBytes(somme.total)}
                                 </span>
@@ -153,7 +153,7 @@ function RamTab({ reports, device, deviceId, datetimeFrom, datetimeTo }) {
 
                         <div className="space-y-1">
                             <span className="text-[10px] uppercase text-zinc-500">
-                                {somme.same_day ? 'Détail par mesure' : 'Détail par jour'}
+                                {somme.same_day ? 'Total utilisé par mesure' : 'Total utilisé par jour'}
                             </span>
                             <ul className="text-xs text-zinc-300 divide-y divide-white/5">
                                 {somme.detail.map((d, i) => (
@@ -234,7 +234,7 @@ function RamTab({ reports, device, deviceId, datetimeFrom, datetimeTo }) {
                 </div>
             )}
 
-            <button className="device-detail-btn" onClick={() => setModal(v => !v)}>Exporter</button>
+            <button className="device-detail-btn" onClick={() => setModal(v => !v)}><Download className="w-4 h-4" /> Exporter</button>
             <ExportModal
                 open={modal}
                 onClose={() => setModal(false)}

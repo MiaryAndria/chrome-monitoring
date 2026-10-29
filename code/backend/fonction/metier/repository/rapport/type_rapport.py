@@ -7,14 +7,6 @@ def get_liste_type_rapport(cur):
     result = cur.fetchall()
     return result
 
-def get_type_rapport_by_id(cur, id):
-    cur.execute(
-        """
-        SELECT id, type, cle_api FROM t_type_rapport WHERE id = %s
-        """, (id,)
-    )
-    result = cur.fetchone()
-    return result
 
 def get_type_rapport_by_type(cur, type):
     cur.execute(

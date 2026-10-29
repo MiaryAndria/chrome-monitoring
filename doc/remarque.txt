@@ -74,17 +74,8 @@ comparaison simple et double
 cpu ram et stockage no afaka exploiterna
 
 Table vide	Rôle
-t_alerte	Types d'alertes définis (aucune alerte configurée)
-t_device_alerte	Alertes rattachées aux devices
-t_device_alerte_statut	Historique de statut des alertes
-t_seuil	Seuils de configuration (ex. CPU > 90 %)
-t_seuil_statut	Historique de statut des seuils
 t_comparaison	Comparaisons enregistrées entre devices
 t_statut_comparaison	Historique de statut des comparaisons
-
-page liste alerte avec page dediée pour graph d'alerte filtrer par type d'alerte et date avec nombre d'alerte pour chaque type et avec detail pc qui est afficher avec statut jsp si c'est bien ou pas genre resoulue et actif ce jour ci 
-automatique daholo ny insertion na ny alerte na ny device na ny evenements na ny imprimante 
-gestion alerte 
   
 verification si crud type d'alerte vraiment nécessaires 
 reajustation synchronsation_automatique et verification toutes les services.py pour verifier si il y a pas des trucs dans code comme ceci 
@@ -103,9 +94,6 @@ NOM_STATUT_ACTIVE = "ACTIVE"
 NOM_STATUT_RESOLUE = "RESOLUE"
 NOM_STATUT_CREER = "CREER" il faut que cela vient base de donnée pas en dur comme ceci fa lasa midependre anio 
 
-dans page detail appareil aussi on affiche evenemets liée à l'appareil 
-
-page liste alerte ajoute section pour voir statut resolue 
-
-graph pour afficher statut active et resolue on va faire comment 
-filtrage par type dans page alerte 
+dans page detail pc asina evenements aussi anle pc avec detail ao ou lien jsp ny anaovana azy 
+dans export pdf assurerna aussi hoe tafiditra ao ve utilisation total filtrer avec date et evenements
+service lancement automatique du truc 

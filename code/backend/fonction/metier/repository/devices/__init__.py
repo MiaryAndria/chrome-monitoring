@@ -3,12 +3,7 @@ from .devices import (
     get_device_by_id,
     get_device_by_device_id,
     get_device_by_serial_number,
-    get_device_by_utilisateur,
-    get_device_by_filiale,
-    get_device_by_type,
-    get_device_by_statut,
     get_filiale_by_device,
-    get_nombre_device,
     insert_device,
     update_device,
     insert_device_filiale,
@@ -28,7 +23,6 @@ from .type_appareil import (
     get_or_create_type_appareil,
     get_type_appareil_by_id,
     get_type_appareil_by_name,
-    get_liste_type_appareil,
 )
 
 from .device_utilisateur import (

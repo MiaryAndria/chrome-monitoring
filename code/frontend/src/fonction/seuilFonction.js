@@ -1,14 +1,5 @@
 import api_service from "../api/api_service";
 
-export const getListeSeuil = async () => {
-    try {
-        return await api_service.get('seuil/liste');
-    } catch (e) {
-        console.log(e);
-        return { data: [] };
-    }
-};
-
 export const getListeSeuilPage = async (params = {}) => {
     try {
         const response = await api_service.get('seuil/liste/page', { params });
@@ -58,15 +49,6 @@ export const deleteSeuil = async (id) => {
     } catch (e) {
         console.log(e);
         return null;
-    }
-};
-
-export const getListeArchiver = async () => {
-    try {
-        return await api_service.get('seuil/liste/archiver');
-    } catch (e) {
-        console.log(e);
-        return { data: [] };
     }
 };
 

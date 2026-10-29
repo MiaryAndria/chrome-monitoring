@@ -12,17 +12,6 @@ DERNIER_STATUT_SQL = """
 """
 
 
-def get_liste_device_alerte(cur):
-    cur.execute(
-        """
-        SELECT id, id_device, id_alerte, message, date
-        FROM t_device_alerte
-        ORDER BY date DESC, id DESC
-        """
-    )
-    return cur.fetchall()
-
-
 def get_liste_device_alerte_by_date(cur, date_debut=None, date_fin=None):
     """Alertes ACTIVE enrichies (série, type, utilisateur), filtrées par date si fournies."""
     query = f"""
@@ -82,84 +71,6 @@ def get_liste_device_alerte_by_date_resolue(cur, date_debut=None, date_fin=None)
     cur.execute(query, tuple(params))
     return cur.fetchall()
 
-def get_device_alerte_by_id(cur, id_device_alerte):
-    cur.execute(
-        """
-        SELECT id, id_device, id_alerte, message, date
-        FROM t_device_alerte
-        WHERE id = %s
-        """,
-        (id_device_alerte,),
-    )
-    return cur.fetchone()
-
-
-def get_alertes_by_device(cur, id_device):
-    cur.execute(
-        """
-        SELECT id, id_device, id_alerte, message, date
-        FROM t_device_alerte
-        WHERE id_device = %s
-        ORDER BY date DESC, id DESC
-        """,
-        (id_device,),
-    )
-    return cur.fetchall()
-
-
-def get_devices_by_alerte(cur, id_alerte):
-    cur.execute(
-        """
-        SELECT id, id_device, id_alerte, message, date
-        FROM t_device_alerte
-        WHERE id_alerte = %s
-        ORDER BY date DESC, id DESC
-        """,
-        (id_alerte,),
-    )
-    return cur.fetchall()
-
-
-def get_alertes_actives_by_device(cur, id_device):
-    cur.execute(
-        f"""
-        SELECT da.id, da.id_device, da.id_alerte, da.message, da.date
-        FROM t_device_alerte da
-        WHERE da.id_device = %s AND {DERNIER_STATUT_SQL} = 1
-        ORDER BY da.date DESC, da.id DESC
-        """,
-        (id_device,),
-    )
-    return cur.fetchall()
-
-
-def get_alertes_resolues_by_device(cur, id_device):
-    cur.execute(
-        f"""
-        SELECT da.id, da.id_device, da.id_alerte, da.message, da.date
-        FROM t_device_alerte da
-        WHERE da.id_device = %s AND {DERNIER_STATUT_SQL} = 15
-        ORDER BY da.date DESC, da.id DESC
-        """,
-        (id_device,),
-    )
-    return cur.fetchall()
-
-
-
-def get_derniere_alerte_device(cur, id_device):
-    cur.execute(
-        """
-        SELECT id, id_device, id_alerte, message, date
-        FROM t_device_alerte
-        WHERE id_device = %s
-        ORDER BY date DESC, id DESC
-        LIMIT 1
-        """,
-        (id_device,),
-    )
-    return cur.fetchone()
-
 
 def get_nombre_alerte_active(cur):
     cur.execute(
@@ -184,28 +95,6 @@ def get_nombre_alerte_resolue(cur):
     return row[0] if row else 0
 
 
-def get_nombre_alerte_device(cur, id_device):
-    cur.execute(
-        "SELECT COUNT(*) FROM t_device_alerte WHERE id_device = %s",
-        (id_device,),
-    )
-    row = cur.fetchone()
-    return row[0] if row else 0
-
-
-def get_device_alerte_by_device_and_alerte(cur, id_device, id_alerte):
-    cur.execute(
-        """
-        SELECT id, id_device, id_alerte, message, date
-        FROM t_device_alerte
-        WHERE id_device = %s AND id_alerte = %s
-        ORDER BY date DESC, id DESC
-        """,
-        (id_device, id_alerte),
-    )
-    return cur.fetchall()
-
-
 def get_device_alerte_active_by_device_and_alerte(cur, id_device, id_alerte):
     """Occurrence ACTIVE (dernier statut = 1) pour un couple (device, alerte), sinon None."""
     cur.execute(
@@ -219,34 +108,6 @@ def get_device_alerte_active_by_device_and_alerte(cur, id_device, id_alerte):
         (id_device, id_alerte),
     )
     return cur.fetchone()
-
-
-def get_alertes_actives_by_device_and_period(cur, id_device, date_debut, date_fin):
-    cur.execute(
-        f"""
-        SELECT da.id, da.id_device, da.id_alerte, da.message, da.date
-        FROM t_device_alerte da
-        WHERE da.id_device = %s
-          AND da.date BETWEEN %s AND %s
-          AND {DERNIER_STATUT_SQL} = 1
-        ORDER BY da.date DESC, da.id DESC
-        """,
-        (id_device, date_debut, date_fin),
-    )
-    return cur.fetchall()
-
-
-def get_alertes_by_alerte_and_period(cur, id_alerte, date_debut, date_fin):
-    cur.execute(
-        """
-        SELECT id, id_device, id_alerte, message, date
-        FROM t_device_alerte
-        WHERE id_alerte = %s AND date BETWEEN %s AND %s
-        ORDER BY date DESC, id DESC
-        """,
-        (id_alerte, date_debut, date_fin),
-    )
-    return cur.fetchall()
 
 
 def insert_device_alerte(cur, id_device, id_alerte, message):
@@ -329,7 +190,6 @@ def find_device_alertes_paginated(cur, page=1, page_size=10, date_debut=None, da
 
     cur.execute(query, tuple(params))
     return cur.fetchall()
-
 
 
 def find_device_alertes_resolues_paginated(cur, page=1, page_size=10, date_debut=None, date_fin=None,type_alerte=None,search_params=None):

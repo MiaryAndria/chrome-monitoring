@@ -71,15 +71,6 @@ export const getBadgeClass = (status) => {
 }
 
 
-export const searchDevices = async (query) => {
-    try {
-        const response = await api_service.get(`/device/search?recherche=${encodeURIComponent(query)}`);
-        return response.data;
-    } catch (e) {
-        console.log(e);
-    }
-};
-
 export const getDetailCpu = async(id)=>{
     try{
         const response = await api_service.get(`/rapport/cpu/${id}`);

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plug } from 'lucide-react';
+import { Download, Plug } from 'lucide-react';
 import { extractPeripheralsSummary } from '../../../fonction/deviceFonction';
 import { exportExcel, exportPdf } from '../../../fonction/utils/util';
 import ExportModal from '../../../components/ExportModal';
@@ -66,7 +66,7 @@ function PeripheriquesTab({ reports, deviceId }) {
                 </div>
             </div>
 
-            <button className="device-detail-btn" onClick={() => setModal(v => !v)}>Exporter</button>
+            <button className="device-detail-btn" onClick={() => setModal(v => !v)}><Download className="w-4 h-4" /> Exporter</button>
             <ExportModal
                 open={modal}
                 onClose={() => setModal(false)}

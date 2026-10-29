@@ -22,68 +22,6 @@ def get_imprimante_by_id(cur, id):
     return cur.fetchone()
 
 
-def get_imprimante_by_vid(cur, vid):
-    cur.execute(
-        """
-        SELECT i.id, i.vid, i.pid, v.vendor, i.nom
-        FROM t_imprimante i
-        LEFT JOIN t_vendor v ON v.id = i.id_vendor
-        WHERE i.vid = %s
-        """, (vid,)
-    )
-    return cur.fetchone()
-
-
-def get_imprimante_by_pid(cur, pid):
-    cur.execute(
-        """
-        SELECT i.id, i.vid, i.pid, v.vendor, i.nom
-        FROM t_imprimante i
-        LEFT JOIN t_vendor v ON v.id = i.id_vendor
-        WHERE i.pid = %s
-        """, (pid,)
-    )
-    return cur.fetchone()
-
-def get_imprimante_by_vendor(cur, vendor):
-    cur.execute(
-        """
-        SELECT i.id, i.vid, i.pid, v.vendor, i.nom
-        FROM t_imprimante i
-        JOIN t_vendor v ON v.id = i.id_vendor
-        WHERE v.vendor = %s
-        """, (vendor,)
-    )
-    return cur.fetchone()
-
-
-def get_imprimante_by_nom(cur, nom):
-    cur.execute(
-        """
-        SELECT i.id, i.vid, i.pid, v.vendor, i.nom
-        FROM t_imprimante i
-        LEFT JOIN t_vendor v ON v.id = i.id_vendor
-        WHERE i.nom = %s
-        """, (nom,)
-    )
-    return cur.fetchone()
-
-
-def search_imprimante(cur, recherche):
-    cur.execute(
-        """
-        SELECT i.id, i.vid, i.pid, v.vendor, i.nom
-        FROM t_imprimante i
-        LEFT JOIN t_vendor v ON v.id = i.id_vendor
-        WHERE CAST(i.vid AS TEXT) ILIKE %s
-           OR CAST(i.pid AS TEXT) ILIKE %s
-           OR v.vendor ILIKE %s
-           OR i.nom ILIKE %s
-        """, (recherche, recherche, recherche, recherche)
-    )
-    return cur.fetchall()
-
-
 def _rows_to_dicts(cur):
     colonnes = [desc[0] for desc in cur.description]
     return [dict(zip(colonnes, row)) for row in cur.fetchall()]
@@ -134,16 +72,6 @@ def get_liste_vendor(cur):
     return [r[0] for r in cur.fetchall()]
 
 
-def get_nombre_imprimante(cur):
-    cur.execute(
-        """
-        SELECT COUNT(*) FROM t_imprimante
-        """
-    )
-    result = cur.fetchone()
-    return result
-
-
 def get_imprimante_by_vid_and_pid(cur, vid, pid):
     cur.execute(
         """
@@ -154,18 +82,6 @@ def get_imprimante_by_vid_and_pid(cur, vid, pid):
         """, (vid, pid)
     )
     return cur.fetchall()
-
-
-def get_imprimante_by_vendor_and_nom(cur, vendor, nom):
-    cur.execute(
-        """
-        SELECT i.id, i.vid, i.pid, v.vendor, i.nom
-        FROM t_imprimante i
-        LEFT JOIN t_vendor v ON v.id = i.id_vendor
-        WHERE v.vendor = %s AND i.nom = %s
-        """, (vendor, nom)
-    )
-    return cur.fetchone()
 
 
 def get_or_create_vendor(cur, vendor):

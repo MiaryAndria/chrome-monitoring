@@ -1,5 +1,3 @@
-from backend.fonction.conn.connexion import get_connection
-
 def get_liste_type_evenement(cur):
     cur.execute(
         """
@@ -9,14 +7,6 @@ def get_liste_type_evenement(cur):
     result = cur.fetchall()
     return result
 
-def get_type_evenement_by_id(cur,id):
-    cur.execute(
-        """
-        SELECT * FROM t_type_evenement WHERE id = %s
-        """,(id,)
-    )
-    result = cur.fetchone()
-    return result
 
 def get_type_evenement_by_type(cur,type):
     cur.execute(

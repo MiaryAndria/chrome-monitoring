@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 
-import { Cpu, Activity, HardDrive, Zap, Network, Plug, ChevronRight, Monitor, Users, Shield, Server, FileText } from 'lucide-react';
+import { Download, Cpu, Activity, HardDrive, Zap, Network, Plug, ChevronRight, Monitor, Users, Shield, Server, FileText } from 'lucide-react';
 import {
     extractCpuSummary, extractRamSummary, extractStorageSummary,
     extractBatterySummary, extractPeripheralsSummary,
@@ -229,7 +229,7 @@ function GeneralTab({ generalData, device, onSelectTab, deviceId }) {
                 })}
             </div>
             
-            <button className="device-detail-btn" onClick={() => setModal(v => !v)}>Exporter</button>
+            <button className="device-detail-btn" onClick={() => setModal(v => !v)}><Download className="w-4 h-4" /> Exporter</button>
 
             <ExportModal
                 open={modal}
