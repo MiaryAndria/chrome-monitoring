@@ -79,7 +79,9 @@ def _fetch_devices_page(page=1, page_size=10, id_filiale=None, filiale=None,
                 recherche, datetime_from, datetime_to, modele
             )
             total = sonde[0]["total"] if sonde else 0
-        items = [_serialize_device_row(row) for row in rows]
+        items = []
+        for row in rows:
+            items.append(_serialize_device_row(row))
         cur.close()
         return build_page(items, total, page, page_size)
     finally:

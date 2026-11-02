@@ -177,8 +177,13 @@ def getDeviceAlertesResoluesPage(page=1, page_size=10, date_debut=None, date_fin
 
 
 def _seuils_actifs(cur):
-    # get_liste_seuil renvoie (id, id_type_seuil, type, categorie, valeur, date)
-    return {r[2]: r[4] for r in get_liste_seuil(cur)}
+    # get_liste_seuil renvoie (id, id_type_seuil, type, categorie, valeur, date, sens)
+    seuils = {}
+    for ligne in get_liste_seuil(cur):
+        type_seuil = ligne[2]
+        valeur = ligne[4]
+        seuils[type_seuil] = valeur
+    return seuils
 
 
 def _metrique_cpu(cur, id_device):
@@ -263,27 +268,41 @@ def _executer_moteur(cur):
     seuils = _seuils_actifs(cur)
     jours_evenements = get_int_configuration(CLE_FENETRE_EVENEMENTS, FENETRE_EVENEMENTS_DEFAUT)
 
+    # Regles actives : on ne cree PAS encore le type d'alerte ici.
+    # Il sera cree au premier device qui a reellement une valeur (evite les
+    # types "fantomes" comme ALERTE_TACHE_PRINT qui renvoie toujours None).
     regles_actives = []
     for cle_seuil, type_alerte, metrique, sens, message in regles:
         valeur_seuil = seuils.get(cle_seuil)
         if valeur_seuil is None:
             continue
-        id_alerte = _get_or_create_alerte(cur, type_alerte)
-        regles_actives.append((id_alerte, metrique, sens, valeur_seuil, message))
+        regle = {
+            "type_alerte": type_alerte,
+            "metrique": metrique,
+            "sens": sens,
+            "valeur_seuil": valeur_seuil,
+            "message": message,
+            "id_alerte": None,
+        }
+        regles_actives.append(regle)
 
     for device in get_liste_device(cur):
         id_device = device[0]
         metriques = _metriques_device(cur, id_device, jours_evenements)
-        for id_alerte, metrique, sens, valeur_seuil, message in regles_actives:
-            valeur = metriques.get(metrique)
+        for regle in regles_actives:
+            valeur = metriques.get(regle["metrique"])
             if valeur is None:
                 continue
-            if sens == "<":
-                depasse = valeur < valeur_seuil
+            if regle["id_alerte"] is None:
+                regle["id_alerte"] = _get_or_create_alerte(cur, regle["type_alerte"])
+            if regle["sens"] == "<":
+                depasse = valeur < regle["valeur_seuil"]
             else:
-                depasse = valeur > valeur_seuil
-            _appliquer_etat(cur, id_device, id_alerte, message, depasse,
-                            id_statut_active, id_statut_resolue)
+                depasse = valeur > regle["valeur_seuil"]
+            _appliquer_etat(
+                cur, id_device, regle["id_alerte"], regle["message"], depasse,
+                id_statut_active, id_statut_resolue,
+            )
 
 def insertAlerte(cur):
     _executer_moteur(cur)

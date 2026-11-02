@@ -129,7 +129,9 @@ def _fetch_events_page(page=1, page_size=10, type_evenement=None, id_filiale=Non
                 recherche, datetime_from, datetime_to
             )
             total = sonde[0]["total"] if sonde else 0
-        items = [_serialize_evenement_row(row) for row in rows]
+        items = []
+        for row in rows:
+            items.append(_serialize_evenement_row(row))
         cur.close()
         return build_page(items, total, page, page_size)
     finally:

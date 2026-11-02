@@ -45,11 +45,11 @@ function ListeDeviceAlerte() {
 
     const chargerStats = async () => {
         const resultat = {};
-        await Promise.all(type.map(async (t) => {
+        for (const t of type) {
             resultat[t.type] = await getNombreAlerteType(
                 t.type, 'active', dateDebutApplique || undefined, dateFinApplique || undefined
             );
-        }));
+        }
         setStats(resultat);
     }
 
@@ -76,12 +76,34 @@ function ListeDeviceAlerte() {
     }, [dateDebut, dateFin, TypeFiltered, search]);
 
     const totalActives = Number(total) || 0;
-    const statsParType = type.map((t) => {
-        const meta = ALERTE_META[t.type] || { label: t.type?.replace('ALERTE_', ''), color: '#71717a', text: 'text-zinc-400', Icon: Bell };
-        return { type: t.type, ...meta, value: Number(stats[t.type]) || 0 };
-    });
-    const donutData = (TypeFiltered ? statsParType.filter((s) => s.type === TypeFiltered) : statsParType)
-        .map(({ label, value, color }) => ({ name: label, value, color }));
+
+    const statsParType = [];
+    for (const t of type) {
+        const valeur = Number(stats[t.type]) || 0;
+        const meta = ALERTE_META[t.type];
+        if (meta) {
+            statsParType.push({ type: t.type, ...meta, value: valeur });
+        } else {
+            statsParType.push({
+                type: t.type,
+                label: t.type?.replace('ALERTE_', ''),
+                color: '#71717a',
+                text: 'text-zinc-400',
+                Icon: Bell,
+                value: valeur,
+            });
+        }
+    }
+
+    const donutData = [];
+    for (const s of statsParType) {
+        if (TypeFiltered && s.type !== TypeFiltered && s.value ===0) {
+            continue;
+        }else if (s.value <=0){
+            continue;
+        }
+        donutData.push({ name: s.label, value: s.value, color: s.color });
+    }
 
 
     const columns = [
