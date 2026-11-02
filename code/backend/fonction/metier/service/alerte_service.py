@@ -278,10 +278,10 @@ def _executer_moteur(cur):
             valeur = metriques.get(metrique)
             if valeur is None:
                 continue
-            if sens =="<":
+            if sens == "<":
                 depasse = valeur < valeur_seuil
             else:
-                valeur > valeur_seuil
+                depasse = valeur > valeur_seuil
             _appliquer_etat(cur, id_device, id_alerte, message, depasse,
                             id_statut_active, id_statut_resolue)
 
