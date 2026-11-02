@@ -281,7 +281,7 @@ def _executer_moteur(cur):
             if sens == "<":
                 depasse = valeur < valeur_seuil
             else:
-                depasse = valeur > valeur_seuil
+                valeur_seuil
             _appliquer_etat(cur, id_device, id_alerte, message, depasse,
                             id_statut_active, id_statut_resolue)
 
