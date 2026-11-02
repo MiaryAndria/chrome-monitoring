@@ -176,7 +176,8 @@ def getDeviceAlertesResoluesPage(page=1, page_size=10, date_debut=None, date_fin
 
 
 def _seuils_actifs(cur):
-    return {r[1]: r[2] for r in get_liste_seuil(cur)}
+    # get_liste_seuil renvoie (id, id_type_seuil, type, categorie, valeur, date)
+    return {r[2]: r[4] for r in get_liste_seuil(cur)}
 
 
 def _metriques_device(cur, id_device):

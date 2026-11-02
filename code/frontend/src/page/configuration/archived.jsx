@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { getListeArchiverPage, restaurerConfiguration } from '../../fonction/configurationFonction';
-import { Archive, RotateCcw } from 'lucide-react';
+import { getListeArchiverPage, restaurerConfiguration, supprimerConfiguration } from '../../fonction/configurationFonction';
+import { Archive, RotateCcw, Trash2 } from 'lucide-react';
 import PageLayout from '../../components/PageLayout';
 import GenericTable from '../../components/GenericTable';
 import Pagination from '../../components/Pagination';
@@ -30,20 +30,42 @@ function ArchivedConfiguration() {
         }
     };
 
+    const supprimer = async (id) => {
+        if (!window.confirm("Êtes-vous sûr de supprimer cet paramètres?")) return;
+        try {
+            await supprimerConfiguration(id);
+            setRefresh(r => r + 1);
+        } catch (e) {
+            console.log(e);
+        }
+    };
+
     const columns = [
-        { header: 'Type', className: 'w-[18%]', render: (c) => <span className="font-bold text-zinc-100">{c.type}</span> },
-        { header: 'Valeur', className: 'w-[55%]', render: (c) => <span className="text-zinc-300">{c.valeur}</span> },
-        { header: 'Date', className: 'w-[12%] text-right', render: (c) => c.date ? (
-            <span className="text-zinc-400 text-xs font-mono">
-                <span className="block">{new Date(c.date).toLocaleDateString('fr-FR')}</span>
-                <span className="block">{new Date(c.date).toLocaleTimeString('fr-FR')}</span>
-            </span>
-        ) : <span className="text-zinc-500">-</span> },
+        { header: 'Catégorie', className: 'w-[18%]', render: (c) => <span className="text-zinc-400">{c.categorie}</span> },
+        { header: 'Type', className: 'w-[30%]', render: (c) => <span className="font-bold text-zinc-100">{c.cle}</span> },
+        { header: 'Valeur', className: 'w-[15%]', render: (c) => <span className="text-zinc-300">{c.valeur}</span> },
+        {
+            header: 'Date', className: 'w-[15%] text-right', render: (c) => c.date ? (
+                <span className="text-zinc-400 text-xs font-mono">
+                    <span className="block">{new Date(c.date).toLocaleDateString('fr-FR')}</span>
+                    <span className="block">{new Date(c.date).toLocaleTimeString('fr-FR')}</span>
+                </span>
+            ) : <span className="text-zinc-500">-</span>
+        },
         {
             header: 'Actions', sticky: true, className: 'w-[15%] text-right', render: (c) => (
                 <div className="config-table-actions">
                     <button onClick={() => restaurer(c.id)} className="config-btn config-btn-success" style={{ padding: '0.4rem 0.75rem', fontSize: '0.7rem' }}>
                         <RotateCcw className="w-3.5 h-3.5" /> Restaurer
+                    </button>
+                </div>
+            )
+        },
+        {
+            header: 'Actions', sticky: true, className: 'w-[15%] text-right', render: (c) => (
+                <div className="config-table-actions">
+                    <button onClick={() => supprimer(c.id)} className="config-btn config-btn-danger" style={{ padding: '0.4rem 0.75rem', fontSize: '0.7rem' }}>
+                        <Trash2 className="w-3.5 h-3.5" /> Supprimer
                     </button>
                 </div>
             )

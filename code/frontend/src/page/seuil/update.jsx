@@ -7,9 +7,9 @@ import '../../css/liste.css';
 import '../../css/configuration.css';
 
 function SeuilUpdate() {
-    const [cle, setCle] = useState('');
     const [valeur, setValeur] = useState('');
     const [existedCle, setExistedCle] = useState('');
+    const [existedIdType, setExistedIdType] = useState('');
     const [existedValeur, setExistedValeur] = useState('');
     const navigate = useNavigate();
     const { id } = useParams();
@@ -18,6 +18,7 @@ function SeuilUpdate() {
         try {
             const d = await getDetailSeuil(id);
             setExistedCle(d.cle);
+            setExistedIdType(d.id_type);
             setExistedValeur(d.valeur);
         } catch (e) {
             console.log(e);
@@ -26,7 +27,8 @@ function SeuilUpdate() {
 
     const updSeuil = async () => {
         try {
-            await updateSeuil(id, cle, Number(valeur));
+            const nouvelleValeur = valeur === '' ? existedValeur : Number(valeur);
+            await updateSeuil(id, existedIdType, nouvelleValeur);
             navigate('/liste/seuil');
         } catch (e) {
             console.log(e);
@@ -53,12 +55,12 @@ function SeuilUpdate() {
                     </div>
 
                     <div className="config-form-group">
-                        <label className="config-form-label">Clé</label>
+                        <label className="config-form-label">Type</label>
                         <input
                             type="text"
                             className="config-form-input"
-                            onChange={(e) => setCle(e.target.value)}
-                            placeholder={existedCle}
+                            value={existedCle}
+                            disabled
                         />
                     </div>
 
@@ -67,6 +69,7 @@ function SeuilUpdate() {
                         <input
                             type="number"
                             className="config-form-input"
+                            value={valeur}
                             onChange={(e) => setValeur(e.target.value)}
                             placeholder={existedValeur}
                         />

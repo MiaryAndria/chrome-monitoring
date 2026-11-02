@@ -33,9 +33,10 @@ function ConfigurationListe() {
     };
 
     const columns = [
-        { header: 'Type', className: 'w-[18%]', render: (c) => <span className="font-bold text-zinc-100">{c.type}</span> },
-        { header: 'Valeur', className: 'w-[55%]', render: (c) => <span className="text-zinc-300">{c.valeur}</span> },
-        { header: 'Date', className: 'w-[12%] text-right', render: (c) => c.date ? (
+        { header: 'Catégorie', className: 'w-[18%]', render: (c) => <span className="text-zinc-400">{c.categorie}</span> },
+        { header: 'Type', className: 'w-[25%]', render: (c) => <span className="font-bold text-zinc-100">{c.cle}</span> },
+        { header: 'Valeur', className: 'w-[15%]', render: (c) => <span className="text-zinc-300">{c.valeur}</span> },
+        { header: 'Date', className: 'w-[15%] text-right', render: (c) => c.date ? (
             <span className="text-zinc-400 text-xs font-mono">
                 <span className="block">{new Date(c.date).toLocaleDateString('fr-FR')}</span>
                 <span className="block">{new Date(c.date).toLocaleTimeString('fr-FR')}</span>

@@ -10,11 +10,31 @@ export const getListeConfigurationPage = async (params = {}) => {
     }
 };
 
-export const createConfiguration = async (t, v) => {
+export const getListeCategorieConfiguration = async () => {
+    try {
+        const response = await api_service.get('configuration/categorie/type');
+        return response.data;
+    } catch (e) {
+        console.log(e);
+        return [];
+    }
+};
+
+export const getListeTypeConfiguration = async (idCategorie) => {
+    try {
+        const response = await api_service.get(`configuration/type/${idCategorie}`);
+        return response.data;
+    } catch (e) {
+        console.log(e);
+        return [];
+    }
+};
+
+export const createConfiguration = async (idType, valeur) => {
     try {
         return await api_service.post('configuration/create', {
-            type: t,
-            valeur: v
+            id_type: idType,
+            valeur: valeur
         });
     } catch (e) {
         console.log(e);
@@ -22,20 +42,20 @@ export const createConfiguration = async (t, v) => {
     }
 };
 
-export const getDetailConfiguration = async(id)=>{
-    try{
+export const getDetailConfiguration = async (id) => {
+    try {
         const response = await api_service.get(`configuration/${id}`)
         return response.data
-    }catch(e){
+    } catch (e) {
         console.log(e)
     }
 };
 
-export const updateConfiguration = async (id, t, v) => {
+export const updateConfiguration = async (id, idType, valeur) => {
     try {
         return await api_service.put(`configuration/${id}/update`, {
-            type: t,
-            valeur: v
+            id_type: idType,
+            valeur: valeur
         });
     } catch (e) {
         console.log(e);
@@ -46,6 +66,15 @@ export const updateConfiguration = async (id, t, v) => {
 export const deleteConfiguration = async (id) => {
     try {
         return await api_service.post(`configuration/${id}/delete`);
+    } catch (e) {
+        console.log(e);
+        return null;
+    }
+};
+
+export const supprimerConfiguration = async (id) => {
+    try {
+        return await api_service.post(`configuration/${id}/hard/delete`);
     } catch (e) {
         console.log(e);
         return null;

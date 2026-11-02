@@ -33,9 +33,10 @@ function SeuilListe() {
     };
 
     const columns = [
-        { header: 'Clé', className: 'w-[18%]', render: (s) => <span className="font-bold text-zinc-100">{s.cle}</span> },
-        { header: 'Valeur', className: 'w-[55%]', render: (s) => <span className="text-zinc-300">{s.valeur}</span> },
-        { header: 'Date', className: 'w-[12%] text-right', render: (s) => s.date ? (
+        { header: 'Catégorie', className: 'w-[18%]', render: (s) => <span className="text-zinc-400">{s.categorie}</span> },
+        { header: 'Type', className: 'w-[25%]', render: (s) => <span className="font-bold text-zinc-100">{s.cle}</span> },
+        { header: 'Valeur', className: 'w-[15%]', render: (s) => <span className="text-zinc-300">{s.valeur}</span> },
+        { header: 'Date', className: 'w-[15%] text-right', render: (s) => s.date ? (
             <span className="text-zinc-400 text-xs font-mono">
                 <span className="block">{new Date(s.date).toLocaleDateString('fr-FR')}</span>
                 <span className="block">{new Date(s.date).toLocaleTimeString('fr-FR')}</span>

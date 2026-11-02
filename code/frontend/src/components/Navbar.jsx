@@ -12,14 +12,10 @@ export default function Navbar() {
     const navigate = useNavigate();
     const location = useLocation();
     // const [isLightMode, setIsLightMode] = useState(false);
-    const [configOpen, setConfigOpen] = useState(false);
-    const [deviceOpen, setDeviceOpen] = useState(false);
-    const [compareOpen, setCompareOpen] = useState(false);
-    const [seuilOpen, setSeuilOpen] = useState(false);
-    const [utilisateurOpen, setUtilisateurOpen] = useState(false);
+    // Un seul menu ouvert à la fois : null | 'device' | 'config' | 'seuil' | 'utilisateur' | 'compare' | 'alerte'
+    const [openMenu, setOpenMenu] = useState(null);
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState('');
-    const [alerteOpen, setAlerteOpen] = useState(false);
     const [alerteCount, setAlerteCount] = useState(0);
     const [alertes, setAlertes] = useState([]);
     const [copiedSN, setCopiedSN] = useState(null);
@@ -36,16 +32,16 @@ export default function Navbar() {
     //     }
     // }, []);
 
-    // Fermer les dropdowns au clic extérieur
+    // Bascule un menu : ouvre le demandé et ferme tous les autres
+    const toggleMenu = (name) => {
+        setOpenMenu((courant) => (courant === name ? null : name));
+    };
+
+    // Fermer le menu au clic extérieur (hors des zones .nav-dropdown)
     useEffect(() => {
         const handleClickOutside = (e) => {
-            if (!e.target.closest('.relative')) {
-                setConfigOpen(false);
-                setDeviceOpen(false);
-                setAlerteOpen(false);
-                setCompareOpen(false); // ← ajout
-                setSeuilOpen(false);
-                setUtilisateurOpen(false);
+            if (!e.target.closest('.nav-dropdown')) {
+                setOpenMenu(null);
             }
         };
         document.addEventListener('click', handleClickOutside);
@@ -78,6 +74,7 @@ export default function Navbar() {
     //     applyTheme(newTheme);
     // };
     const voirTout = async () => {
+        setOpenMenu(null);
         navigate('/alerte/device')
     }
     const handleLogout = async () => {
@@ -101,8 +98,8 @@ export default function Navbar() {
     };
 
     const basculerAlertes = async () => {
-        const ouvert = !alerteOpen;
-        setAlerteOpen(ouvert);
+        const ouvert = openMenu !== 'alerte';
+        setOpenMenu(ouvert ? 'alerte' : null);
         if (ouvert) {
             setAlertes(await getDixPremierAlerte());
         }
@@ -185,24 +182,23 @@ export default function Navbar() {
                     })}
 
                     {/* Dropdown Matériel */}
-                    <div className="relative">
+                    <div className="relative nav-dropdown">
                         <button
-                            onClick={() => setDeviceOpen(v => !v)}
+                            onClick={() => toggleMenu('device')}
                             className={`topnav-link ${deviceActive ? 'topnav-link-active' : ''}`}
                         >
                             <Laptop className="w-4 h-4" />
                             <span>Matériel</span>
                             <ChevronDown className="w-3 h-3" />
                         </button>
-                        {deviceOpen && (
+                        {openMenu === 'device' && (
                             <div className="config-dropdown">
                                 {deviceItems.map((item) => {
-
                                     return (
                                         <NavLink
                                             key={item.path}
                                             to={item.path}
-                                            onClick={() => setDeviceOpen(false)}
+                                            onClick={() => setOpenMenu(null)}
                                             className="config-dropdown-item"
                                         >
                                             <div className="w-4 h-4" />
@@ -216,22 +212,22 @@ export default function Navbar() {
 
                     {/* Dropdown Configuration (admin uniquement) */}
                     {isAdmin && (
-                        <div className="relative">
+                        <div className="relative nav-dropdown">
                             <button
-                                onClick={() => setConfigOpen(v => !v)}
+                                onClick={() => toggleMenu('config')}
                                 className={`topnav-link ${configActive ? 'topnav-link-active' : ''}`}
                             >
                                 <Settings className="w-4 h-4" />
                                 <span>Configuration</span>
                                 <ChevronDown className="w-3 h-3" />
                             </button>
-                            {configOpen && (
+                            {openMenu === 'config' && (
                                 <div className="config-dropdown">
                                     {configItems.map((item) => (
                                         <NavLink
                                             key={item.path}
                                             to={item.path}
-                                            onClick={() => setConfigOpen(false)}
+                                            onClick={() => setOpenMenu(null)}
                                             className="config-dropdown-item"
                                         >
                                             {item.label}
@@ -240,7 +236,7 @@ export default function Navbar() {
 
                                     <div className="config-dropdown-divider" />
                                     <button
-                                        onClick={() => { setConfigOpen(false); resetAll(); }}
+                                        onClick={() => { setOpenMenu(null); resetAll(); }}
                                         disabled={loading}
                                         className="config-dropdown-item config-dropdown-danger"
                                     >
@@ -254,22 +250,22 @@ export default function Navbar() {
 
                     {/* Dropdown Seuil (admin uniquement) */}
                     {isAdmin && (
-                        <div className="relative">
+                        <div className="relative nav-dropdown">
                             <button
-                                onClick={() => setSeuilOpen(v => !v)}
+                                onClick={() => toggleMenu('seuil')}
                                 className={`topnav-link ${seuilActive ? 'topnav-link-active' : ''}`}
                             >
                                 <Gauge className="w-4 h-4" />
                                 <span>Seuil</span>
                                 <ChevronDown className="w-3 h-3" />
                             </button>
-                            {seuilOpen && (
+                            {openMenu === 'seuil' && (
                                 <div className="config-dropdown">
                                     {seuilItems.map((item) => (
                                         <NavLink
                                             key={item.path}
                                             to={item.path}
-                                            onClick={() => setSeuilOpen(false)}
+                                            onClick={() => setOpenMenu(null)}
                                             className="config-dropdown-item"
                                         >
                                             {item.label}
@@ -282,22 +278,22 @@ export default function Navbar() {
 
                     {/* Dropdown Utilisateurs (admin uniquement) */}
                     {isAdmin && (
-                        <div className="relative">
+                        <div className="relative nav-dropdown">
                             <button
-                                onClick={() => setUtilisateurOpen(v => !v)}
+                                onClick={() => toggleMenu('utilisateur')}
                                 className={`topnav-link ${utilisateurActive ? 'topnav-link-active' : ''}`}
                             >
                                 <Users className="w-4 h-4" />
                                 <span>Utilisateurs</span>
                                 <ChevronDown className="w-3 h-3" />
                             </button>
-                            {utilisateurOpen && (
+                            {openMenu === 'utilisateur' && (
                                 <div className="config-dropdown">
                                     {utilisateurItems.map((item) => (
                                         <NavLink
                                             key={item.path}
                                             to={item.path}
-                                            onClick={() => setUtilisateurOpen(false)}
+                                            onClick={() => setOpenMenu(null)}
                                             className="config-dropdown-item"
                                         >
                                             {item.label}
@@ -309,22 +305,22 @@ export default function Navbar() {
                     )}
 
                     {/* Dropdown Comparaison */}
-                    <div className="relative">
+                    <div className="relative nav-dropdown">
                         <button
-                            onClick={() => setCompareOpen(v => !v)}
+                            onClick={() => toggleMenu('compare')}
                             className={`topnav-link ${compareActive ? 'topnav-link-active' : ''}`}
                         >
                             <BarChart3 className="w-4 h-4" />
                             <span>Comparaison</span>
                             <ChevronDown className="w-3 h-3" />
                         </button>
-                        {compareOpen && (
+                        {openMenu === 'compare' && (
                             <div className="config-dropdown">
                                 {compareItems.map((item) => (
                                     <NavLink
                                         key={item.path}
                                         to={item.path}
-                                        onClick={() => setCompareOpen(false)}
+                                        onClick={() => setOpenMenu(null)}
                                         className="config-dropdown-item"
                                     >
                                         {item.label}
@@ -335,7 +331,7 @@ export default function Navbar() {
                     </div>
                 </nav>
 
-                <div className="relative">
+                <div className="relative nav-dropdown">
                     <button onClick={basculerAlertes} className="topnav-link relative" title="Alertes">
                         <Bell className="w-4 h-4" />
                         {alerteCount > 0 && (
@@ -345,7 +341,7 @@ export default function Navbar() {
                         )}
                     </button>
 
-                    {alerteOpen && (
+                    {openMenu === 'alerte' && (
                         <div className="config-dropdown alerte-dropdown">
                             <div className="alerte-list">
                                 {alertes.length === 0 ? (

@@ -1,4 +1,3 @@
-import json
 from backend.fonction.conn.connexion import get_connection, close_connection
 from backend.fonction.metier.repository.configuration import (
     get_liste_configuration,
@@ -12,9 +11,23 @@ from backend.fonction.metier.repository.configuration import (
     update_configuration,
     delete_configuration,
     restore_configuration,
+    hard_delete_configuration,
+    get_type_configuration_by_categorie,
+    get_categorie_configuration,
 )
 from backend.utils.pagination import build_page
 from backend.core.cache import cache_get, cache_set, cache_invalidate_prefix
+
+
+def _row_to_dict(row):
+    return {
+        "id": row[0],
+        "id_type": row[1],
+        "cle": row[2],
+        "categorie": row[3],
+        "valeur": row[4],
+        "date": row[5],
+    }
 
 
 def getListeConfiguration():
@@ -24,15 +37,7 @@ def getListeConfiguration():
     try:
         cur = connexion.cursor()
         rows = get_liste_configuration(cur)
-        result = []
-        for r in rows:
-            result.append({
-                "id": r[0],
-                "type": r[1] if r[1] is not None else None,
-                "valeur": r[2],
-                "date": r[3],
-            })
-        return result
+        return [_row_to_dict(r) for r in rows]
     finally:
         close_connection(connexion)
 
@@ -44,28 +49,16 @@ def _fetch_configurations_page(page=1, page_size=10):
     try:
         cur = connexion.cursor()
         rows = find_configurations_paginated(cur, page, page_size)
-        total = rows[0][4] if rows else 0
-        items = [
-            {
-                "id": r[0],
-                "type": r[1] if r[1] is not None else None,
-                "valeur": r[2],
-                "date": r[3],
-            }
-            for r in rows
-        ]
+        total = rows[0][6] if rows else 0
+        items = [_row_to_dict(r) for r in rows]
         cur.close()
         return build_page(items, total, page, page_size)
     finally:
         close_connection(connexion)
 
 
-def _configurations_cache_key(page, page_size):
-    return f"configurations:{page}:{page_size}"
-
-
 def getConfigurationsPage(page=1, page_size=10):
-    cle = _configurations_cache_key(page, page_size)
+    cle = f"configurations:{page}:{page_size}"
     valeur = cache_get(cle)
     if valeur is not None:
         return valeur
@@ -81,16 +74,8 @@ def _fetch_configurations_archive_page(page=1, page_size=10):
     try:
         cur = connexion.cursor()
         rows = find_configurations_archived_paginated(cur, page, page_size)
-        total = rows[0][4] if rows else 0
-        items = [
-            {
-                "id": r[0],
-                "type": r[1] if r[1] is not None else None,
-                "valeur": r[2],
-                "date": r[3],
-            }
-            for r in rows
-        ]
+        total = rows[0][6] if rows else 0
+        items = [_row_to_dict(r) for r in rows]
         cur.close()
         return build_page(items, total, page, page_size)
     finally:
@@ -107,6 +92,18 @@ def getConfigurationsArchivePage(page=1, page_size=10):
     return cache_set(cle, resultat)
 
 
+def getListeArchiveConfiguration():
+    connexion = get_connection()
+    if connexion is None:
+        return []
+    try:
+        cur = connexion.cursor()
+        rows = get_liste_archiver(cur)
+        return [_row_to_dict(r) for r in rows]
+    finally:
+        close_connection(connexion)
+
+
 def getDetailConfiguration(id_configuration):
     connexion = get_connection()
     if connexion is None:
@@ -115,42 +112,19 @@ def getDetailConfiguration(id_configuration):
         cur = connexion.cursor()
         row = get_configuration_by_id(cur, id_configuration)
         if row is None:
-            return None 
-        return{
-            "id": row[0],
-            "type": row[1] if row[1] is not None else None,
-            "valeur": row[2],
-            "date": row[3],   
-        }
-    finally:
-        close_connection(connexion)
-
-def UpdateConfiguration(id_configuration, type_, valeur, date=None, status_id=13):
-    connexion = get_connection()
-    if connexion is None:
-        return False
-    try:
-        cur = connexion.cursor()
-        updated_id = update_configuration(cur, id_configuration, type_, valeur, date)
-        if updated_id is not None:
-            insert_configuration_statut(cur, updated_id, status_id)
-        connexion.commit()
-        cache_invalidate_prefix("configurations:")
-        return True
-    except Exception:
-        connexion.rollback()
-        raise
+            return None
+        return _row_to_dict(row)
     finally:
         close_connection(connexion)
 
 
-def InsertConfiguration(type_, valeur, date=None, status_id=12):
+def InsertConfiguration(id_type, valeur, status_id=12):
     connexion = get_connection()
     if connexion is None:
         return None
     try:
         cur = connexion.cursor()
-        id_configuration = insert_configuration(cur, type_, valeur, date)
+        id_configuration = insert_configuration(cur, id_type, valeur)
         if id_configuration is not None:
             insert_configuration_statut(cur, id_configuration, status_id)
         connexion.commit()
@@ -163,13 +137,15 @@ def InsertConfiguration(type_, valeur, date=None, status_id=12):
         close_connection(connexion)
 
 
-def deleteConfiguration(id_configuration, status_id=14,date=None):
+def UpdateConfiguration(id_configuration, valeur, status_id=13):
     connexion = get_connection()
     if connexion is None:
         return False
     try:
         cur = connexion.cursor()
-        delete_configuration(cur, id_configuration, status_id,date)
+        updated_id = update_configuration(cur, id_configuration, valeur)
+        if updated_id is not None:
+            insert_configuration_statut(cur, updated_id, status_id)
         connexion.commit()
         cache_invalidate_prefix("configurations:")
         return True
@@ -180,22 +156,36 @@ def deleteConfiguration(id_configuration, status_id=14,date=None):
         close_connection(connexion)
 
 
-def getListeArchiveConfiguration():
+def deleteConfiguration(id_configuration, status_id=14):
     connexion = get_connection()
     if connexion is None:
-        return []
+        return False
     try:
         cur = connexion.cursor()
-        rows = get_liste_archiver(cur)
-        result = []
-        for r in rows:
-            result.append({
-                "id": r[0],
-                "type": r[1] if r[1] is not None else None,
-                "valeur": r[2],
-                "date": r[3],
-            })
-        return result
+        delete_configuration(cur, id_configuration, status_id)
+        connexion.commit()
+        cache_invalidate_prefix("configurations:")
+        return True
+    except Exception:
+        connexion.rollback()
+        raise
+    finally:
+        close_connection(connexion)
+
+
+def hardDeleteConfiguration(id_configuration):
+    connexion = get_connection()
+    if connexion is None:
+        return False
+    try:
+        cur = connexion.cursor()
+        supprime = hard_delete_configuration(cur, id_configuration)
+        connexion.commit()
+        cache_invalidate_prefix("configurations:")
+        return supprime
+    except Exception:
+        connexion.rollback()
+        raise
     finally:
         close_connection(connexion)
 
@@ -217,5 +207,41 @@ def reStaurer(id_configuration, status_id=16):
     except Exception:
         connexion.rollback()
         raise
+    finally:
+        close_connection(connexion)
+
+
+def get_liste_type_configuration_by_categorie(id_categorie):
+    connexion = get_connection()
+    if connexion is None:
+        return []
+    try:
+        cur = connexion.cursor()
+        rows = get_type_configuration_by_categorie(cur, id_categorie)
+        result = []
+        for r in rows:
+            result.append({
+                "id": r[0],
+                "type": r[1],
+            })
+        return result
+    finally:
+        close_connection(connexion)
+
+
+def get_liste_categorie_configuration():
+    connexion = get_connection()
+    if connexion is None:
+        return []
+    try:
+        cur = connexion.cursor()
+        rows = get_categorie_configuration(cur)
+        result = []
+        for r in rows:
+            result.append({
+                "id": r[0],
+                "categorie": r[1],
+            })
+        return result
     finally:
         close_connection(connexion)

@@ -10,10 +10,38 @@ export const getListeSeuilPage = async (params = {}) => {
     }
 };
 
-export const createSeuil = async (cle, valeur) => {
+export const supprimerSeuil = async(id)=>{
+    try{
+        return await api_service.post(`seuil/${id}/hard/delete`)
+    }catch(e){
+        console.log(e)
+    }
+};
+
+export const getListeCategorieSeuil = async () => {
+    try {
+        const response = await api_service.get('seuil/categorie/type');
+        return response.data;
+    } catch (e) {
+        console.log(e);
+        return [];
+    }
+};
+
+export const getListeTypeSeuil = async (idCategorie) => {
+    try {
+        const response = await api_service.get(`seuil/type/${idCategorie}`);
+        return response.data;
+    } catch (e) {
+        console.log(e);
+        return [];
+    }
+};
+
+export const createSeuil = async (idType, valeur) => {
     try {
         return await api_service.post('seuil/create', {
-            cle: cle,
+            id_type: idType,
             valeur: valeur
         });
     } catch (e) {
@@ -31,10 +59,10 @@ export const getDetailSeuil = async (id) => {
     }
 };
 
-export const updateSeuil = async (id, cle, valeur) => {
+export const updateSeuil = async (id, idType, valeur) => {
     try {
         return await api_service.put(`seuil/${id}/update`, {
-            cle: cle,
+            id_type: idType,
             valeur: valeur
         });
     } catch (e) {

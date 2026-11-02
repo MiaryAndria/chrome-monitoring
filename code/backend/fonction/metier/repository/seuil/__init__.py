@@ -10,4 +10,7 @@ from .seuil import (
     update_seuil,
     delete_seuil,
     restore_seuil,
+    hard_delete_seuil,
+    get_type_seuil_by_categorie,
+    get_categorie_seuil,
 )

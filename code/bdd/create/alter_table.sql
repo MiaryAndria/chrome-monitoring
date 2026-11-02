@@ -6,6 +6,11 @@ ALTER TABLE t_device ADD COLUMN ip_adress VARCHAR(255) NOT NULL;
 ALTER TABLE t_device ALTER COLUMN ip_adress DROP NOT NULL;
 ALTER TABLE t_device ALTER COLUMN mac_adress DROP NOT NULL;
 ALTER TABLE t_filiale_utilisateur ADD COLUMN id_utilisateur_recent INT UNIQUE NOT NULL;
+ALTER TABLE t_seuil ADD COLUMN id_type_seuil INT NOT NULL REFERENCES t_type_seuil(id);
+ALTER TABLE t_configuration ADD COLUMN id_type_configuration INT NOT NULL REFERENCES t_type_configuration(id);
+-- ALTER TABLE t_seuil ALTER COLUMN id_type_seuil SET NOT NULL;
+-- ALTER TABLE t_configuration ALTER COLUMN id_type_configuration SET NOT NULL;
+ALTER TABLE t_configuration ADD COLUMN 
 ALTER TABLE t_filiale_utilisateur DROP COLUMN id_utilisateur_recent;
 ALTER TABLE t_type_rapport ADD COLUMN IF NOT EXISTS cle_api VARCHAR(255);
 ALTER TABLE t_device ADD COLUMN ram_total BIGINT, ADD COLUMN disk_total BIGINT

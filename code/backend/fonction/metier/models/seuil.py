@@ -3,13 +3,15 @@ from typing import List
 from datetime import datetime
 
 class SeuilData(BaseModel):
-    cle: str
+    id_type:int
     valeur: int
-
+    
 
 class SeuilResponse(BaseModel):
     id: int
+    id_type: int
     cle: str
+    categorie: str | None = None
     valeur: int
     date: datetime | None = None
 
@@ -20,3 +22,13 @@ class SeuilPageResponse(BaseModel):
     page: int
     page_size: int
     total_pages: int
+    
+    
+class SeuilCategorieResponse(BaseModel):
+    id : int
+    categorie : str
+    
+class SeuilTypeResponse(BaseModel):
+    id:int
+    type:str
+

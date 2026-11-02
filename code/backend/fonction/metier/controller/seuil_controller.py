@@ -2,14 +2,19 @@ from typing import List
 from fastapi import APIRouter, HTTPException, Query
 
 from backend.fonction.metier.models.seuil import (
+    SeuilCategorieResponse,
     SeuilResponse,
     SeuilData,
     SeuilPageResponse,
+    SeuilTypeResponse,
 )
 from backend.fonction.metier.service.seuil_service import (
     InsertSeuil as insert_seuil_service,
     UpdateSeuil as update_seuil_service,
     deleteSeuil as delete_seuil_service,
+    hardDeleteSeuil as hard_delete_seuil_service,
+    get_liste_categorie_seuil,
+    get_liste_type_seuil_by_categorie,
     getListeArchiveSeuil,
     getListeSeuil,
     getSeuilsPage,
@@ -53,10 +58,26 @@ def get_list_archive_page(page: int = Query(1, ge=1), page_size: int = Query(10,
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.get("/categorie/type", response_model=List[SeuilCategorieResponse])
+def get_liste_categorie():
+    try:
+        return get_liste_categorie_seuil()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/type/{id_categorie}", response_model=List[SeuilTypeResponse])
+def get_liste_type(id_categorie: int):
+    try:
+        return get_liste_type_seuil_by_categorie(id_categorie)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.post("/create", status_code=201)
 def create_seuil(data: SeuilData):
     try:
-        insert_seuil_service(data.cle, data.valeur)
+        insert_seuil_service(data.id_type, data.valeur)
         return {"message": "Seuil créé"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -73,7 +94,7 @@ def get_detail(id: int):
 @router.put("/{id}/update")
 def update_seuil(id: int, data: SeuilData):
     try:
-        update_seuil_service(id, data.cle, data.valeur)
+        update_seuil_service(id, data.valeur)
         return {"message": "Seuil mis à jour"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -84,6 +105,19 @@ def delete_seuil(id: int):
     try:
         delete_seuil_service(id)
         return {"message": "Seuil supprimé"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/{id}/hard/delete")
+def hard_delete_seuil(id: int):
+    try:
+        supprime = hard_delete_seuil_service(id)
+        if not supprime:
+            raise HTTPException(status_code=404, detail="Seuil introuvable")
+        return {"message": "Seuil supprimé définitivement"}
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

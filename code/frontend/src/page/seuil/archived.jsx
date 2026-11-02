@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { getListeArchiverPage, restaurerSeuil } from '../../fonction/seuilFonction';
-import { Archive, RotateCcw } from 'lucide-react';
+import { getListeArchiverPage, restaurerSeuil,supprimerSeuil } from '../../fonction/seuilFonction';
+import { Archive, RotateCcw ,Trash2} from 'lucide-react';
 import PageLayout from '../../components/PageLayout';
 import GenericTable from '../../components/GenericTable';
 import Pagination from '../../components/Pagination';
@@ -30,20 +30,42 @@ function ArchivedSeuil() {
         }
     };
 
+    const supprimer = async(id)=>{
+        if (!window.confirm("Êtes-vous sûr de supprimer cet paramètres?")) return;
+        try{
+            await supprimerSeuil(id);
+            setRefresh(r=>r+1);
+        }catch(e){
+            console.log(e)
+        }
+    }
+
     const columns = [
-        { header: 'Clé', className: 'w-[18%]', render: (s) => <span className="font-bold text-zinc-100">{s.cle}</span> },
-        { header: 'Valeur', className: 'w-[55%]', render: (s) => <span className="text-zinc-300">{s.valeur}</span> },
-        { header: 'Date', className: 'w-[12%] text-right', render: (s) => s.date ? (
-            <span className="text-zinc-400 text-xs font-mono">
-                <span className="block">{new Date(s.date).toLocaleDateString('fr-FR')}</span>
-                <span className="block">{new Date(s.date).toLocaleTimeString('fr-FR')}</span>
-            </span>
-        ) : <span className="text-zinc-500">-</span> },
+        { header: 'Catégorie', className: 'w-[18%]', render: (s) => <span className="text-zinc-400">{s.categorie}</span> },
+        { header: 'Type', className: 'w-[30%]', render: (s) => <span className="font-bold text-zinc-100">{s.cle}</span> },
+        { header: 'Valeur', className: 'w-[15%]', render: (s) => <span className="text-zinc-300">{s.valeur}</span> },
+        {
+            header: 'Date', className: 'w-[15%] text-right', render: (s) => s.date ? (
+                <span className="text-zinc-400 text-xs font-mono">
+                    <span className="block">{new Date(s.date).toLocaleDateString('fr-FR')}</span>
+                    <span className="block">{new Date(s.date).toLocaleTimeString('fr-FR')}</span>
+                </span>
+            ) : <span className="text-zinc-500">-</span>
+        },
         {
             header: 'Actions', sticky: true, className: 'w-[15%] text-right', render: (s) => (
                 <div className="config-table-actions">
                     <button onClick={() => restaurer(s.id)} className="config-btn config-btn-success" style={{ padding: '0.4rem 0.75rem', fontSize: '0.7rem' }}>
                         <RotateCcw className="w-3.5 h-3.5" /> Restaurer
+                    </button>
+                </div>
+            )
+        },
+        {
+            header: 'Actions', sticky: true, className: 'w-[15%] text-right', render: (s) => (
+                <div className="config-table-actions">
+                    <button onClick={() => supprimer(s.id)} className="config-btn config-btn-danger" style={{ padding: '0.4rem 0.75rem', fontSize: '0.7rem' }}>
+                        <Trash2 className="w-3.5 h-3.5" /> Supprimer
                     </button>
                 </div>
             )

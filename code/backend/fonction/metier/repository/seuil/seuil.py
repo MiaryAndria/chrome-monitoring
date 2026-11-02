@@ -1,24 +1,32 @@
 from datetime import datetime
 
+# Colonnes communes : id, id_type_seuil, type, categorie, valeur, date
+# Une seule lecture du dernier statut par seuil (LEFT JOIN LATERAL) au lieu de
+# deux sous-requetes correlees.
+SEUIL_COLONNES = """
+SELECT s.id, s.id_type_seuil, t.type, c.categorie, s.valeur, ds.date
+"""
+
+SEUIL_FROM = """
+FROM t_seuil s
+JOIN t_type_seuil t ON t.id = s.id_type_seuil
+JOIN t_categorie_type_seuil c ON c.id = t.id_categorie
+LEFT JOIN LATERAL (
+    SELECT ss.id_statut, ss.date
+    FROM t_seuil_statut ss
+    WHERE ss.id_seuil = s.id
+    ORDER BY ss.date DESC, ss.id DESC
+    LIMIT 1
+) ds ON true
+"""
+
+
 def get_liste_seuil(cur):
     cur.execute(
-        """
-        SELECT s.id, s.cle, s.valeur,
-               (
-                   SELECT ss.date
-                   FROM t_seuil_statut ss
-                   WHERE ss.id_seuil = s.id
-                   ORDER BY ss.date DESC, ss.id DESC
-                   LIMIT 1
-               ) AS date
-        FROM t_seuil s
-        WHERE (
-            SELECT st.id_statut
-            FROM t_seuil_statut st
-            WHERE st.id_seuil = s.id
-            ORDER BY st.date DESC, st.id DESC
-            LIMIT 1
-        ) <> 14
+        SEUIL_COLONNES
+        + SEUIL_FROM
+        + """
+        WHERE ds.id_statut <> 14
         ORDER BY s.id ASC
         """
     )
@@ -28,24 +36,13 @@ def get_liste_seuil(cur):
 def find_seuils_paginated(cur, page=1, page_size=10):
     offset = (page - 1) * page_size
     cur.execute(
-        """
-        SELECT s.id, s.cle, s.valeur,
-               (
-                   SELECT ss.date
-                   FROM t_seuil_statut ss
-                   WHERE ss.id_seuil = s.id
-                   ORDER BY ss.date DESC, ss.id DESC
-                   LIMIT 1
-               ) AS date,
+        SEUIL_COLONNES
+        + """,
                COUNT(*) OVER() AS total
-        FROM t_seuil s
-        WHERE (
-            SELECT st.id_statut
-            FROM t_seuil_statut st
-            WHERE st.id_seuil = s.id
-            ORDER BY st.date DESC, st.id DESC
-            LIMIT 1
-        ) <> 14
+        """
+        + SEUIL_FROM
+        + """
+        WHERE ds.id_statut <> 14
         ORDER BY s.id ASC
         LIMIT %s OFFSET %s
         """,
@@ -56,23 +53,10 @@ def find_seuils_paginated(cur, page=1, page_size=10):
 
 def get_liste_archiver(cur):
     cur.execute(
-        """
-        SELECT s.id, s.cle, s.valeur,
-               (
-                   SELECT ss.date
-                   FROM t_seuil_statut ss
-                   WHERE ss.id_seuil = s.id
-                   ORDER BY ss.date DESC, ss.id DESC
-                   LIMIT 1
-               ) AS date
-        FROM t_seuil s
-        WHERE (
-            SELECT st.id_statut
-            FROM t_seuil_statut st
-            WHERE st.id_seuil = s.id
-            ORDER BY st.date DESC, st.id DESC
-            LIMIT 1
-        ) = 14
+        SEUIL_COLONNES
+        + SEUIL_FROM
+        + """
+        WHERE ds.id_statut = 14
         ORDER BY s.id ASC
         """
     )
@@ -82,24 +66,13 @@ def get_liste_archiver(cur):
 def find_seuils_archived_paginated(cur, page=1, page_size=10):
     offset = (page - 1) * page_size
     cur.execute(
-        """
-        SELECT s.id, s.cle, s.valeur,
-               (
-                   SELECT ss.date
-                   FROM t_seuil_statut ss
-                   WHERE ss.id_seuil = s.id
-                   ORDER BY ss.date DESC, ss.id DESC
-                   LIMIT 1
-               ) AS date,
+        SEUIL_COLONNES
+        + """,
                COUNT(*) OVER() AS total
-        FROM t_seuil s
-        WHERE (
-            SELECT st.id_statut
-            FROM t_seuil_statut st
-            WHERE st.id_seuil = s.id
-            ORDER BY st.date DESC, st.id DESC
-            LIMIT 1
-        ) = 14
+        """
+        + SEUIL_FROM
+        + """
+        WHERE ds.id_statut = 14
         ORDER BY s.id ASC
         LIMIT %s OFFSET %s
         """,
@@ -111,7 +84,7 @@ def find_seuils_archived_paginated(cur, page=1, page_size=10):
 def get_by_id_liste_archiver(cur, id_seuil):
     cur.execute(
         """
-        SELECT s.id, s.cle, s.valeur
+        SELECT s.id
         FROM t_seuil s
         WHERE s.id = %s
           AND (
@@ -129,16 +102,9 @@ def get_by_id_liste_archiver(cur, id_seuil):
 
 def get_seuil_by_id(cur, id_seuil):
     cur.execute(
-        """
-        SELECT s.id, s.cle, s.valeur,
-               (
-                   SELECT ss.date
-                   FROM t_seuil_statut ss
-                   WHERE ss.id_seuil = s.id
-                   ORDER BY ss.date DESC, ss.id DESC
-                   LIMIT 1
-               ) AS date
-        FROM t_seuil s
+        SEUIL_COLONNES
+        + SEUIL_FROM
+        + """
         WHERE s.id = %s
         """,
         (id_seuil,),
@@ -146,14 +112,14 @@ def get_seuil_by_id(cur, id_seuil):
     return cur.fetchone()
 
 
-def insert_seuil(cur, cle, valeur):
+def insert_seuil(cur, id_type_seuil, valeur):
     cur.execute(
         """
-        INSERT INTO t_seuil (cle, valeur)
+        INSERT INTO t_seuil (id_type_seuil, valeur)
         VALUES (%s, %s)
         RETURNING id
         """,
-        (cle, valeur),
+        (id_type_seuil, valeur),
     )
     row = cur.fetchone()
     return row[0] if row else None
@@ -170,16 +136,15 @@ def insert_seuil_statut(cur, id_seuil, id_statut):
     return True
 
 
-def update_seuil(cur, id_seuil, cle, valeur):
+def update_seuil(cur, id_seuil, valeur):
     cur.execute(
         """
         UPDATE t_seuil
-        SET cle = %s,
-            valeur = %s
+        SET valeur = %s
         WHERE id = %s
         RETURNING id
         """,
-        (cle, valeur, id_seuil),
+        (valeur, id_seuil),
     )
     row = cur.fetchone()
     return row[0] if row else None
@@ -203,6 +168,40 @@ def restore_seuil(cur, id_seuil, id_statut=16):
         INSERT INTO t_seuil_statut (id_seuil, id_statut, date)
         VALUES (%s, %s, %s)
         """,
-        (id_seuil, id_statut, datetime.now()),
+        (id_seuil, id_statut, datetime.utcnow()),
     )
     return True
+
+
+def hard_delete_seuil(cur, id_seuil):
+    cur.execute(
+        "DELETE FROM t_seuil_statut WHERE id_seuil = %s",
+        (id_seuil,),
+    )
+    cur.execute(
+        "DELETE FROM t_seuil WHERE id = %s",
+        (id_seuil,),
+    )
+    return cur.rowcount > 0
+
+
+def get_type_seuil_by_categorie(cur, id_categorie):
+    cur.execute(
+        """
+        SELECT id, type FROM t_type_seuil
+        WHERE id_categorie = %s
+        ORDER BY type ASC
+        """,
+        (id_categorie,),
+    )
+    return cur.fetchall()
+
+
+def get_categorie_seuil(cur):
+    cur.execute(
+        """
+        SELECT id, categorie FROM t_categorie_type_seuil
+        ORDER BY id ASC
+        """
+    )
+    return cur.fetchall()

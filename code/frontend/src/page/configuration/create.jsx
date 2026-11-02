@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { createConfiguration } from '../../fonction/configurationFonction';
+import { useState, useEffect } from 'react';
+import { createConfiguration, getListeCategorieConfiguration, getListeTypeConfiguration } from '../../fonction/configurationFonction';
 import { useNavigate } from 'react-router-dom';
 import { Plus, ArrowLeft } from 'lucide-react';
 import PageLayout from '../../components/PageLayout';
@@ -7,18 +7,47 @@ import '../../css/liste.css';
 import '../../css/configuration.css';
 
 function ConfigurationCreate() {
-    const [type, setType] = useState('');
+    const [categories, setCategories] = useState([]);
+    const [types, setTypes] = useState([]);
+    const [idCategorie, setIdCategorie] = useState('');
+    const [idType, setIdType] = useState('');
     const [valeur, setValeur] = useState('');
     const navigate = useNavigate();
 
+    const chargerCategories = async () => {
+        const data = await getListeCategorieConfiguration();
+        setCategories(data || []);
+    };
+
+    const chargerTypes = async (idCat) => {
+        if (!idCat) {
+            setTypes([]);
+            setIdType('');
+            return;
+        }
+        const data = await getListeTypeConfiguration(idCat);
+        setTypes(data || []);
+        setIdType('');
+    };
+
+    const changerCategorie = (e) => {
+        const idCat = e.target.value;
+        setIdCategorie(idCat);
+        chargerTypes(idCat);
+    };
+
     const creerConfiguration = async () => {
         try {
-            await createConfiguration(type, valeur);
+            await createConfiguration(Number(idType), valeur);
             navigate('/liste/configuration');
         } catch (e) {
             console.log(e);
         }
     };
+
+    useEffect(() => {
+        chargerCategories();
+    }, []);
 
     return (
         <PageLayout
@@ -36,20 +65,43 @@ function ConfigurationCreate() {
                     </div>
 
                     <div className="config-form-group">
-                        <label className="config-form-label">Type</label>
-                        <input
-                            type="text"
+                        <label className="config-form-label">Catégorie</label>
+                        <select
                             className="config-form-input"
-                            onChange={(e) => setType(e.target.value)}
-                            placeholder="Entrer type configuration"
-                        />
+                            value={idCategorie}
+                            onChange={changerCategorie}
+                        >
+                            <option value="">-- Choisir une catégorie --</option>
+                            {categories.map((c) => (
+                                <option key={c.id} value={c.id}>{c.categorie}</option>
+                            ))}
+                        </select>
                     </div>
-
+                    {idCategorie ? (
+                        <div className="config-form-group">
+                            <label className="config-form-label">Type</label>
+                            <select
+                                className="config-form-input"
+                                value={idType}
+                                onChange={(e) => setIdType(e.target.value)}
+                            >
+                                <option value="">-- Choisir un type --</option>
+                                {types.map((t) => (
+                                    <option key={t.id} value={t.id}>{t.type}</option>
+                                ))}
+                            </select>
+                        </div>
+                    ) : (
+                        <div>
+                            <p>Choisissez d'abord une catégorie</p>
+                        </div>
+                    )}
                     <div className="config-form-group">
                         <label className="config-form-label">Valeur</label>
                         <input
                             type="text"
                             className="config-form-input"
+                            value={valeur}
                             onChange={(e) => setValeur(e.target.value)}
                             placeholder="Entrer valeur"
                         />

@@ -280,6 +280,33 @@ CREATE TABLE t_role (
     role VARCHAR(255)UNIQUE NOT NULL
 );
 
+CREATE TABLE t_statut(
+    id SERIAL PRIMARY KEY ,
+    nom VARCHAR(255) UNIQUE NOT NULL
+);
+
+CREATE TABLE t_categorie_type_seuil(
+    id SERIAL PRIMARY KEY ,
+    categorie VARCHAR(255)UNIQUE NOT NULL
+);
+
+CREATE TABLE t_categorie_type_configuration(
+    id SERIAL PRIMARY KEY ,
+    categorie VARCHAR(255)UNIQUE NOT NULL 
+);
+
+CREATE TABLE t_type_configuration(
+    id SERIAL PRIMARY KEY ,
+    type VARCHAR(255)UNIQUE NOT NULL,
+    id_categorie INT NOT NULL REFERENCES t_categorie_type_configuration(id)
+);
+
+CREATE TABLE t_type_seuil(
+    id SERIAL PRIMARY KEY ,
+    type VARCHAR(255)UNIQUE NOT NULL,
+    id_categorie INT NOT NULL REFERENCES t_categorie_type_seuil(id)
+);
+
 CREATE TABLE t_user (
     id SERIAL PRIMARY KEY ,
     nom VARCHAR(255) NOT NULL,
@@ -309,11 +336,6 @@ CREATE TABLE t_vendor (
     id SERIAL PRIMARY KEY ,
     vendor VARCHAR(255)UNIQUE NOT NULL
 );  
-
-CREATE TABLE t_statut(
-    id SERIAL PRIMARY KEY ,
-    nom VARCHAR(255) UNIQUE NOT NULL
-);
 
 CREATE TABLE t_reseau_filiale (
     id SERIAL PRIMARY KEY,
@@ -507,16 +529,14 @@ CREATE TABLE t_device_alerte_statut(
 
 CREATE TABLE t_seuil(
     id SERIAL PRIMARY KEY ,
-    cle VARCHAR(100) UNIQUE NOT NULL,
+    id_type_seuil INT NOT NULL UNIQUE REFERENCES t_type_seuil(id),
     valeur INT NOT NULL
 );
 
 CREATE TABLE t_configuration (
     id SERIAL PRIMARY KEY,
-    type VARCHAR(100) NOT NULL,
-    valeur VARCHAR(255) NOT NULL,
-    date TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    UNIQUE(type)
+    id_type_configuration INT NOT NULL UNIQUE REFERENCES t_type_configuration(id),
+    valeur VARCHAR(255) NOT NULL
 );
 
 CREATE TABLE t_configuration_statut (

@@ -72,7 +72,6 @@ def login_user(email, mdp):
     finally:
         close_connection(connexion)
 
-
 def signin_user(nom, email, mdp):
     nom = (nom or "").strip()
     email = (email or "").strip()

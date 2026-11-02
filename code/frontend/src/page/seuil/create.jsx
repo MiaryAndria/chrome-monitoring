@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { createSeuil } from '../../fonction/seuilFonction';
+import { useState, useEffect } from 'react';
+import { createSeuil, getListeCategorieSeuil, getListeTypeSeuil } from '../../fonction/seuilFonction';
 import { useNavigate } from 'react-router-dom';
 import { Plus, ArrowLeft } from 'lucide-react';
 import PageLayout from '../../components/PageLayout';
@@ -7,18 +7,47 @@ import '../../css/liste.css';
 import '../../css/configuration.css';
 
 function SeuilCreate() {
-    const [cle, setCle] = useState('');
+    const [categories, setCategories] = useState([]);
+    const [types, setTypes] = useState([]);
+    const [idCategorie, setIdCategorie] = useState('');
+    const [idType, setIdType] = useState('');
     const [valeur, setValeur] = useState('');
     const navigate = useNavigate();
 
+    const chargerCategories = async () => {
+        const data = await getListeCategorieSeuil();
+        setCategories(data || []);
+    };
+
+    const chargerTypes = async (idCat) => {
+        if (!idCat) {
+            setTypes([]);
+            setIdType('');
+            return;
+        }
+        const data = await getListeTypeSeuil(idCat);
+        setTypes(data || []);
+        setIdType('');
+    };
+
+    const changerCategorie = (e) => {
+        const idCat = e.target.value;
+        setIdCategorie(idCat);
+        chargerTypes(idCat);
+    };
+
     const creerSeuil = async () => {
         try {
-            await createSeuil(cle, Number(valeur));
+            await createSeuil(Number(idType), Number(valeur));
             navigate('/liste/seuil');
         } catch (e) {
             console.log(e);
         }
     };
+
+    useEffect(() => {
+        chargerCategories();
+    }, []);
 
     return (
         <PageLayout
@@ -36,20 +65,43 @@ function SeuilCreate() {
                     </div>
 
                     <div className="config-form-group">
-                        <label className="config-form-label">Clé</label>
-                        <input
-                            type="text"
+                        <label className="config-form-label">Catégorie</label>
+                        <select
                             className="config-form-input"
-                            onChange={(e) => setCle(e.target.value)}
-                            placeholder="Entrer clé seuil"
-                        />
+                            value={idCategorie}
+                            onChange={changerCategorie}
+                        >
+                            <option value="">-- Choisir une catégorie --</option>
+                            {categories.map((c) => (
+                                <option key={c.id} value={c.id}>{c.categorie}</option>
+                            ))}
+                        </select>
                     </div>
-
+                    {idCategorie ? (
+                        <div className="config-form-group">
+                            <label className="config-form-label">Type</label>
+                            <select
+                                className="config-form-input"
+                                value={idType}
+                                onChange={(e) => setIdType(e.target.value)}
+                            >
+                                <option value="">-- Choisir un type --</option>
+                                {types.map((t) => (
+                                    <option key={t.id} value={t.id}>{t.type}</option>
+                                ))}
+                            </select>
+                        </div>
+                    ) : (
+                        <div>
+                            <p>Choisissez d'abord une catégorie</p>
+                        </div>
+                    )}
                     <div className="config-form-group">
                         <label className="config-form-label">Valeur</label>
                         <input
                             type="number"
                             className="config-form-input"
+                            value={valeur}
                             onChange={(e) => setValeur(e.target.value)}
                             placeholder="Entrer valeur"
                         />
