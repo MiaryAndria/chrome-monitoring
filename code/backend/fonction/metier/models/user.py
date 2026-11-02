@@ -37,5 +37,6 @@ class UserPageResponse(BaseModel):
 
 class MeResponse(BaseModel):
     id: int
+    nom: str | None = None
     email: str
     id_role: int

@@ -7,7 +7,7 @@ from jose import JWTError, jwt
 from fastapi import Request, Response, HTTPException, status, Depends
 
 from backend.fonction.conn.connexion import get_connection, close_connection
-from backend.fonction.metier.repository.user import get_role_by_user_id
+from backend.fonction.metier.repository.user import get_nom_role_by_user_id
 
 load_dotenv()
 
@@ -56,13 +56,13 @@ def set_auth_cookie(response: Response, token: str):
     )
 
 
-def _role_depuis_base(user_id):
+def _infos_depuis_base(user_id):
     connexion = get_connection()
     if connexion is None:
         return None
     try:
         cur = connexion.cursor()
-        return get_role_by_user_id(cur, user_id)
+        return get_nom_role_by_user_id(cur, user_id)
     finally:
         close_connection(connexion)
 
@@ -81,12 +81,16 @@ async def get_current_user(request: Request, response: Response) -> dict:
     if not payload:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Session expirée")
 
-    # Le role est relu en base : un changement de role est effectif au prochain appel,
+    # Nom + role relus en base : un changement de role est effectif au prochain appel,
     # sans dependre du contenu du token (et sans re-login).
     user_id = int(payload["sub"])
-    id_role = _role_depuis_base(user_id)
-    if id_role is None:
+    infos = _infos_depuis_base(user_id)
+    if infos is None:
+        nom = None
         id_role = payload.get("role")
+    else:
+        nom = infos["nom"]
+        id_role = infos["id_role"]
 
     # Renouvellement glissant : nouveau token si l'ancien approche de sa fin
     expire_at = datetime.fromtimestamp(payload["exp"], tz=timezone.utc)
@@ -94,7 +98,7 @@ async def get_current_user(request: Request, response: Response) -> dict:
         new_token = create_access_token(user_id, payload["email"], id_role)
         set_auth_cookie(response, new_token)
 
-    return {"id": user_id, "email": payload["email"], "id_role": id_role}
+    return {"id": user_id, "nom": nom, "email": payload["email"], "id_role": id_role}
 
 
 def require_admin(current_user: dict = Depends(get_current_user)) -> dict:

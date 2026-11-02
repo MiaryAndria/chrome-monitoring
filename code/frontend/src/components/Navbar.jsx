@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
     Activity, Building2, Laptop, Printer, Bell, BarChart3,
-    Settings, ChevronDown, RotateCcw, RefreshCw, LogOut, Gauge,Copy,Check, Users
+    Settings, ChevronDown, RotateCcw, RefreshCw, LogOut, Gauge, Copy, Check, Users, User
 } from 'lucide-react';
 import { resetData } from '../fonction/importResetFonction';
 import { Logout, GetMe } from "../fonction/userFonction";
@@ -19,6 +19,7 @@ export default function Navbar() {
     const [alerteCount, setAlerteCount] = useState(0);
     const [alertes, setAlertes] = useState([]);
     const [copiedSN, setCopiedSN] = useState(null);
+    const [me, setMe] = useState(null);
     const [isAdmin, setIsAdmin] = useState(false);
 
     // useEffect(() => {
@@ -57,8 +58,14 @@ export default function Navbar() {
 
     useEffect(() => {
         GetMe()
-            .then((u) => setIsAdmin(u?.id_role === 1))
-            .catch(() => setIsAdmin(false));
+            .then((u) => {
+                setMe(u);
+                setIsAdmin(u?.id_role === 1);
+            })
+            .catch(() => {
+                setMe(null);
+                setIsAdmin(false);
+            });
     }, []);
 
     // const applyTheme = (theme) => {
@@ -117,11 +124,6 @@ export default function Navbar() {
         { path: '/liste/event', label: 'Événements', icon: Bell },
     ];
 
-    const utilisateurItems = [
-        { path: '/liste/utilisateur', label: 'Liste utilisateur' },
-        { path: '/liste/utilisateur/archive', label: 'Archive utilisateur' },
-    ];
-
     const deviceItems = [
         { path: '/liste/device', label: 'Devices', icon: Laptop },
         { path: '/imprimantes', label: 'Imprimantes', icon: Printer },
@@ -153,8 +155,6 @@ export default function Navbar() {
     const configActive = configPaths.some((p) => location.pathname.startsWith(p));
     const deviceActive = devicePaths.some((d) => location.pathname.startsWith(d));
     const seuilActive = seuilPaths.some((s) => location.pathname.startsWith(s));
-    const utilisateurPaths = ['/liste/utilisateur', '/liste/utilisateur/archive'];
-    const utilisateurActive = utilisateurPaths.some((u) => location.pathname.startsWith(u));
 
     return (
         <>
@@ -233,16 +233,6 @@ export default function Navbar() {
                                             {item.label}
                                         </NavLink>
                                     ))}
-
-                                    <div className="config-dropdown-divider" />
-                                    <button
-                                        onClick={() => { setOpenMenu(null); resetAll(); }}
-                                        disabled={loading}
-                                        className="config-dropdown-item config-dropdown-danger"
-                                    >
-                                        <RotateCcw className="w-4 h-4" />
-                                        Réinitialiser données
-                                    </button>
                                 </div>
                             )}
                         </div>
@@ -262,34 +252,6 @@ export default function Navbar() {
                             {openMenu === 'seuil' && (
                                 <div className="config-dropdown">
                                     {seuilItems.map((item) => (
-                                        <NavLink
-                                            key={item.path}
-                                            to={item.path}
-                                            onClick={() => setOpenMenu(null)}
-                                            className="config-dropdown-item"
-                                        >
-                                            {item.label}
-                                        </NavLink>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-                    )}
-
-                    {/* Dropdown Utilisateurs (admin uniquement) */}
-                    {isAdmin && (
-                        <div className="relative nav-dropdown">
-                            <button
-                                onClick={() => toggleMenu('utilisateur')}
-                                className={`topnav-link ${utilisateurActive ? 'topnav-link-active' : ''}`}
-                            >
-                                <Users className="w-4 h-4" />
-                                <span>Utilisateurs</span>
-                                <ChevronDown className="w-3 h-3" />
-                            </button>
-                            {openMenu === 'utilisateur' && (
-                                <div className="config-dropdown">
-                                    {utilisateurItems.map((item) => (
                                         <NavLink
                                             key={item.path}
                                             to={item.path}
@@ -400,10 +362,47 @@ export default function Navbar() {
                         />
                     </button> */}
 
-                    <button onClick={handleLogout} className="logout-btn" title="Se déconnecter">
-                        <LogOut className="w-4 h-4" />
-                        <span className="hidden sm:inline">Déconnexion</span>
-                    </button>
+                    <div className="relative nav-dropdown">
+                        <button onClick={() => toggleMenu('user')} className="topnav-link" title="Mon compte">
+                            <User className="w-4 h-4" />
+                        </button>
+
+                        {openMenu === 'user' && (
+                            <div className="config-dropdown" style={{ right: 0, left: 'auto', minWidth: '240px' }}>
+                                <div className="config-dropdown-item" style={{ cursor: 'default', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '2px' }}>
+                                    <span className="text-sm font-bold text-zinc-100">{me?.nom || me?.email || 'Utilisateur'}</span>
+                                    <span className="text-xs text-zinc-400">{me?.email}</span>
+                                    <span className="text-[10px] text-zinc-500">{new Date().toLocaleDateString('fr-FR')}</span>
+                                </div>
+
+                                {isAdmin && (
+                                    <>
+                                        <div className="config-dropdown-divider" />
+                                        <NavLink
+                                            to="/liste/utilisateur"
+                                            onClick={() => setOpenMenu(null)}
+                                            className="config-dropdown-item"
+                                        >
+                                            <Users className="w-4 h-4" /> Liste utilisateur
+                                        </NavLink>
+                                        <button
+                                            onClick={() => { setOpenMenu(null); resetAll(); }}
+                                            disabled={loading}
+                                            className="config-dropdown-item config-dropdown-danger"
+                                        >
+                                            <RotateCcw className="w-4 h-4" />
+                                            Réinitialiser données
+                                        </button>
+                                    </>
+                                )}
+
+                                <div className="config-dropdown-divider" />
+                                <button onClick={handleLogout} className="config-dropdown-item config-dropdown-danger">
+                                    <LogOut className="w-4 h-4" /> Déconnexion
+                                </button>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
 

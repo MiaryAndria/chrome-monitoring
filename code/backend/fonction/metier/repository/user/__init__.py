@@ -6,7 +6,7 @@ from .user import (
     role_exists,
     set_user_role,
     get_user_by_id,
-    get_role_by_user_id,
+    get_nom_role_by_user_id,
     get_user_archived,
     find_users_paginated,
     find_users_archived_paginated,

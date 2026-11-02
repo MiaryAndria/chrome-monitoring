@@ -108,7 +108,9 @@ def signin_user(nom, email, mdp):
     finally:
         close_connection(connexion)
 
-
+def get_detail_user():
+    connexion = get_connection()
+    get
 def get_users():
     connexion = get_connection()
     if connexion is None:
