@@ -4,29 +4,39 @@ from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 
 from backend.utils.datetime_tools import parse_dt
+from backend.utils.config_db import get_configuration, get_int_configuration
 
 
 # ============================================================================
 # Imprimantes USB / détection
 # ============================================================================
 
-PRINTER_CLASS = 7
-
-SCANNER_KEYWORDS = ["canoscan", "lidescan", "lide ", "lide", "scanjet", "scansnap"]
-PRINTER_STRONG_KEYWORDS = [
+# Valeurs par defaut (si la cle de configuration est absente)
+PRINTER_CLASS_DEFAUT = 7
+SCANNER_KEYWORDS_DEFAUT = ["canoscan", "lidescan", "lide ", "lide", "scanjet", "scansnap"]
+PRINTER_STRONG_KEYWORDS_DEFAUT = [
     "printer", "deskjet", "laserjet", "officejet", "envy", "pagewide",
     "pixma", "ecotank", "workforce", "imageclass", "mfc-", "dcp-", "hl-",
     "p-touch", "lq-", "l3110", "l3150", "l3250", "l3210", "l4260", "l5290",
     "lexmark", "xerox", "kyocera", "ricoh", "zebra", "dymo", "bixolon",
     "printer-80", "usb printer port",
 ]
-NON_PRINTER_KEYWORDS = [
+NON_PRINTER_KEYWORDS_DEFAUT = [
     "mouse", "keyboard", "root hub", " hub", "camera", "webcam",
     "headset", "audio", "microphone", "mic ", "storage", "disk",
     "flash", "mtp", "android", "phone", "galaxy", "iphone",
     "touchpad", "gamepad", "joystick", "barcode", "reader",
     "ethernet", "wireless", "bluetooth", "receiver", "motorola", "moto g",
 ]
+
+
+def _liste_keywords(cle, defaut):
+    """Liste de mots-cles lue en config (CSV). On ne retire pas les espaces
+    pour preserver les separateurs significatifs (' hub', 'mic ')."""
+    brut = get_configuration(cle)
+    if brut is None:
+        return list(defaut)
+    return [k for k in str(brut).split(",") if k != ""]
 
 
 def _text(usb):
@@ -42,17 +52,22 @@ def is_printer_peripheral(usb, include_scanners=False):
     if not name:
         return False
 
-    if any(kw in text for kw in NON_PRINTER_KEYWORDS):
+    non_printer = _liste_keywords("PRINT_NON_PRINTER_KEYWORDS", NON_PRINTER_KEYWORDS_DEFAUT)
+    scanner = _liste_keywords("PRINT_SCANNER_KEYWORDS", SCANNER_KEYWORDS_DEFAUT)
+    strong = _liste_keywords("PRINT_STRONG_KEYWORDS", PRINTER_STRONG_KEYWORDS_DEFAUT)
+    printer_class = get_int_configuration("PRINT_CLASS_CODE", PRINTER_CLASS_DEFAUT)
+
+    if any(kw in text for kw in non_printer):
         return False
 
-    if not include_scanners and any(kw in name for kw in SCANNER_KEYWORDS):
+    if not include_scanners and any(kw in name for kw in scanner):
         return False
 
     class_codes = usb.get("classCodes") or [usb.get("classId")]
-    if PRINTER_CLASS in class_codes:
+    if printer_class in class_codes:
         return True
 
-    return any(kw in text for kw in PRINTER_STRONG_KEYWORDS)
+    return any(kw in text for kw in strong)
 
 
 def extract_printers_from_telemetry(telemetry_devices):
@@ -111,12 +126,14 @@ def build_device_printers_index(detected_printers):
 # Audit logs d'impression / matching
 # ============================================================================
 
-MAX_DEVICES_PER_USER = 5
-OLD_PRINT_DAYS = 60
-MAX_DELTA_HOURS = 48
+MAX_DEVICES_PER_USER_DEFAUT = 5
+OLD_PRINT_DAYS_DEFAUT = 60
+MAX_DELTA_HOURS_DEFAUT = 48
+PRINT_AUDIT_DAYS_DEFAUT = 90
+PAGE_SIZE_PRINT_LOGS_DEFAUT = 1000
 
 
-def get_print_audit_logs(credentials, days=90):
+def get_print_audit_logs(credentials, days=None):
     """Événements d'impression Google Workspace (Docs, Sheets, Slides, Drive)."""
     try:
         from googleapiclient.discovery import build
@@ -124,6 +141,10 @@ def get_print_audit_logs(credentials, days=90):
         raise ModuleNotFoundError(
             "googleapiclient is required to fetch print audit logs."
         ) from exc
+
+    if days is None:
+        days = get_int_configuration("PRINT_AUDIT_DAYS", PRINT_AUDIT_DAYS_DEFAUT)
+    page_size = get_int_configuration("GOOGLE_PAGE_SIZE_PRINT_LOGS", PAGE_SIZE_PRINT_LOGS_DEFAUT)
 
     service = build("admin", "reports_v1", credentials=credentials, cache_discovery=False)
     start = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
@@ -137,7 +158,7 @@ def get_print_audit_logs(credentials, days=90):
             applicationName="drive",
             eventName="print",
             startTime=start,
-            maxResults=1000,
+            maxResults=page_size,
             pageToken=page_token,
         ).execute()
 
@@ -230,8 +251,12 @@ def build_telemetry_index(telemetry):
     return idx
 
 
-def match_print_to_devices(print_log, email_index, telemetry_index, managed_domains, max_delta_hours=MAX_DELTA_HOURS):
+def match_print_to_devices(print_log, email_index, telemetry_index, managed_domains, max_delta_hours=None):
     """Retourne (candidats, flags) pour associer une impression à un device."""
+    if max_delta_hours is None:
+        max_delta_hours = get_int_configuration("PRINT_MAX_DELTA_HOURS", MAX_DELTA_HOURS_DEFAUT)
+    old_print_days = get_int_configuration("PRINT_OLD_PRINT_DAYS", OLD_PRINT_DAYS_DEFAUT)
+
     user = (print_log.get("user") or "").lower().strip()
     ip = print_log.get("ip")
     t = parse_dt(print_log.get("time"))
@@ -253,7 +278,7 @@ def match_print_to_devices(print_log, email_index, telemetry_index, managed_doma
         return [], flags
 
     age_days = (now - t).days if t else 0
-    old_print = age_days > OLD_PRINT_DAYS
+    old_print = age_days > old_print_days
 
     candidates = []
     for dev in matches:
@@ -263,7 +288,7 @@ def match_print_to_devices(print_log, email_index, telemetry_index, managed_doma
         if ip and dev.get("wanIpAddress") == ip:
             if old_print:
                 score += 5
-                reason.append(f"WAN IP OK (impression >{OLD_PRINT_DAYS}j, poids réduit)")
+                reason.append(f"WAN IP OK (impression >{old_print_days}j, poids réduit)")
             else:
                 score += 30
                 reason.append("WAN IP OK")
@@ -301,6 +326,9 @@ def enrich_print_logs(print_logs, devices, telemetry, detected_printers):
     managed_domains = extract_managed_domains(devices)
     device_printers = build_device_printers_index(detected_printers)
 
+    max_devices_per_user = get_int_configuration("PRINT_MAX_DEVICES_PER_USER", MAX_DEVICES_PER_USER_DEFAUT)
+    old_print_days = get_int_configuration("PRINT_OLD_PRINT_DAYS", OLD_PRINT_DAYS_DEFAUT)
+
     enriched = []
     unmatched_users = defaultdict(lambda: {
         "count": 0,
@@ -329,7 +357,7 @@ def enrich_print_logs(print_logs, devices, telemetry, detected_printers):
         best = cands[0] if cands and cands[0]["device"] else None
 
         device_candidates = [c for c in cands if c["device"]]
-        many_devices = len(device_candidates) > MAX_DEVICES_PER_USER
+        many_devices = len(device_candidates) > max_devices_per_user
         ambiguous = (len(device_candidates) > 1) or many_devices
 
         if flags["unmatched_user"]:
@@ -401,7 +429,7 @@ def enrich_print_logs(print_logs, devices, telemetry, detected_printers):
             stats["no_document_id"] += 1
         if flags["unmanaged_user"]:
             stats["unmanaged_users"] += 1
-        if best and (t := parse_dt(log.get("time"))) and (datetime.now(timezone.utc) - t).days > OLD_PRINT_DAYS:
+        if best and (t := parse_dt(log.get("time"))) and (datetime.now(timezone.utc) - t).days > old_print_days:
             stats["old_prints"] += 1
 
         if not best:
@@ -419,13 +447,6 @@ def enrich_print_logs(print_logs, devices, telemetry, detected_printers):
 
 
 __all__ = [
-    "MAX_DEVICES_PER_USER",
-    "OLD_PRINT_DAYS",
-    "MAX_DELTA_HOURS",
-    "SCANNER_KEYWORDS",
-    "PRINTER_STRONG_KEYWORDS",
-    "NON_PRINTER_KEYWORDS",
-    "PRINTER_CLASS",
     "is_printer_peripheral",
     "extract_printers_from_telemetry",
     "build_device_printers_index",

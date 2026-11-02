@@ -39,15 +39,10 @@ export const getListeTypeSeuil = async (idCategorie) => {
 };
 
 export const createSeuil = async (idType, valeur) => {
-    try {
-        return await api_service.post('seuil/create', {
-            id_type: idType,
-            valeur: valeur
-        });
-    } catch (e) {
-        console.log(e);
-        return null;
-    }
+    return await api_service.post('seuil/create', {
+        id_type: idType,
+        valeur: valeur
+    });
 };
 
 export const getDetailSeuil = async (id) => {
@@ -59,11 +54,12 @@ export const getDetailSeuil = async (id) => {
     }
 };
 
-export const updateSeuil = async (id, idType, valeur) => {
+export const updateSeuil = async (id, idType, valeur, sens) => {
     try {
         return await api_service.put(`seuil/${id}/update`, {
             id_type: idType,
-            valeur: valeur
+            valeur: valeur,
+            sens: sens
         });
     } catch (e) {
         console.log(e);

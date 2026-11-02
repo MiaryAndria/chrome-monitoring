@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CheckCircle2, Bell, BarChart3, Cpu, MemoryStick, Thermometer,Search } from 'lucide-react';
+import { CheckCircle2, Bell, BarChart3, Search } from 'lucide-react';
 import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
 import PageLayout from '../../../components/PageLayout';
 import GenericTable from '../../../components/GenericTable';
 import TableSkeleton from '../../../components/skeletons/TableSkeleton';
 import Pagination from '../../../components/Pagination';
 import usePaginatedData from '../../../hooks/usePaginatedData';
-import { getListeAlerteResoluePage, getNombreAlerteCpuResolue, getNombreAlerteRamResolue, getNombreAlerteTemperatureResolue, getListeType } from '../../../fonction/alerteFonction';
+import { getListeAlerteResoluePage, getNombreAlerteType, getListeType, ALERTE_META } from '../../../fonction/alerteFonction';
 import '../../../css/liste.css';
 import '../../../css/configuration.css';
 import '../../../css/detail.css';
@@ -17,11 +17,9 @@ function ListeDeviceAlerteResolue() {
     const [page, setPage] = useState(1);
     const [search,setSearch]=useState('');
     const [pageSize, setPageSize] = useState(10);
-    const [totalResolueCpu, setTotalResolueCpu] = useState('');
     const [type, setType] = useState([]);
+    const [stats, setStats] = useState({});
     const [TypeFiltered, setTypeFiltered] = useState('');
-    const [totalResolueRam, setTotalResolueRam] = useState('');
-    const [totalResolueTemperature, setTotalResolueTemperature] = useState('');
     const [dateDebut, setDateDebut] = useState('');
     const [dateFin, setDateFin] = useState('');
     const { items: liste, total, totalPages, loading } = usePaginatedData(
@@ -30,24 +28,6 @@ function ListeDeviceAlerteResolue() {
         pageSize,
         { date_debut: dateDebut || undefined, date_fin: dateFin || undefined, type: TypeFiltered || undefined,search:search || undefined }
     );
-
-    const getAlerteCpuResolue = async (dateDebut, dateFin) => {
-        try {
-            const response = await getNombreAlerteCpuResolue(dateDebut, dateFin)
-            setTotalResolueCpu(response)
-        } catch (e) {
-            console.log(e)
-        }
-    }
-
-    const getAlerteRamResolue = async (dateDebut, dateFin) => {
-        try {
-            const response = await getNombreAlerteRamResolue(dateDebut, dateFin)
-            setTotalResolueRam(response)
-        } catch (e) {
-            console.log(e)
-        }
-    }
 
     const getType = async () => {
         try {
@@ -58,14 +38,16 @@ function ListeDeviceAlerteResolue() {
         }
     }
 
-    const getAlerteTemperatureResolue = async (dateDebut, dateFin) => {
-        try {
-            const response = await getNombreAlerteTemperatureResolue(dateDebut, dateFin)
-            setTotalResolueTemperature(response)
-        } catch (e) {
-            console.log(e)
+    const chargerStats = async () => {
+        const resultat = {};
+        for (const t of type) {
+            resultat[t.type] = await getNombreAlerteType(
+                t.type, 'resolue', dateDebut || undefined, dateFin || undefined
+            );
         }
+        setStats(resultat);
     }
+
     const reset = () => {
         setDateDebut('');
         setDateFin('');
@@ -78,29 +60,22 @@ function ListeDeviceAlerteResolue() {
     }, []);
 
     useEffect(() => {
-        getAlerteCpuResolue(dateDebut || undefined, dateFin || undefined)
-        getAlerteRamResolue(dateDebut || undefined, dateFin || undefined)
-        getAlerteTemperatureResolue(dateDebut || undefined, dateFin || undefined)
-    }, [dateDebut, dateFin])
+        if (type.length > 0) {
+            chargerStats()
+        }
+    }, [type, dateDebut, dateFin])
     // Un changement de filtre repart en page 1 (le hook refetch tout seul).
     useEffect(() => {
         setPage(1);
     }, [dateDebut, dateFin, TypeFiltered,search]);
 
     const totalResolues = Number(total) || 0;
-    const statsResolues = [
-        { label: 'CPU', value: Number(totalResolueCpu) || 0, color: '#22d3ee', text: 'text-cyan-400', Icon: Cpu },
-        { label: 'RAM', value: Number(totalResolueRam) || 0, color: '#a78bfa', text: 'text-violet-400', Icon: MemoryStick },
-        { label: 'Température', value: Number(totalResolueTemperature) || 0, color: '#f59e0b', text: 'text-amber-400', Icon: Thermometer },
-    ];
-    let donutData = statsResolues.map(({ label, value, color }) => ({ name: label, value, color }));
-    if (TypeFiltered === 'ALERTE_CPU') {
-        donutData = [donutData[0]];
-    } else if (TypeFiltered === 'ALERTE_RAM') {
-        donutData = [donutData[1]];
-    } else if (TypeFiltered === 'ALERTE_TEMPERATURE') {
-        donutData = [donutData[2]];
-    }
+    const statsParType = type.map((t) => {
+        const meta = ALERTE_META[t.type] || { label: t.type?.replace('ALERTE_', ''), color: '#71717a', text: 'text-zinc-400', Icon: Bell };
+        return { type: t.type, ...meta, value: Number(stats[t.type]) || 0 };
+    });
+    const donutData = (TypeFiltered ? statsParType.filter((s) => s.type === TypeFiltered) : statsParType)
+        .map(({ label, value, color }) => ({ name: label, value, color }));
 
     const columns = [
         {
@@ -252,7 +227,7 @@ function ListeDeviceAlerteResolue() {
                             </div>
                             <span className="text-2xl font-bold text-zinc-100">{totalResolues}</span>
                         </div>
-                        {statsResolues.map(({ label, value, text, Icon }) => (
+                        {statsParType.map(({ label, value, text, Icon }) => (
                             <div key={label} className="stat-card">
                                 <div className="flex items-center gap-2 text-zinc-400">
                                     <Icon className={`w-4 h-4 ${text}`} />

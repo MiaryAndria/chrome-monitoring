@@ -1,8 +1,25 @@
+import logging
+
 from backend.fonction.conn.connexion import get_connection, close_connection
 from backend.fonction.metier.repository.configuration import get_valeur_configuration
 from backend.core.cache import cache_get, cache_set
 
+logger = logging.getLogger(__name__)
+
 _TTL_SECONDES = 60
+
+# Cles dont l'absence en base a deja ete signalee (evite le spam de logs)
+_cles_signalees = set()
+
+
+def _signaler_absence(cle):
+    if cle in _cles_signalees:
+        return
+    _cles_signalees.add(cle)
+    logger.warning(
+        "Configuration '%s' absente/non lisible en base : valeur par defaut utilisee.",
+        cle,
+    )
 
 
 def get_configuration(cle, default=None):
@@ -14,12 +31,15 @@ def get_configuration(cle, default=None):
 
     connexion = get_connection()
     if connexion is None:
+        _signaler_absence(cle)
         return default
     try:
         cur = connexion.cursor()
         row = get_valeur_configuration(cur, cle)
-        valeur = row[0] if row and row[0] is not None else default
-        return cache_set(cache_key, valeur, _TTL_SECONDES)
+        if row and row[0] is not None:
+            return cache_set(cache_key, row[0], _TTL_SECONDES)
+        _signaler_absence(cle)
+        return cache_set(cache_key, default, _TTL_SECONDES)
     finally:
         close_connection(connexion)
 

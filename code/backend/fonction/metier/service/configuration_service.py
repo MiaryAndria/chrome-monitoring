@@ -12,6 +12,7 @@ from backend.fonction.metier.repository.configuration import (
     delete_configuration,
     restore_configuration,
     hard_delete_configuration,
+    verifier_configuration_type_existe,
     get_type_configuration_by_categorie,
     get_categorie_configuration,
 )
@@ -124,6 +125,11 @@ def InsertConfiguration(id_type, valeur, status_id=12):
         return None
     try:
         cur = connexion.cursor()
+        existante = verifier_configuration_type_existe(cur, id_type)
+        if existante is not None:
+            raise ValueError(
+                "Cette configuration existe déjà. Modifiez-la si vous voulez changer la valeur."
+            )
         id_configuration = insert_configuration(cur, id_type, valeur)
         if id_configuration is not None:
             insert_configuration_statut(cur, id_configuration, status_id)
@@ -195,6 +201,7 @@ def reStaurer(id_configuration, status_id=16):
     if connexion is None:
         return False
     try:
+        
         cur = connexion.cursor()
         parametre = get_by_id_liste_archiver(cur, id_configuration)
         if parametre is None:

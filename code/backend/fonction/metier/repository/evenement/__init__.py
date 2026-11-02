@@ -4,6 +4,7 @@ from .evenement_device import (
     get_liste_evenement_avec_details,
     find_evenements_paginated,
     get_last_event_date,
+    count_evenements_device_period,
 )
 
 

@@ -4,6 +4,7 @@ from datetime import datetime, timedelta, timezone
 import time
 # from backend.utils.save_to_json import save_to_json
 from backend.utils.chrono import chrono
+from backend.utils.config_db import get_configuration, get_int_configuration
 
 from backend.fonction.conn.connexion import get_connection, close_connection
 from backend.fonction.metier.repository.statut import get_or_create_statut
@@ -16,29 +17,29 @@ from backend.fonction.metier.repository.synchronisation import (
 )
 
 logger = logging.getLogger(__name__)
-TZ_LOCAL = timezone(timedelta(hours=3))
-# TZ_LOCAL = get_configuration
-INTERVALLE_SECONDE = 2*60       # une synchro toutes les 1
-MARGE_72h = timedelta(hours=72)           # chevauchement pour les événements tardifs
-PREMIERE_SYNCHRO = timedelta(days=90)
-MARGE_1h = timedelta(hours=1)
+
+# Valeurs par defaut (utilisees si la cle n'existe pas / n'est pas lisible)
+INTERVALLE_DEFAUT = 2 * 60
+MARGE_JOUR_DEFAUT = 1
+MARGE_HISTORIQUE_DEFAUT = 72
+PREMIERE_FENETRE_JOURS_DEFAUT = 90
+TZ_OFFSET_DEFAUT = 3
+SOURCE_DEFAUT = "google"
 
 _verrou = threading.Lock()           # empêche deux synchros en même temps
 _arret = threading.Event()           # pour arrêter proprement la boucle
 _thread = None
 
 
-# get_configuration(mots_clé):
-#     try:
-#         configuration = get_configuration_by_mots_clé()
-#         return configuration[2]
-#     finally:
-#         close_connection(connexion)
-        
+def _tz_local():
+    return timezone(timedelta(hours=get_int_configuration("TZ_OFFSET", TZ_OFFSET_DEFAUT)))
+
+
 def _changer_statut(conn, cur, id_sync, nom_statut):
     id_statut = get_or_create_statut(cur, nom_statut)
     insert_synchronisation_statut(cur, id_statut, id_sync, datetime.now(timezone.utc))
     conn.commit()
+
 
 def executer_synchronisation():
     if not _verrou.acquire(blocking=False):
@@ -49,26 +50,32 @@ def executer_synchronisation():
     cur = None
     id_sync = None
     t_total = time.perf_counter()
-    suivi = {"source": "google", "statut": "ECHEC", "erreur": None, "nb_lignes": 0}
+
+    source = get_configuration("SYNC_SOURCE", SOURCE_DEFAUT)
+    tz_local = _tz_local()
+    premiere = timedelta(days=get_int_configuration("SYNC_PREMIERE_FENETRE_JOURS", PREMIERE_FENETRE_JOURS_DEFAUT))
+    marge_historique = timedelta(hours=get_int_configuration("SYNC_MARGE_HEURES_HISTORIQUE", MARGE_HISTORIQUE_DEFAUT))
+    marge_jour = timedelta(hours=get_int_configuration("SYNC_MARGE_HEURES_JOUR", MARGE_JOUR_DEFAUT))
+
+    suivi = {"source": source, "statut": "ECHEC", "erreur": None, "nb_lignes": 0}
     etapes = suivi.setdefault("etapes_s", {})
 
     try:
         conn = get_connection()
         cur = conn.cursor()
-        source = "google"
         lancement = datetime.now(timezone.utc)
 
         with chrono("lecture_curseur", etapes):
             dernier = get_derniere_fenetre_fin_by_source(cur, source)
 
         if dernier is None:
-            fenetre_debut = lancement - PREMIERE_SYNCHRO
+            fenetre_debut = lancement - premiere
             marge = None
         else:
             deja_fait_aujourdhui = (
-                dernier.astimezone(TZ_LOCAL).date() == lancement.astimezone(TZ_LOCAL).date()
+                dernier.astimezone(tz_local).date() == lancement.astimezone(tz_local).date()
             )
-            marge = MARGE_1h if deja_fait_aujourdhui else MARGE_72h
+            marge = marge_jour if deja_fait_aujourdhui else marge_historique
             fenetre_debut = dernier - marge
         fenetre_fin = lancement
 
@@ -133,16 +140,20 @@ def executer_synchronisation():
             close_connection(conn)
         _verrou.release()
 
-def auto_synchronisation(intervalle=INTERVALLE_SECONDE):
+
+def auto_synchronisation(intervalle=None):
     while not _arret.is_set():
         executer_synchronisation()
-        _arret.wait(intervalle)      
+        attente = intervalle
+        if attente is None:
+            attente = get_int_configuration("SYNC_INTERVALLE_SECONDES", INTERVALLE_DEFAUT)
+        _arret.wait(attente)
 
 
-def demarrer_auto_synchronisation(intervalle=INTERVALLE_SECONDE):
+def demarrer_auto_synchronisation(intervalle=None):
     global _thread
     if _thread is not None and _thread.is_alive():
-        return _thread              
+        return _thread
     _arret.clear()
     _thread = threading.Thread(
         target=auto_synchronisation,

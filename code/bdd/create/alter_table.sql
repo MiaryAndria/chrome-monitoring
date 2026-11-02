@@ -10,6 +10,21 @@ ALTER TABLE t_seuil ADD COLUMN id_type_seuil INT NOT NULL REFERENCES t_type_seui
 ALTER TABLE t_configuration ADD COLUMN id_type_configuration INT NOT NULL REFERENCES t_type_configuration(id);
 -- ALTER TABLE t_seuil ALTER COLUMN id_type_seuil SET NOT NULL;
 -- ALTER TABLE t_configuration ALTER COLUMN id_type_configuration SET NOT NULL;
+ALTER TABLE t_type_seuil
+    ADD COLUMN IF NOT EXISTS sens VARCHAR(1) NOT NULL DEFAULT '>',
+    ADD COLUMN IF NOT EXISTS type_alerte VARCHAR(100),
+    ADD COLUMN IF NOT EXISTS metrique VARCHAR(50),
+    ADD COLUMN IF NOT EXISTS message TEXT;
+
+UPDATE t_type_seuil SET sens='>', type_alerte='ALERTE_CPU',            metrique='cpu',            message='Utilisation CPU supérieure au seuil'               WHERE type='seuil_utilisation_cpu';
+UPDATE t_type_seuil SET sens='>', type_alerte='ALERTE_RAM',            metrique='ram',            message='Utilisation RAM supérieure au seuil'               WHERE type='seuil_utilisation_ram';
+UPDATE t_type_seuil SET sens='>', type_alerte='ALERTE_TEMPERATURE',    metrique='temperature',    message='Température capteur CPU supérieure au seuil'       WHERE type='seuil_capteur_cpu';
+UPDATE t_type_seuil SET sens='>', type_alerte='ALERTE_STOCKAGE',       metrique='stockage',       message='Utilisation du stockage supérieure au seuil'       WHERE type='seuil_stockage';
+UPDATE t_type_seuil SET sens='<', type_alerte='ALERTE_SANTE_BATTERIE', metrique='sante_batterie', message='Santé de la batterie inférieure au seuil'         WHERE type='seuil_sante_batterie';
+UPDATE t_type_seuil SET sens='<', type_alerte='ALERTE_BATTERIE',       metrique='batterie',       message='Niveau de batterie inférieur au seuil'             WHERE type='seuil_batterie';
+UPDATE t_type_seuil SET sens='>', type_alerte='ALERTE_TACHE_PRINT',    metrique='tache_print',    message='Nombre de tâches d''impression supérieur au seuil' WHERE type='seuil_tache_print';
+UPDATE t_type_seuil SET sens='>', type_alerte='ALERTE_EVENEMENTS',     metrique='evenements',     message='Nombre d''événements supérieur au seuil'           WHERE type='seuil_evenements';
+
 ALTER TABLE t_configuration ADD COLUMN 
 ALTER TABLE t_filiale_utilisateur DROP COLUMN id_utilisateur_recent;
 ALTER TABLE t_type_rapport ADD COLUMN IF NOT EXISTS cle_api VARCHAR(255);

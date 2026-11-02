@@ -21,6 +21,22 @@ def get_last_event_date(cur, id_device):
     row = cur.fetchone()
     return row[0] if row else None
 
+
+def count_evenements_device_period(cur, id_device, jours):
+    """Nombre d'evenements d'un device sur les `jours` derniers jours."""
+    cur.execute(
+        """
+        SELECT COUNT(*)
+        FROM t_evenement_device
+        WHERE id_device = %s
+          AND date_evenement >= NOW() - make_interval(days => %s)
+        """,
+        (id_device, jours),
+    )
+    row = cur.fetchone()
+    return row[0] if row else 0
+
+
 def create_evenement_device(cur,id_device,id_type_evenement,date_evenement,details):
     cur.execute(
         """
@@ -114,4 +130,3 @@ def find_evenements_paginated(cur, page=1, page_size=10, type_evenement=None,
         tuple(params + [page_size, offset])
     )
     return _rows_to_dicts(cur)
-

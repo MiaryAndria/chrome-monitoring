@@ -1,3 +1,5 @@
+import logging
+
 from backend.fonction.conn.connexion import get_connection, close_connection
 from backend.fonction.metier.repository.alerte import (
     get_alerte_by_type,
@@ -19,32 +21,31 @@ from backend.fonction.metier.repository.alerte import (
 )
 from backend.fonction.metier.repository.cpu import get_latest_by_device as get_latest_cpu
 from backend.fonction.metier.repository.ram import get_latest_by_device as get_latest_ram
-from backend.fonction.metier.repository.seuil import get_liste_seuil
+from backend.fonction.metier.repository.disk import get_latest_by_device as get_latest_disk
+from backend.fonction.metier.repository.rapport import get_latest_battery_by_device
+from backend.fonction.metier.repository.evenement import count_evenements_device_period
+from backend.fonction.metier.repository.seuil import get_liste_seuil, get_regles_seuil
 from backend.fonction.metier.repository.devices import (
     get_liste_device,
     get_utilisateur_recent_by_device,
 )
 from backend.fonction.metier.repository.statut import get_statut_by_name
+from backend.utils.config_db import get_int_configuration
 from backend.utils.format_valeur import usage_percent
 from backend.utils.pagination import build_page
 from backend.core.cache import cache_get, cache_set, cache_invalidate_prefix
 from backend.utils.builder import _serialize_alerte_resume
 
-# Clés de seuils (t_seuil.cle) : lien métrique -> seuil.
-# Le NOM de la clé est la référence ; la VALEUR est lue en base (repository seuil).
-SEUIL_CPU = "seuil_utilisation_cpu"
-SEUIL_RAM = "seuil_utilisation_ram"
-SEUIL_TEMPERATURE = "seuil_capteur_cpu"
-
-# Types d'alerte (t_alerte.type)
-TYPE_ALERTE_CPU = "ALERTE_CPU"
-TYPE_ALERTE_RAM = "ALERTE_RAM"
-TYPE_ALERTE_TEMPERATURE = "ALERTE_TEMPERATURE"
-
-# Noms de statuts (t_statut.nom) : les ids sont résolus en base, jamais codés en dur
+# Noms de statuts (t_statut.nom) : les ids sont resolus en base, jamais codes en dur
 NOM_STATUT_ACTIVE = "ACTIVE"
 NOM_STATUT_RESOLUE = "RESOLUE"
 NOM_STATUT_CREER = "CREER"
+
+# Cle de configuration : fenetre (jours) du seuil d'evenements.
+CLE_FENETRE_EVENEMENTS = "ALERTE_EVENEMENTS_FENETRE_JOURS"
+FENETRE_EVENEMENTS_DEFAUT = 7
+
+logger = logging.getLogger(__name__)
 
 
 def _id_statut(cur, nom):
@@ -180,15 +181,60 @@ def _seuils_actifs(cur):
     return {r[2]: r[4] for r in get_liste_seuil(cur)}
 
 
-def _metriques_device(cur, id_device):
+def _metrique_cpu(cur, id_device):
     cpu = get_latest_cpu(cur, id_device)
+    return float(cpu["cpu_utiliser"]) if cpu and cpu.get("cpu_utiliser") is not None else None
+
+
+def _metrique_ram(cur, id_device):
     ram = get_latest_ram(cur, id_device)
-    cpu_pct = float(cpu["cpu_utiliser"]) if cpu and cpu.get("cpu_utiliser") is not None else None
-    ram_pct = usage_percent(ram.get("ram_utiliser"), ram.get("ram_total")) if ram else None
+    return usage_percent(ram.get("ram_utiliser"), ram.get("ram_total")) if ram else None
+
+
+def _metrique_temperature(cur, id_device):
+    return get_temperature_max_device(cur, id_device)
+
+
+def _metrique_stockage(cur, id_device):
+    disk = get_latest_disk(cur, id_device)
+    return usage_percent(disk.get("total_utiliser"), disk.get("total_reel")) if disk else None
+
+
+def _metrique_sante_batterie(cur, id_device):
+    batterie = get_latest_battery_by_device(cur, id_device)
+    donnees = (batterie or {}).get("donnees") or {}
+    return usage_percent(donnees.get("fullChargeCapacity"), donnees.get("designCapacity"))
+
+
+def _metrique_batterie(cur, id_device):
+    batterie = get_latest_battery_by_device(cur, id_device)
+    donnees = (batterie or {}).get("donnees") or {}
+    echantillons = donnees.get("sample") or []
+    premier = echantillons[0] if echantillons and isinstance(echantillons[0], dict) else None
+    if premier is None:
+        return None
+    return usage_percent(premier.get("remainingCapacity"), donnees.get("fullChargeCapacity"))
+
+
+def _metrique_tache_print(cur, id_device):
+    # Aucune donnee de tache d'impression persistee -> inactif pour l'instant.
+    return None
+
+
+def _metrique_evenements(cur, id_device, jours_evenements):
+    return count_evenements_device_period(cur, id_device, jours_evenements)
+
+
+def _metriques_device(cur, id_device, jours_evenements):
     return {
-        "cpu": cpu_pct,
-        "ram": ram_pct,
-        "temperature": get_temperature_max_device(cur, id_device),
+        "cpu": _metrique_cpu(cur, id_device),
+        "ram": _metrique_ram(cur, id_device),
+        "temperature": _metrique_temperature(cur, id_device),
+        "stockage": _metrique_stockage(cur, id_device),
+        "sante_batterie": _metrique_sante_batterie(cur, id_device),
+        "batterie": _metrique_batterie(cur, id_device),
+        "tache_print": _metrique_tache_print(cur, id_device),
+        "evenements": _metrique_evenements(cur, id_device, jours_evenements),
     }
 
 
@@ -205,111 +251,52 @@ def _executer_moteur(cur):
     id_statut_active = _id_statut(cur, NOM_STATUT_ACTIVE)
     id_statut_resolue = _id_statut(cur, NOM_STATUT_RESOLUE)
 
-    seuils = _seuils_actifs(cur)
-    valeur_cpu = seuils.get(SEUIL_CPU)
-    valeur_ram = seuils.get(SEUIL_RAM)
-    valeur_temperature = seuils.get(SEUIL_TEMPERATURE)
+    try:
+        regles = get_regles_seuil(cur)
+    except Exception:
+        logger.exception(
+            "Lecture des regles d'alerte impossible "
+            "(colonnes sens/type_alerte/metrique/message absentes de t_type_seuil ?)"
+        )
+        return
 
-    id_alerte_cpu = _get_or_create_alerte(cur, TYPE_ALERTE_CPU) if valeur_cpu is not None else None
-    id_alerte_ram = _get_or_create_alerte(cur, TYPE_ALERTE_RAM) if valeur_ram is not None else None
-    id_alerte_temperature = (
-        _get_or_create_alerte(cur, TYPE_ALERTE_TEMPERATURE) if valeur_temperature is not None else None
-    )
+    seuils = _seuils_actifs(cur)
+    jours_evenements = get_int_configuration(CLE_FENETRE_EVENEMENTS, FENETRE_EVENEMENTS_DEFAUT)
+
+    regles_actives = []
+    for cle_seuil, type_alerte, metrique, sens, message in regles:
+        valeur_seuil = seuils.get(cle_seuil)
+        if valeur_seuil is None:
+            continue
+        id_alerte = _get_or_create_alerte(cur, type_alerte)
+        regles_actives.append((id_alerte, metrique, sens, valeur_seuil, message))
 
     for device in get_liste_device(cur):
         id_device = device[0]
-        metriques = _metriques_device(cur, id_device)
-
-        if id_alerte_cpu is not None and metriques["cpu"] is not None:
-            _appliquer_etat(
-                cur, id_device, id_alerte_cpu,
-                "Utilisation CPU supérieure au seuil",
-                metriques["cpu"] > valeur_cpu,
-                id_statut_active, id_statut_resolue,
-            )
-
-        if id_alerte_ram is not None and metriques["ram"] is not None:
-            _appliquer_etat(
-                cur, id_device, id_alerte_ram,
-                "Utilisation RAM supérieure au seuil",
-                metriques["ram"] > valeur_ram,
-                id_statut_active, id_statut_resolue,
-            )
-
-        if id_alerte_temperature is not None and metriques["temperature"] is not None:
-            _appliquer_etat(
-                cur, id_device, id_alerte_temperature,
-                "Température capteur CPU supérieure au seuil",
-                metriques["temperature"] > valeur_temperature,
-                id_statut_active, id_statut_resolue,
-            )
+        metriques = _metriques_device(cur, id_device, jours_evenements)
+        for id_alerte, metrique, sens, valeur_seuil, message in regles_actives:
+            valeur = metriques.get(metrique)
+            if valeur is None:
+                continue
+            if sens =="<":
+                depasse = valeur < valeur_seuil
+            else:
+                valeur > valeur_seuil
+            _appliquer_etat(cur, id_device, id_alerte, message, depasse,
+                            id_statut_active, id_statut_resolue)
 
 def insertAlerte(cur):
     _executer_moteur(cur)
     cache_invalidate_prefix("alertes:")
-    
-def getStatsAlerteCpuActive(date_debut=None, date_fin=None):
+
+
+def getNombreAlerteParType(type_alerte, statut="active", date_debut=None, date_fin=None):
+    nom_statut = NOM_STATUT_RESOLUE if statut == "resolue" else NOM_STATUT_ACTIVE
     connexion = get_connection()
     if connexion is None:
         return 0
     try:
         cur = connexion.cursor()
-        return _compter_alertes(cur, "ALERTE_CPU", 1, date_debut, date_fin)
+        return _compter_alertes(cur, type_alerte, _id_statut(cur, nom_statut), date_debut, date_fin)
     finally:
         close_connection(connexion)
-
-
-def getStatsAlerteRamActive(date_debut=None, date_fin=None):
-    connexion = get_connection()
-    if connexion is None:
-        return 0
-    try:
-        cur = connexion.cursor()
-        return _compter_alertes(cur, "ALERTE_RAM", 1, date_debut, date_fin)
-    finally:
-        close_connection(connexion)
-
-
-def getStatsAlerteTemperatureActive(date_debut=None, date_fin=None):
-    connexion = get_connection()
-    if connexion is None:
-        return 0
-    try:
-        cur = connexion.cursor()
-        return _compter_alertes(cur, "ALERTE_TEMPERATURE", 1, date_debut, date_fin)
-    finally:
-        close_connection(connexion)
-
-
-def getStatsAlerteCpuResolue(date_debut=None, date_fin=None):
-    connexion = get_connection()
-    if connexion is None:
-        return 0
-    try:
-        cur = connexion.cursor()
-        return _compter_alertes(cur, "ALERTE_CPU", 15, date_debut, date_fin)
-    finally:
-        close_connection(connexion)
-
-
-def getStatsAlerteRamResolue(date_debut=None, date_fin=None):
-    connexion = get_connection()
-    if connexion is None:
-        return 0
-    try:
-        cur = connexion.cursor()
-        return _compter_alertes(cur, "ALERTE_RAM", 15, date_debut, date_fin)
-    finally:
-        close_connection(connexion)
-
-
-def getStatsAlerteTemperatureResolue(date_debut=None, date_fin=None):
-    connexion = get_connection()
-    if connexion is None:
-        return 0
-    try:
-        cur = connexion.cursor()
-        return _compter_alertes(cur, "ALERTE_TEMPERATURE", 15, date_debut, date_fin)
-    finally:
-        close_connection(connexion)
-

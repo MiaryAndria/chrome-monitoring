@@ -79,6 +79,8 @@ def create_configuration(data: ConfigurationData):
     try:
         insert_config_service(data.id_type, data.valeur)
         return {"message": "Configuration créée"}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

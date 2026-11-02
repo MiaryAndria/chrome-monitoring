@@ -41,7 +41,8 @@ function ConfigurationCreate() {
             await createConfiguration(Number(idType), valeur);
             navigate('/liste/configuration');
         } catch (e) {
-            console.log(e);
+            const msg = e?.response?.data?.detail || "Erreur lors de la création de la configuration.";
+            window.alert(msg);
         }
     };
 

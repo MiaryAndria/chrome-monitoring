@@ -10,6 +10,11 @@ from google.auth.transport.requests import Request
 from backend.utils.format_date import format_date
 from backend.utils.format_org import format_org_unit
 from backend.utils.get_credential import get_credentials
+from backend.utils.config_db import (
+    get_configuration,
+    get_int_configuration,
+    get_float_configuration,
+)
 
 load_dotenv()
 
@@ -42,6 +47,7 @@ SCOPES = [
     "https://www.googleapis.com/auth/admin.reports.usage.readonly",
 ]
 
+# Valeur par defaut si la cle GOOGLE_CUSTOMER_ID est absente de la base
 CUSTOMER_ID = os.getenv("GOOGLE_CUSTOMER_ID", "my_customer")
 
 FIELDS = (
@@ -77,7 +83,11 @@ credentials = get_credential()
 # ==============================================================
 # RÉCUPÉRATION DES DEVICES
 # ==============================================================
-def _execute_with_retry(request_fn, max_retries=4, base_delay=1.0):
+def _execute_with_retry(request_fn, max_retries=None, base_delay=None):
+    if max_retries is None:
+        max_retries = get_int_configuration("GOOGLE_RETRY_MAX", 4)
+    if base_delay is None:
+        base_delay = get_float_configuration("GOOGLE_RETRY_BASE_DELAY_S", 1.0)
     for attempt in range(max_retries + 1):
         try:
             return request_fn()
@@ -118,12 +128,14 @@ def get_devices(credentials):
 
     all_devices = []
     page_token = None
+    customer_id = get_configuration("GOOGLE_CUSTOMER_ID", CUSTOMER_ID)
+    page_size = get_int_configuration("GOOGLE_PAGE_SIZE_DEVICES", 250)
 
     while True:
         response = _execute_with_retry(
             lambda: service.chromeosdevices().list(
-                customerId=CUSTOMER_ID,
-                maxResults=250,
+                customerId=customer_id,
+                maxResults=page_size,
                 pageToken=page_token,
                 projection="FULL",
                 fields=FIELDS,
@@ -155,11 +167,13 @@ def get_telemetry_devices(credentials):
                     cache_discovery=False)
     all_devices = []
     page_token = None
+    customer_id = get_configuration("GOOGLE_CUSTOMER_ID", CUSTOMER_ID)
+    page_size = get_int_configuration("GOOGLE_PAGE_SIZE_TELEMETRY", 1000)
 
     while True:
         response = _execute_with_retry(
             lambda: service.customers().telemetry().devices().list(
-                parent="customers/my_customer",
+                parent=f"customers/{customer_id}",
                 readMask=(
                     "name,customer,orgUnitId,deviceId,serialNumber,"
                     "cpuInfo,cpuStatusReport,"
@@ -179,7 +193,7 @@ def get_telemetry_devices(credentials):
                     "appReport,"
                     "runtimeCountersReport"
                 ),
-                pageSize=1000,
+                pageSize=page_size,
                 pageToken=page_token,
             ).execute()
         )

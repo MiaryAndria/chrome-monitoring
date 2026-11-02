@@ -128,6 +128,20 @@ def get_valeur_configuration(cur, type_):
     return cur.fetchone()
 
 
+def verifier_configuration_type_existe(cur, id_type_configuration):
+    cur.execute(
+        """
+        SELECT id, valeur
+        FROM t_configuration
+        WHERE id_type_configuration = %s
+        ORDER BY id ASC
+        LIMIT 1
+        """,
+        (id_type_configuration,),
+    )
+    return cur.fetchone()
+
+
 def insert_configuration(cur, id_type_configuration, valeur):
     cur.execute(
         """

@@ -9,9 +9,8 @@ from .imprimante import (
 
 from .imprimante_device import (
     insert_imprimante_device,
-    get_devices_by_imprimante,
     get_devices_by_imprimante
-)   
+)
 
 from .imprimante_user import (
     insert_imprimante_user,

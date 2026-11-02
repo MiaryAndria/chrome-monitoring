@@ -41,7 +41,8 @@ function SeuilCreate() {
             await createSeuil(Number(idType), Number(valeur));
             navigate('/liste/seuil');
         } catch (e) {
-            console.log(e);
+            const msg = e?.response?.data?.detail || "Erreur lors de la création du seuil.";
+            window.alert(msg);
         }
     };
 

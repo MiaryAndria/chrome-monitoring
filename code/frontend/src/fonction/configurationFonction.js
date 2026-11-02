@@ -31,15 +31,10 @@ export const getListeTypeConfiguration = async (idCategorie) => {
 };
 
 export const createConfiguration = async (idType, valeur) => {
-    try {
-        return await api_service.post('configuration/create', {
-            id_type: idType,
-            valeur: valeur
-        });
-    } catch (e) {
-        console.log(e);
-        return null;
-    }
+    return await api_service.post('configuration/create', {
+        id_type: idType,
+        valeur: valeur
+    });
 };
 
 export const getDetailConfiguration = async (id) => {

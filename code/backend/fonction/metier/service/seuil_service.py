@@ -12,8 +12,10 @@ from backend.fonction.metier.repository.seuil import (
     delete_seuil,
     restore_seuil,
     hard_delete_seuil,
+    verifier_seuil_type_existe,
     get_type_seuil_by_categorie,
     get_categorie_seuil,
+    update_sens_seuil,
 )
 from backend.utils.pagination import build_page
 from backend.core.cache import cache_get, cache_set, cache_invalidate_prefix
@@ -27,6 +29,7 @@ def _row_to_dict(row):
         "categorie": row[3],
         "valeur": row[4],
         "date": row[5],
+        "sens": row[6],
     }
 
 
@@ -49,7 +52,7 @@ def _fetch_seuils_page(page=1, page_size=10):
     try:
         cur = connexion.cursor()
         rows = find_seuils_paginated(cur, page, page_size)
-        total = rows[0][6] if rows else 0
+        total = rows[0][7] if rows else 0
         items = [_row_to_dict(r) for r in rows]
         cur.close()
         return build_page(items, total, page, page_size)
@@ -74,7 +77,7 @@ def _fetch_seuils_archive_page(page=1, page_size=10):
     try:
         cur = connexion.cursor()
         rows = find_seuils_archived_paginated(cur, page, page_size)
-        total = rows[0][6] if rows else 0
+        total = rows[0][7] if rows else 0
         items = [_row_to_dict(r) for r in rows]
         cur.close()
         return build_page(items, total, page, page_size)
@@ -124,6 +127,11 @@ def InsertSeuil(id_type, valeur, status_id=12):
         return None
     try:
         cur = connexion.cursor()
+        existant = verifier_seuil_type_existe(cur, id_type)
+        if existant is not None:
+            raise ValueError(
+                "Ce seuil existe déjà. Modifiez-le si vous voulez changer la valeur."
+            )
         id_seuil = insert_seuil(cur, id_type, valeur)
         if id_seuil is not None:
             insert_seuil_statut(cur, id_seuil, status_id)
@@ -137,7 +145,7 @@ def InsertSeuil(id_type, valeur, status_id=12):
         close_connection(connexion)
 
 
-def UpdateSeuil(id_seuil, valeur, status_id=13):
+def UpdateSeuil(id_seuil, valeur, status_id=13, sens=None):
     connexion = get_connection()
     if connexion is None:
         return False
@@ -146,6 +154,8 @@ def UpdateSeuil(id_seuil, valeur, status_id=13):
         updated_id = update_seuil(cur, id_seuil, valeur)
         if updated_id is not None:
             insert_seuil_statut(cur, updated_id, status_id)
+        if sens:
+            update_sens_seuil(cur, id_seuil, sens)
         connexion.commit()
         cache_invalidate_prefix("seuils:")
         return True

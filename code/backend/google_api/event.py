@@ -12,11 +12,18 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from backend.utils.get_credential import get_credentials 
 from backend.utils.parser import as_list, parse_dur, parse_ts, safe_ts, flatten, paginate
+from backend.utils.config_db import (
+    get_configuration,
+    get_int_configuration,
+    get_list_configuration,
+)
 
 def get_credential():
     return get_credentials(TOKEN_FILE, SCOPES)
 
-CONTEXT_LOOKBACK = timedelta(hours=2)   # le "dernier utilisateur" regarde jusqu'à 24 h avant
+CONTEXT_LOOKBACK_H_DEFAUT = 2   # le "dernier utilisateur" regarde jusqu'à 24 h avant
+def _context_lookback():
+    return timedelta(hours=get_int_configuration("CRASH_CONTEXT_LOOKBACK_H", CONTEXT_LOOKBACK_H_DEFAUT))
 def _z(dt):
     return dt.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
@@ -42,6 +49,9 @@ OUTPUT_DIR = BASE_DIR / "output"
 
 CUSTOMER_ID = "my_customer"
 
+def _customer_id():
+    return get_configuration("GOOGLE_CUSTOMER_ID", CUSTOMER_ID)
+
 SCOPES = [
     "https://www.googleapis.com/auth/admin.directory.device.chromeos.readonly",
     "https://www.googleapis.com/auth/chrome.management.telemetry.readonly",
@@ -50,7 +60,10 @@ SCOPES = [
 credentials = get_credential()
 # Crash rapporté <= N minutes après un démarrage : très probablement un crash de la SESSION
 # PRÉCÉDENTE, remonté au reboot (le rapport est envoyé au boot suivant).
-BOOT_REPORT_MIN = 15
+BOOT_REPORT_MIN_DEFAUT = 15
+
+def _boot_report_min():
+    return get_int_configuration("CRASH_BOOT_REPORT_MIN", BOOT_REPORT_MIN_DEFAUT)
 
 # Événements "contexte" (ce que faisait la machine avant). Si un type n'existe pas / n'est pas
 # activé dans la console Admin, il est simplement ignoré. Adaptez les noms de champs si besoin.
@@ -59,6 +72,9 @@ CONTEXT_EVENT_TYPES = [
     "NETWORK_STATE_CHANGE",
     "VPN_CONNECTION_STATE_CHANGE", "AUDIO_SEVERE_UNDERRUN",
 ]
+
+def _context_event_types():
+    return get_list_configuration("CRASH_CONTEXT_TYPES", CONTEXT_EVENT_TYPES)
 
 EVENT_PAYLOAD_FIELD = {
     "APP_LAUNCHED": "appLaunchEvent",
@@ -97,7 +113,7 @@ def load_directory(creds):
     def run(fields):
         index, activity = {}, {}
         for d in paginate(svc.chromeosdevices().list, "chromeosdevices",
-                          customerId=CUSTOMER_ID, maxResults=100,
+                          customerId=_customer_id(), maxResults=get_int_configuration("GOOGLE_PAGE_SIZE_DIRECTORY", 100),
                           projection="FULL",           # BASIC ne renvoie pas model/osVersion
                           fields=fields):
             recent = d.get("recentUsers") or []
@@ -151,7 +167,7 @@ def device_info(directory, device_id):
 #     out, raw = [], []
 #     for ev in paginate(
 #         svc.customers().telemetry().events().list, "telemetryEvents",
-#         parent=f"customers/{CUSTOMER_ID}",
+#         parent=f"customers/{_customer_id()}",
 #         filter="event_type=OS_CRASH",
 #         readMask="name,device,user,reportTime,eventType,osCrashEvent",
 #         pageSize=100,
@@ -182,10 +198,10 @@ def fetch_os_crash_events(creds, directory, cutoff):
     def lister(use_ts):
         return list(paginate(
             svc.customers().telemetry().events().list, "telemetryEvents",
-            parent=f"customers/{CUSTOMER_ID}",
+            parent=f"customers/{_customer_id()}",
             filter=_event_filter("OS_CRASH", cutoff, use_ts),
             readMask="name,device,user,reportTime,eventType,osCrashEvent",
-            pageSize=1000,
+            pageSize=get_int_configuration("GOOGLE_PAGE_SIZE_TELEMETRY", 1000),
         ))
 
     try:
@@ -227,7 +243,7 @@ def fetch_os_crash_events(creds, directory, cutoff):
 #     try:
 #         while True:
 #             resp = svc.customers().telemetry().events().list(
-#                 parent=f"customers/{CUSTOMER_ID}", filter=f"event_type={et}",
+#                 parent=f"customers/{_customer_id()}", filter=f"event_type={et}",
 #                 readMask=mask, pageSize=1000, pageToken=token,        # 1000 au lieu de 100
 #             ).execute()
 #             evs = resp.get("telemetryEvents", [])
@@ -267,9 +283,9 @@ def _fetch_one_context_type(creds, et, cutoff):
         while True:
             try:
                 resp = svc.customers().telemetry().events().list(
-                    parent=f"customers/{CUSTOMER_ID}",
+                    parent=f"customers/{_customer_id()}",
                     filter=_event_filter(et, cutoff, use_ts),
-                    readMask=mask, pageSize=1000, pageToken=token,
+                    readMask=mask, pageSize=get_int_configuration("GOOGLE_PAGE_SIZE_TELEMETRY", 1000), pageToken=token,
                 ).execute(num_retries=3)
             except HttpError as e:
                 if use_ts and e.resp.status == 400:
@@ -326,7 +342,7 @@ def fetch_device_telemetry(creds):
     global _TEL_FIELDS
     svc = build("chromemanagement", "v1", credentials=creds, cache_discovery=False)
     api = svc.customers().telemetry().devices()
-    parent = f"customers/{CUSTOMER_ID}"
+    parent = f"customers/{_customer_id()}"
 
     if _TEL_FIELDS is None:
         fields = ["bootPerformanceReport"]
@@ -344,7 +360,7 @@ def fetch_device_telemetry(creds):
     mask = "name,deviceId,serialNumber,orgUnitId," + ",".join(fields)
     return {
         t["deviceId"]: t
-        for t in paginate(api.list, "devices", parent=parent, readMask=mask, pageSize=100)
+        for t in paginate(api.list, "devices", parent=parent, readMask=mask, pageSize=get_int_configuration("GOOGLE_PAGE_SIZE_TELEMETRY_DEVICES", 100))
         if t.get("deviceId")
     }
 
@@ -466,7 +482,7 @@ def classify(inc, f):
         cls = "INDETERMINE"
         parts.append("aucun rapport de démarrage correspondant")
     else:
-        at_boot = m <= BOOT_REPORT_MIN
+        at_boot = m <= _boot_report_min()
         if reason == "SYSTEM_UPDATE":
             cls = "APRES_MISE_A_JOUR"
             parts.append("redémarrage consécutif à une mise à jour système")
@@ -478,7 +494,7 @@ def classify(inc, f):
             parts.append("arrêt précédent normal mais crash remonté juste après le boot")
         else:
             cls = "EN_SESSION"
-            parts.append("crash remonté en cours de session (>%d min après le boot)" % BOOT_REPORT_MIN)
+            parts.append("crash remonté en cours de session (>%d min après le boot)" % _boot_report_min())
         if at_boot:
             parts.append("probablement survenu dans la session précédente (rapport envoyé au reboot)")
         gap = f.get("offline_gap_min")
@@ -668,6 +684,7 @@ def summarize_causes(incidents):
         print(f"  {n:>5}  {k}")
 
     print("\nDélai entre le dernier boot et le crash :")
+    boot_report_min = _boot_report_min()
     buckets = Counter()
     for i in incidents:
         m = i.get("minutes_since_boot")
@@ -675,15 +692,15 @@ def summarize_causes(incidents):
             buckets["inconnu"] += 1
         elif m <= 2:
             buckets["0-2 min"] += 1
-        elif m <= BOOT_REPORT_MIN:
-            buckets[f"2-{BOOT_REPORT_MIN} min"] += 1
+        elif m <= boot_report_min:
+            buckets[f"2-{boot_report_min} min"] += 1
         elif m <= 60:
-            buckets[f"{BOOT_REPORT_MIN}-60 min"] += 1
+            buckets[f"{boot_report_min}-60 min"] += 1
         elif m <= 240:
             buckets["1-4 h"] += 1
         else:
             buckets[">4 h"] += 1
-    for k in ["0-2 min", f"2-{BOOT_REPORT_MIN} min", f"{BOOT_REPORT_MIN}-60 min", "1-4 h", ">4 h", "inconnu"]:
+    for k in ["0-2 min", f"2-{boot_report_min} min", f"{boot_report_min}-60 min", "1-4 h", ">4 h", "inconnu"]:
         if buckets.get(k):
             print(f"  {buckets[k]:>5}  {k}")
 
@@ -724,25 +741,28 @@ def device_summary(incidents, directory, tz):
     return rows
 
 
-SHORT_GAP_MIN = 3      # arrêt -> boot <= 3 min : reset / extinction forcée
-MEDIUM_GAP_MIN = 60    # <= 1 h : coupure brève ; au-delà : coupure longue / batterie vide
+SHORT_GAP_MIN_DEFAUT = 3      # arrêt -> boot <= 3 min : reset / extinction forcée
+MEDIUM_GAP_MIN_DEFAUT = 60    # <= 1 h : coupure brève ; au-delà : coupure longue / batterie vide
 
 
 def classify_other(boot, shutdown, crashes, crash_start):
     """Cause déduite d'un arrêt 'OTHER'. Retourne (classe, explication, crash_data_covered)."""
+    boot_report_min = _boot_report_min()
+    short_gap_min = get_int_configuration("CRASH_SHORT_GAP_MIN", SHORT_GAP_MIN_DEFAUT)
+    medium_gap_min = get_int_configuration("CRASH_MEDIUM_GAP_MIN", MEDIUM_GAP_MIN_DEFAUT)
     covered = crash_start is not None and boot is not None and boot >= crash_start
     if boot is not None:
         for t, ctype in crashes:
-            if boot - timedelta(minutes=1) <= t <= boot + timedelta(minutes=BOOT_REPORT_MIN):
+            if boot - timedelta(minutes=1) <= t <= boot + timedelta(minutes=boot_report_min):
                 short = "KERNEL" if "KERNEL" in ctype else "EC" if "EMBEDDED" in ctype else ctype
                 return (f"CRASH_{short}", f"crash {ctype} remonté juste après le reboot", True)
     if boot is None or shutdown is None:
         return "INCONNU", "heure d'arrêt ou de boot manquante", covered
     gap = (boot - shutdown).total_seconds() / 60
     note = "" if covered else " (pas de données crash sur cette période)"
-    if gap <= SHORT_GAP_MIN:
+    if gap <= short_gap_min:
         return "REDEMARRAGE_BRUSQUE", f"rallumé après {gap:.1f} min : reset / extinction forcée / plantage non rapporté{note}", covered
-    if gap <= MEDIUM_GAP_MIN:
+    if gap <= medium_gap_min:
         return "ARRET_COURT", f"éteint {gap:.0f} min : coupure brève ou extinction forcée{note}", covered
     return "COUPURE_LONGUE", f"éteint {gap / 60:.1f} h : coupure de courant / batterie vide / débranché{note}", covered
 
@@ -866,15 +886,15 @@ def merge_history(rows, path=HISTORY_FILE):
 def main(credentials):
     ap = argparse.ArgumentParser()
     ap.add_argument("--days", type=int, default=90)
-    ap.add_argument("--window", type=int, default=300, help="fenêtre de fusion des doublons (s)")
-    ap.add_argument("--tz", type=int, default=3, help="décalage horaire local (Madagascar = 3)")
+    ap.add_argument("--window", type=int, default=get_int_configuration("CRASH_CLUSTER_WINDOW_S", 300), help="fenêtre de fusion des doublons (s)")
+    ap.add_argument("--tz", type=int, default=get_int_configuration("TZ_OFFSET", 3), help="décalage horaire local (Madagascar = 3)")
     ap.add_argument("--search", help="filtre texte sur toutes les colonnes")
     ap.add_argument("--no-context", action="store_true", help="ne pas récupérer les événements d'activité")
-    ap.add_argument("--context-types", default=",".join(CONTEXT_EVENT_TYPES),
+    ap.add_argument("--context-types", default=",".join(_context_event_types()),
                     help="types d'événements d'activité, séparés par des virgules")
-    ap.add_argument("--context-minutes", type=int, default=60, help="fenêtre d'activité avant crash (min)")
-    ap.add_argument("--context-count", type=int, default=5, help="nb d'activités listées avant crash")
-    ap.add_argument("--report-max-age", type=int, default=180,
+    ap.add_argument("--context-minutes", type=int, default=get_int_configuration("CRASH_CONTEXT_MINUTES", 60), help="fenêtre d'activité avant crash (min)")
+    ap.add_argument("--context-count", type=int, default=get_int_configuration("CRASH_CONTEXT_COUNT", 5), help="nb d'activités listées avant crash")
+    ap.add_argument("--report-max-age", type=int, default=get_int_configuration("CRASH_REPORT_MAX_AGE_MIN", 180),
                     help="âge max (min) d'un rapport d'état (CPU/RAM/...) pour être associé à un crash")
     ap.add_argument("--no-history", action="store_true", help="ne pas cumuler dans history/crash_history.csv")
     args = ap.parse_args()
@@ -998,18 +1018,22 @@ def directory_from_devices(dvc_list):
     return index
 
 
-def fetch_crash_sources(creds, debut=None, days=90, window=300,
-                        context_minutes=60, with_context=True):
+def fetch_crash_sources(creds, debut=None, days=90, window=None,
+                        context_minutes=None, with_context=True):
     """Appels Google des crashs et du contexte. Ne dépend pas des devices."""
+    if window is None:
+        window = get_int_configuration("CRASH_CLUSTER_WINDOW_S", 300)
+    if context_minutes is None:
+        context_minutes = get_int_configuration("CRASH_CONTEXT_MINUTES", 60)
     if debut is None:
         debut = datetime.now(timezone.utc) - timedelta(days=days)
     cutoff = _z(debut - timedelta(seconds=window))      # évite de couper un incident en deux
-    lookback = max(CONTEXT_LOOKBACK, timedelta(minutes=context_minutes))
+    lookback = max(_context_lookback(), timedelta(minutes=context_minutes))
     cutoff_ctx = _z(debut - lookback)
 
     with ThreadPoolExecutor(max_workers=2) as ex:
         f_crash = ex.submit(fetch_os_crash_events, creds, {}, cutoff)   # directory vide ici
-        f_ctx = (ex.submit(fetch_context_events, creds, CONTEXT_EVENT_TYPES, cutoff_ctx)
+        f_ctx = (ex.submit(fetch_context_events, creds, _context_event_types(), cutoff_ctx)
                  if with_context else None)
         events, _raw = f_crash.result()
         ctx = f_ctx.result() if f_ctx else {}
@@ -1017,9 +1041,19 @@ def fetch_crash_sources(creds, debut=None, days=90, window=300,
 
 
 def build_crash_incidents(events, ctx, dvc_list, telemetry_list, debut=None, days=90,
-                          window=300, tz=3, context_minutes=60, context_count=5,
-                          report_max_age=180):
+                          window=None, tz=None, context_minutes=None, context_count=None,
+                          report_max_age=None):
     """Fusion, enrichissement et filtrage : aucun appel réseau."""
+    if window is None:
+        window = get_int_configuration("CRASH_CLUSTER_WINDOW_S", 300)
+    if tz is None:
+        tz = get_int_configuration("TZ_OFFSET", 3)
+    if context_minutes is None:
+        context_minutes = get_int_configuration("CRASH_CONTEXT_MINUTES", 60)
+    if context_count is None:
+        context_count = get_int_configuration("CRASH_CONTEXT_COUNT", 5)
+    if report_max_age is None:
+        report_max_age = get_int_configuration("CRASH_REPORT_MAX_AGE_MIN", 180)
     if debut is None:
         debut = datetime.now(timezone.utc) - timedelta(days=days)
     debut_z = _z(debut)

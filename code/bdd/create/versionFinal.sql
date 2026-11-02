@@ -304,7 +304,11 @@ CREATE TABLE t_type_configuration(
 CREATE TABLE t_type_seuil(
     id SERIAL PRIMARY KEY ,
     type VARCHAR(255)UNIQUE NOT NULL,
-    id_categorie INT NOT NULL REFERENCES t_categorie_type_seuil(id)
+    id_categorie INT NOT NULL REFERENCES t_categorie_type_seuil(id),
+    sens VARCHAR(1) NOT NULL DEFAULT '>',
+    type_alerte VARCHAR(100),
+    metrique VARCHAR(50),
+    message TEXT
 );
 
 CREATE TABLE t_user (
@@ -532,6 +536,20 @@ CREATE TABLE t_seuil(
     id_type_seuil INT NOT NULL UNIQUE REFERENCES t_type_seuil(id),
     valeur INT NOT NULL
 );
+
+-- CREATE TABLE t_device_version(
+--     id SERIAL PRIMARY KEY ,
+--     id_device INT NOT NULL UNIQUE REFERENCES t_device(id),
+--     id_version INT NOT NULL UNIQUE REFERENCES t_version_pc(id),
+--     date TIMESTAMPTZ NOT NULL DEFAULT NOW() 
+-- );
+
+-- CREATE TABLE t_device_version_2(
+--     id SERIAL PRIMARY KEY ,
+--     id_device INT NOT NULL REFERENCES t_device(id),
+--     version VARCHAR(255),
+--     date TIMESTAMPTZ NOT NULL DEFAULT NOW()
+-- );
 
 CREATE TABLE t_configuration (
     id SERIAL PRIMARY KEY,

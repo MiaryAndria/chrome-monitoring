@@ -79,6 +79,8 @@ def create_seuil(data: SeuilData):
     try:
         insert_seuil_service(data.id_type, data.valeur)
         return {"message": "Seuil créé"}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -94,7 +96,7 @@ def get_detail(id: int):
 @router.put("/{id}/update")
 def update_seuil(id: int, data: SeuilData):
     try:
-        update_seuil_service(id, data.valeur)
+        update_seuil_service(id, data.valeur, sens=data.sens)
         return {"message": "Seuil mis à jour"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

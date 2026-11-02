@@ -4,7 +4,7 @@ from datetime import datetime
 # Une seule lecture du dernier statut par seuil (LEFT JOIN LATERAL) au lieu de
 # deux sous-requetes correlees.
 SEUIL_COLONNES = """
-SELECT s.id, s.id_type_seuil, t.type, c.categorie, s.valeur, ds.date
+SELECT s.id, s.id_type_seuil, t.type, c.categorie, s.valeur, ds.date, t.sens
 """
 
 SEUIL_FROM = """
@@ -112,6 +112,20 @@ def get_seuil_by_id(cur, id_seuil):
     return cur.fetchone()
 
 
+def verifier_seuil_type_existe(cur, id_type_seuil):
+    cur.execute(
+        """
+        SELECT id, valeur
+        FROM t_seuil
+        WHERE id_type_seuil = %s
+        ORDER BY id ASC
+        LIMIT 1
+        """,
+        (id_type_seuil,),
+    )
+    return cur.fetchone()
+
+
 def insert_seuil(cur, id_type_seuil, valeur):
     cur.execute(
         """
@@ -205,3 +219,33 @@ def get_categorie_seuil(cur):
         """
     )
     return cur.fetchall()
+
+
+def get_regles_seuil(cur):
+    """Regles d'alerte lues en base : (type, type_alerte, metrique, sens, message)."""
+    cur.execute(
+        """
+        SELECT t.type, t.type_alerte, t.metrique, t.sens, t.message
+        FROM t_type_seuil t
+        WHERE t.sens IS NOT NULL
+          AND t.type_alerte IS NOT NULL
+          AND t.metrique IS NOT NULL
+        ORDER BY t.id ASC
+        """
+    )
+    return cur.fetchall()
+
+
+def update_sens_seuil(cur, id_seuil, sens):
+    """Met a jour le sens ('>' ou '<') du type associe a un seuil."""
+    cur.execute(
+        """
+        UPDATE t_type_seuil
+        SET sens = %s
+        WHERE id = (SELECT id_type_seuil FROM t_seuil WHERE id = %s)
+        RETURNING id
+        """,
+        (sens, id_seuil),
+    )
+    row = cur.fetchone()
+    return row[0] if row else None

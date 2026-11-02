@@ -8,6 +8,7 @@ import '../../css/configuration.css';
 
 function SeuilUpdate() {
     const [valeur, setValeur] = useState('');
+    const [sens, setSens] = useState('');
     const [existedCle, setExistedCle] = useState('');
     const [existedIdType, setExistedIdType] = useState('');
     const [existedValeur, setExistedValeur] = useState('');
@@ -20,6 +21,7 @@ function SeuilUpdate() {
             setExistedCle(d.cle);
             setExistedIdType(d.id_type);
             setExistedValeur(d.valeur);
+            setSens(d.sens || '>');
         } catch (e) {
             console.log(e);
         }
@@ -28,7 +30,7 @@ function SeuilUpdate() {
     const updSeuil = async () => {
         try {
             const nouvelleValeur = valeur === '' ? existedValeur : Number(valeur);
-            await updateSeuil(id, existedIdType, nouvelleValeur);
+            await updateSeuil(id, existedIdType, nouvelleValeur, sens || undefined);
             navigate('/liste/seuil');
         } catch (e) {
             console.log(e);
@@ -73,6 +75,18 @@ function SeuilUpdate() {
                             onChange={(e) => setValeur(e.target.value)}
                             placeholder={existedValeur}
                         />
+                    </div>
+
+                    <div className="config-form-group">
+                        <label className="config-form-label">Sens de comparaison</label>
+                        <select
+                            className="config-form-input"
+                            value={sens}
+                            onChange={(e) => setSens(e.target.value)}
+                        >
+                            <option value=">">Supérieur au seuil (&gt;)</option>
+                            <option value="<">Inférieur au seuil (&lt;)</option>
+                        </select>
                     </div>
 
                     <div className="config-form-actions">

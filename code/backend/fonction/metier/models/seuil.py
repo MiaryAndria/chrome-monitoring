@@ -5,6 +5,7 @@ from datetime import datetime
 class SeuilData(BaseModel):
     id_type:int
     valeur: int
+    sens: str | None = None
     
 
 class SeuilResponse(BaseModel):
@@ -14,6 +15,7 @@ class SeuilResponse(BaseModel):
     categorie: str | None = None
     valeur: int
     date: datetime | None = None
+    sens: str | None = None
 
 
 class SeuilPageResponse(BaseModel):

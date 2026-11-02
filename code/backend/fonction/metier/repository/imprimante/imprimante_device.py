@@ -1,14 +1,3 @@
-def get_devices_by_imprimante(cur,id_imprimante):
-    cur.execute(
-        """
-        SELECT * FROM t_imprimante_device WHERE id_imprimante = %s
-        ORDER BY derniere_detection DESC
-        """,(id_imprimante,)
-    )
-    result = cur.fetchall()
-    return result
-
-
 def insert_imprimante_device(cur, id_imprimante, id_device, date):
     cur.execute("""
         INSERT INTO t_imprimante_device (id_imprimante, id_device, date)

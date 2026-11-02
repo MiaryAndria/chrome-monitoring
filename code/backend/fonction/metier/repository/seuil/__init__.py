@@ -11,6 +11,9 @@ from .seuil import (
     delete_seuil,
     restore_seuil,
     hard_delete_seuil,
+    verifier_seuil_type_existe,
     get_type_seuil_by_categorie,
     get_categorie_seuil,
+    get_regles_seuil,
+    update_sens_seuil,
 )

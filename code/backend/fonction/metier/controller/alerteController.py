@@ -12,12 +12,7 @@ from backend.fonction.metier.service.alerte_service import (
     getDeviceAlertesPage,
     getDeviceAlertesResoluesPage,
     getNombreAlerteResolue,
-    getStatsAlerteCpuActive,
-    getStatsAlerteCpuResolue,
-    getStatsAlerteRamActive,
-    getStatsAlerteRamResolue,
-    getStatsAlerteTemperatureActive,
-    getStatsAlerteTemperatureResolue,
+    getNombreAlerteParType,
     getTypeAlerte,
 )
 from backend.fonction.metier.models.alerte import (
@@ -109,54 +104,12 @@ def liste_device_alerte_page(
     except Exception as e:
         traceback.print_exc
         raise HTTPException(status_code=500, detail=str(e))
-    
-@router.get("/cpu/active",response_model=AlerteNombreResponse)
-def liste_alerte_cpu_active(date_debut:Optional[datetime]=None,date_fin:Optional[datetime]=None):
-    try:
-        return {"nombre":getStatsAlerteCpuActive(date_debut,date_fin)}
-    except Exception as e:
-        traceback.print_exc()
-        raise HTTPException(status_code=500,detail=str(e))
-    
-@router.get("/ram/active",response_model=AlerteNombreResponse)
-def liste_alerte_cpu_active(date_debut:Optional[datetime]=None,date_fin:Optional[datetime]=None):
-    try:
-        return {"nombre":getStatsAlerteRamActive(date_debut,date_fin)}
-    except Exception as e:
-        traceback.print_exc()
-        raise HTTPException(status_code=500,detail=str(e))
-    
-
-@router.get("/temperature/active",response_model=AlerteNombreResponse)
-def liste_alerte_cpu_active(date_debut:Optional[datetime]=None,date_fin:Optional[datetime]=None):
-    try:
-        return {"nombre":getStatsAlerteTemperatureActive(date_debut,date_fin)}
-    except Exception as e:
-        traceback.print_exc()
-        raise HTTPException(status_code=500,detail=str(e))
 
 
-@router.get("/cpu/resolue",response_model=AlerteNombreResponse)
-def liste_alerte_cpu_active(date_debut:Optional[datetime]=None,date_fin:Optional[datetime]=None):
+@router.get("/stats/{type_alerte}", response_model=AlerteNombreResponse)
+def stats_alerte_type(type_alerte: str, statut: str = "active",
+                      date_debut: Optional[datetime] = None, date_fin: Optional[datetime] = None):
     try:
-        return {"nombre":getStatsAlerteCpuResolue(date_debut,date_fin)}
+        return {"nombre": getNombreAlerteParType(type_alerte, statut, date_debut, date_fin)}
     except Exception as e:
-        traceback.print_exc()
-        raise HTTPException(status_code=500,detail=str(e))
-    
-    
-@router.get("/ram/resolue",response_model=AlerteNombreResponse)
-def liste_alerte_cpu_active(date_debut:Optional[datetime]=None,date_fin:Optional[datetime]=None):
-    try:
-        return {"nombre":getStatsAlerteRamResolue(date_debut,date_fin)}
-    except Exception as e:
-        traceback.print_exc()
-        raise HTTPException(status_code=500,detail=str(e))
-    
-@router.get("/temp/resolue",response_model=AlerteNombreResponse)
-def liste_alerte_cpu_active(date_debut:Optional[datetime]=None,date_fin:Optional[datetime]=None):
-    try:
-        return {"nombre":getStatsAlerteTemperatureResolue(date_debut,date_fin)}
-    except Exception as e:
-        traceback.print_exc()
-        raise HTTPException(status_code=500,detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e))
