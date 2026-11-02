@@ -81,21 +81,9 @@ function ListeDeviceAlerte() {
     for (const t of type) {
         const valeur = Number(stats[t.type]) || 0;
         const meta = ALERTE_META[t.type];
-        if (valeur >= 0) {
-            if (meta) {
-                statsParType.push({ type: t.type, ...meta, value: valeur });
-            } else {
-                statsParType.push({
-                    type: t.type,
-                    label: t.type?.replace('ALERTE_', ''),
-                    color: '#71717a',
-                    text: 'text-zinc-400',
-                    Icon: Bell,
-                    value: valeur,
-                });
-            }
+        if (meta && valeur > 0) {
+            statsParType.push({ type: t.type, ...meta, value: valeur });
         }
-
     }
 
     const donutData = [];
