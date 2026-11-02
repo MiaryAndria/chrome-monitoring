@@ -97,14 +97,11 @@ function ListeDeviceAlerte() {
 
     const donutData = [];
     for (const s of statsParType) {
-        if (TypeFiltered && s.type !== TypeFiltered && s.value ===0) {
-            continue;
-        }else if (s.value <=0){
+        if (TypeFiltered && s.type !== TypeFiltered || s.value <=0) {
             continue;
         }
         donutData.push({ name: s.label, value: s.value, color: s.color });
     }
-
 
     const columns = [
         {
