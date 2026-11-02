@@ -122,6 +122,13 @@ def _fetch_events_page(page=1, page_size=10, type_evenement=None, id_filiale=Non
             recherche, datetime_from, datetime_to
         )
         total = rows[0]["total"] if rows else 0
+        # Page vide (au-dela de la derniere) : le COUNT(*) OVER() n'est plus dispo.
+        if not rows and page > 1:
+            sonde = find_evenements_paginated(
+                cur, 1, 1, type_evenement, id_filiale, filiale,
+                recherche, datetime_from, datetime_to
+            )
+            total = sonde[0]["total"] if sonde else 0
         items = [_serialize_evenement_row(row) for row in rows]
         cur.close()
         return build_page(items, total, page, page_size)

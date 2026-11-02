@@ -7,6 +7,7 @@ import GenericTable from "../../components/GenericTable";
 import Pagination from "../../components/Pagination";
 import CardGridSkeleton from "../../components/skeletons/CardGridSkeleton";
 import usePaginatedData from "../../hooks/usePaginatedData";
+import useDebounce from "../../hooks/useDebounce";
 import '../../css/liste.css';
 import '../../css/filiale.css';
 import { getListeFilialePage } from "../../fonction/filialeFonction";
@@ -29,13 +30,14 @@ function ListeFiliale() {
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
     const [search, setSearch] = useState("");
+    const debouncedSearch = useDebounce(search, 300);
     const navigate = useNavigate();
 
     const { items: filiales, total, totalPages, loading } = usePaginatedData(
         getListeFilialePage,
         currentPage,
         pageSize,
-        { recherche: search || undefined }
+        { recherche: debouncedSearch || undefined }
     );
 
     useEffect(() => {

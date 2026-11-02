@@ -38,10 +38,31 @@ export default function usePaginatedData(fetcher, page, pageSize, params) {
             fetcher({ page, page_size: pageSize, ...params })
                 .then((data) => {
                     if (annule) return;
+                    const pagesTotal = data?.total_pages || 0;
                     setItems(data?.items || []);
                     setTotal(data?.total || 0);
-                    setTotalPages(data?.total_pages || 0);
+                    setTotalPages(pagesTotal);
                     setError(null);
+
+                    // Ne precharge que les pages qui existent reellement.
+                    const cleSuivante = buildKey(page + 1, pageSize, paramsKey);
+                    const cleApres = buildKey(page + 2, pageSize, paramsKey);
+
+                    if (page + 1 <= pagesTotal && !prefetched.current.has(cleSuivante)) {
+                        fetcher({ page: page + 1, page_size: pageSize, ...params })
+                            .then((d) => {
+                                if (d) prefetched.current.set(cleSuivante, d);
+                            })
+                            .catch(() => {});
+                    }
+
+                    if (page + 2 <= pagesTotal && !prefetched.current.has(cleApres)) {
+                        fetcher({ page: page + 2, page_size: pageSize, ...params })
+                            .then((d) => {
+                                if (d) prefetched.current.set(cleApres, d);
+                            })
+                            .catch(() => {});
+                    }
                 })
                 .catch((e) => {
                     if (annule) return;
@@ -51,25 +72,6 @@ export default function usePaginatedData(fetcher, page, pageSize, params) {
                 .finally(() => {
                     if (!annule) setLoading(false);
                 });
-        }
-
-        const cleSuivante = buildKey(page + 1, pageSize, paramsKey);
-        const cleApres = buildKey(page + 2, pageSize, paramsKey);
-
-        if (!prefetched.current.has(cleSuivante)) {
-            fetcher({ page: page + 1, page_size: pageSize, ...params })
-                .then((data) => {
-                    if (data) prefetched.current.set(cleSuivante, data);
-                })
-                .catch(() => {});
-        }
-
-        if (!prefetched.current.has(cleApres)) {
-            fetcher({ page: page + 2, page_size: pageSize, ...params })
-                .then((data) => {
-                    if (data) prefetched.current.set(cleApres, data);
-                })
-                .catch(() => {});
         }
 
         return () => {

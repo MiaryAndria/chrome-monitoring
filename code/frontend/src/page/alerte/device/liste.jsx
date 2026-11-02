@@ -10,6 +10,7 @@ import '../../../css/liste.css';
 import '../../../css/configuration.css';
 import '../../../css/detail.css';
 import usePaginatedData from '../../../hooks/usePaginatedData';
+import useDebounce from '../../../hooks/useDebounce';
 import Pagination from '../../../components/Pagination';
 
 function ListeDeviceAlerte() {
@@ -17,17 +18,20 @@ function ListeDeviceAlerte() {
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
     const [search, setSearch] = useState('');
+    const debouncedSearch = useDebounce(search, 300);
     const [type, setType] = useState([]);
     const [stats, setStats] = useState({});
     const [TypeFiltered, setTypeFiltered] = useState('');
     const [dateDebut, setDateDebut] = useState('');
     const [dateFin, setDateFin] = useState('');
+    const dateDebutApplique = useDebounce(dateDebut, 500);
+    const dateFinApplique = useDebounce(dateFin, 500);
 
     const { items: liste, total, totalPages, loading } = usePaginatedData(
         getListeAlertePage,
         page,
         pageSize,
-        { date_debut: dateDebut || undefined, date_fin: dateFin || undefined, type: TypeFiltered || undefined, search: search }
+        { date_debut: dateDebutApplique || undefined, date_fin: dateFinApplique || undefined, type: TypeFiltered || undefined, search: debouncedSearch }
     );
 
     const getType = async () => {
@@ -41,11 +45,11 @@ function ListeDeviceAlerte() {
 
     const chargerStats = async () => {
         const resultat = {};
-        for (const t of type) {
+        await Promise.all(type.map(async (t) => {
             resultat[t.type] = await getNombreAlerteType(
-                t.type, 'active', dateDebut || undefined, dateFin || undefined
+                t.type, 'active', dateDebutApplique || undefined, dateFinApplique || undefined
             );
-        }
+        }));
         setStats(resultat);
     }
 
@@ -64,7 +68,7 @@ function ListeDeviceAlerte() {
         if (type.length > 0) {
             chargerStats()
         }
-    }, [type, dateDebut, dateFin])
+    }, [type, dateDebutApplique, dateFinApplique])
 
     // Un changement de filtre repart en page 1 (le hook refetch tout seul).
     useEffect(() => {

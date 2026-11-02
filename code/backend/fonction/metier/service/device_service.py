@@ -6,7 +6,6 @@ from backend.fonction.metier.repository.devices import (
     get_liste_modele,
     recherche_multicritere,
     find_devices_paginated,
-    _get_recent_users,
 )
 from backend.utils.builder import _build_device_response, _serialize_device_row
 from backend.utils.format_valeur import format_bytes, format_frequency
@@ -72,11 +71,15 @@ def _fetch_devices_page(page=1, page_size=10, id_filiale=None, filiale=None,
             statut, type_appareil, recherche, datetime_from, datetime_to,modele
         )
         total = rows[0]["total"] if rows else 0
-        items = []
-        for row in rows:
-            item = _serialize_device_row(row)
-            item["utilisateurs_recents"] = _get_recent_users(cur, item["id"])
-            items.append(item)
+        # Page vide (page au-dela de la derniere) : le COUNT(*) OVER() n'est plus dispo,
+        # on refait une sonde page 1 pour recuperer le vrai total.
+        if not rows and page > 1:
+            sonde = find_devices_paginated(
+                cur, 1, 1, id_filiale, filiale, statut, type_appareil,
+                recherche, datetime_from, datetime_to, modele
+            )
+            total = sonde[0]["total"] if sonde else 0
+        items = [_serialize_device_row(row) for row in rows]
         cur.close()
         return build_page(items, total, page, page_size)
     finally:

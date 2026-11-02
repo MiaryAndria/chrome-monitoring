@@ -8,6 +8,7 @@ import Pagination from "../../components/Pagination";
 import DeviceListSkeleton from "../../components/skeletons/DeviceListSkeleton";
 import TableSkeleton from "../../components/skeletons/TableSkeleton";
 import usePaginatedData from "../../hooks/usePaginatedData";
+import useDebounce from "../../hooks/useDebounce";
 import FilialeDropdown from "../component/FilialeDropdown";
 import StatutDropdown from "../component/StatutDropdown";
 import ResetFiltreButton from "../component/ResetFiltreButton";
@@ -40,6 +41,7 @@ function ListeDevice() {
 
     // Recherche
     const [search, setSearch] = useState("");
+    const debouncedSearch = useDebounce(search, 300);
 
     // Filtre modèle
     const [modeles, setModeles] = useState([]);
@@ -54,7 +56,7 @@ function ListeDevice() {
             filiale: filiale || undefined,
             type_appareil: filterType || undefined,
             modele: modele || undefined,
-            recherche: search || filterSearch || undefined,
+            recherche: debouncedSearch || filterSearch || undefined,
         }
     );
 

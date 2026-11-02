@@ -6,6 +6,7 @@ import MouseSpotlight from "../../components/MouseSpotlight";
 import Pagination from "../../components/Pagination";
 import DeviceListSkeleton from "../../components/skeletons/DeviceListSkeleton";
 import usePaginatedData from "../../hooks/usePaginatedData";
+import useDebounce from "../../hooks/useDebounce";
 import '../../css/liste.css';
 import StatutDropdown from "../component/StatutDropdown";
 import ResetFiltreButton from "../component/ResetFiltreButton";
@@ -20,6 +21,7 @@ function ListeDeviceFiliale() {
     const [listeStatuts, setListeStatuts] = useState([]);
     const [statut, setStatut] = useState("");
     const [search, setSearch] = useState("");
+    const debouncedSearch = useDebounce(search, 300);
     const [modeles, setModeles] = useState([]);
     const [modele, setModele] = useState("");
     const [filialeInfo, setFilialeInfo] = useState(null);
@@ -42,7 +44,7 @@ function ListeDeviceFiliale() {
         {
             statut: statut || undefined,
             modele: modele || undefined,
-            recherche: search || undefined,
+            recherche: debouncedSearch || undefined,
         }
     );
 

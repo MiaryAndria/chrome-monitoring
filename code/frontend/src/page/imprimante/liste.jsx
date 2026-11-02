@@ -6,6 +6,7 @@ import EmptyState from "../../components/EmptyState";
 import Pagination from "../../components/Pagination";
 import PrinterListSkeleton from "../../components/skeletons/PrinterListSkeleton";
 import usePaginatedData from "../../hooks/usePaginatedData";
+import useDebounce from "../../hooks/useDebounce";
 import DateHeureFilter from "../component/DateHeureFilter";
 import { getImprimantes, getVendors } from "../../fonction/imprimanteFonction";
 import StatutDropdown from "../component/StatutDropdown";
@@ -16,6 +17,7 @@ import { useNavigate } from 'react-router-dom';
 
 function ListeImprimante() {
     const [search, setSearch] = useState("");
+    const debouncedSearch = useDebounce(search, 300);
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
     const [viewMode, setViewMode] = useState('grid');
@@ -38,7 +40,7 @@ function ListeImprimante() {
         currentPage,
         pageSize,
         {
-            recherche: search || undefined,
+            recherche: debouncedSearch || undefined,
             vendor: vendor || undefined,
             datetime_from: datetimeFrom || undefined,
             datetime_to: datetimeTo || undefined,

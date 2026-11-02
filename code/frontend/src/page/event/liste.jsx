@@ -13,6 +13,7 @@ import Pagination from "../../components/Pagination";
 import EventListSkeleton from "../../components/skeletons/EventListSkeleton";
 import TableSkeleton from "../../components/skeletons/TableSkeleton";
 import usePaginatedData from "../../hooks/usePaginatedData";
+import useDebounce from "../../hooks/useDebounce";
 import { getEvenements, getListeTypeEvenement } from "../../fonction/eventFonction";
 import EventCard from "../component/component_event";
 import EvenementDureeVie from "../component/EvenementDureeVie";
@@ -31,6 +32,7 @@ function ListeEvent() {
     const [listeTypes, setListeTypes] = useState([]);
     const [listeFiliales, setListeFiliales] = useState([]);
     const [search, setSearch] = useState("");
+    const debouncedSearch = useDebounce(search, 300);
     const [dateDebut, setDateDebut] = useState('');
     const [heureDebut, setHeureDebut] = useState('00:00');
     const [dateFin, setDateFin] = useState('');
@@ -65,7 +67,7 @@ function ListeEvent() {
         currentPage,
         pageSize,
         {
-            recherche: search || undefined,
+            recherche: debouncedSearch || undefined,
             type_evenement: typeEvenement !== "TOUS" ? typeEvenement : undefined,
             filiale: filiale || undefined,
             datetime_from: datetimeDebutApplique || undefined,
