@@ -377,14 +377,18 @@ export default function Navbar() {
 
                                 {isAdmin && (
                                     <>
-                                        <div className="config-dropdown-divider" />
+
                                         <NavLink
                                             to="/liste/utilisateur"
                                             onClick={() => setOpenMenu(null)}
                                             className="config-dropdown-item"
+                                            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
                                         >
-                                            <Users className="w-4 h-4" /> Liste utilisateur
+                                            <Users className="w-4 h-4" />
+                                            <span>Liste utilisateur</span>
                                         </NavLink>
+
+                                        <div className="config-dropdown-divider" />
                                         <button
                                             onClick={() => { setOpenMenu(null); resetAll(); }}
                                             disabled={loading}
