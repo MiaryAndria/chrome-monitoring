@@ -73,14 +73,6 @@ def update_role_user(id: int, data: UserRoleUpdate, current_user: dict = Depends
     except ValueError as erreur:
         raise HTTPException(status_code=400, detail=str(erreur))
 
-@router.get("/id",response_model=UserResponseDetail)
-def get_detail(id:int):
-    try:
-        detail_user = get_detail_user(id)
-        return detail_user
-    except HTTPException as e:
-        raise HTTPException(status_code,detail=str(e))
-
 @router.post("/{id}/delete")
 def supprimer(id: int, current_user: dict = Depends(require_admin)):
     try:
