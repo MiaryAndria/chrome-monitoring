@@ -291,12 +291,13 @@ def insertAlerte(cur):
 
 
 def getNombreAlerteParType(type_alerte, statut="active", date_debut=None, date_fin=None):
-    nom_statut = NOM_STATUT_RESOLUE if statut == "resolue" else NOM_STATUT_ACTIVE
+    # Meme reference de statut que les listes (device_alerte.py) : 1 = active, 15 = resolue.
+    id_statut = 15 if statut == "resolue" else 1
     connexion = get_connection()
     if connexion is None:
         return 0
     try:
         cur = connexion.cursor()
-        return _compter_alertes(cur, type_alerte, _id_statut(cur, nom_statut), date_debut, date_fin)
+        return _compter_alertes(cur, type_alerte, id_statut, date_debut, date_fin)
     finally:
         close_connection(connexion)

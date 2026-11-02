@@ -70,6 +70,12 @@ def get_user_by_id(cur, id_user):
     return cur.fetchone()
 
 
+def get_role_by_user_id(cur, id_user):
+    cur.execute("SELECT id_role FROM t_user WHERE id = %s", (id_user,))
+    row = cur.fetchone()
+    return row[0] if row else None
+
+
 def get_user_archived(cur, id_user, id_statut_supprime):
     cur.execute(
         """
