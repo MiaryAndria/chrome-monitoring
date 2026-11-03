@@ -18,7 +18,9 @@ from backend.fonction.metier.repository.alerte import (
     get_liste_device_alerte_by_date_resolue,
     get_nombre_alerte_resolue,
     get_type_alerte,
-    delete_alertes_avant
+    delete_alertes_avant,
+    get_alertes_nouvelles,
+    get_nombre_alerte_nouvelle,
 )
 from backend.fonction.metier.repository.cpu import get_latest_by_device as get_latest_cpu
 from backend.fonction.metier.repository.ram import get_latest_by_device as get_latest_ram
@@ -36,6 +38,7 @@ from backend.utils.format_valeur import usage_percent
 from backend.utils.pagination import build_page
 from backend.core.cache import cache_get, cache_set, cache_invalidate_prefix
 from backend.utils.builder import _serialize_alerte_resume
+from backend.fonction.metier.repository.synchronisation.synchronisation_historique import get_date_derniere_synchronisation
 
 # Noms de statuts (t_statut.nom) : les ids sont resolus en base, jamais codes en dur
 NOM_STATUT_ACTIVE = "ACTIVE"
@@ -334,5 +337,32 @@ def delete_alerte(date_limite):
     except Exception:
         connexion.rollback()
         raise
+    finally:
+        close_connection(connexion)
+        
+def getNouvellesAlertes(limit):
+    connexion = get_connection()
+    if connexion is None:
+        return []
+    try:
+        cur = connexion.cursor()
+        date_depuis = get_date_derniere_synchronisation(cur)
+        if date_depuis is None:
+            return []
+        rows = get_alertes_nouvelles(cur, date_depuis, limit)
+        return [_serialize_alerte_resume(r) for r in rows]
+    finally:
+        close_connection(connexion)
+        
+def getNombreAlerteNouvelle():
+    connexion = get_connection()
+    if connexion is None:
+        return 0
+    try:
+        cur = connexion.cursor()
+        date_depuis = get_date_derniere_synchronisation(cur)
+        if date_depuis is None:
+            return 0
+        return get_nombre_alerte_nouvelle(cur, date_depuis)
     finally:
         close_connection(connexion)

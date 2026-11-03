@@ -58,6 +58,7 @@ def getDevicesByFiliale(
     type_appareil: Optional[str] = None,
     modele: Optional[str] = None,
     recherche: Optional[str] = None,
+    utilisateur_recent: Optional[str] = None,
     datetime_from: Optional[datetime] = None,
     datetime_to: Optional[datetime] = None,
 ):
@@ -75,6 +76,7 @@ def getDevicesByFiliale(
             type_appareil=type_appareil,
             modele=modele,
             recherche=recherche,
+            utilisateur_recent=utilisateur_recent,
             datetime_from=datetime_from,
             datetime_to=datetime_to,
         )

@@ -11,8 +11,10 @@ from backend.fonction.metier.service.alerte_service import (
     getListeDeviceAlerteDate,
     getDeviceAlertesPage,
     getDeviceAlertesResoluesPage,
+    getNombreAlerteNouvelle,
     getNombreAlerteResolue,
     getNombreAlerteParType,
+    getNouvellesAlertes,
     getTypeAlerte,
 )
 from backend.fonction.metier.models.alerte import (
@@ -110,5 +112,20 @@ def stats_alerte_type(type_alerte: str, statut: str = "active",
                       date_debut: Optional[datetime] = None, date_fin: Optional[datetime] = None):
     try:
         return {"nombre": getNombreAlerteParType(type_alerte, statut, date_debut, date_fin)}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/nombre/nouvelle", response_model=AlerteNombreResponse)
+def nombre_alerte_nouvelle():
+    try:
+        return {"nombre": getNombreAlerteNouvelle()}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/nouvelles", response_model=List[AlerteResume])
+def nouvelles_alertes(limit: int = Query(10, ge=1, le=50)):
+    try:
+        return getNouvellesAlertes(limit)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

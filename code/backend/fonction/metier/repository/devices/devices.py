@@ -354,7 +354,7 @@ def _rows_to_dicts(cur):
 
 def _build_device_filter_clause(id_filiale=None, filiale=None, statut=None,
                                 type_appareil=None, recherche=None,
-                                datetime_from=None, datetime_to=None,modele=None):
+                                datetime_from=None, datetime_to=None,modele=None,utilisateur_recent=None):
     clauses = []
     params = []
     if modele:
@@ -369,6 +369,9 @@ def _build_device_filter_clause(id_filiale=None, filiale=None, statut=None,
     if statut:
         clauses.append("UPPER(status) = UPPER(%s)")
         params.append(statut)
+    if utilisateur_recent:
+        clauses.append("%s = ANY(utilisateurs_recents)")
+        params.append(utilisateur_recent)
     if type_appareil:
         clauses.append("UPPER(type_appareil) = UPPER(%s)")
         params.append(type_appareil)
@@ -388,10 +391,10 @@ def _build_device_filter_clause(id_filiale=None, filiale=None, statut=None,
 def find_devices_paginated(cur, page=1, page_size=10, id_filiale=None,
                            filiale=None, statut=None, type_appareil=None,
                            recherche=None, datetime_from=None,
-                           datetime_to=None,modele=None):
+                           datetime_to=None,modele=None,utilisateur_recent=None):
     clauses, params = _build_device_filter_clause(
         id_filiale, filiale, statut, type_appareil, recherche,
-        datetime_from, datetime_to,modele
+        datetime_from, datetime_to,modele,utilisateur_recent
     )
     where = "WHERE " + " AND ".join(clauses) if clauses else ""
     offset = (page - 1) * page_size

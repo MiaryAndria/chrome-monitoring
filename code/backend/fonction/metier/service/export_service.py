@@ -1,6 +1,5 @@
 import io
 import re
-from datetime import datetime
 from pathlib import Path
 
 from openpyxl import Workbook
@@ -131,11 +130,8 @@ TABLE_BUILDERS = {
 
 PROJECT_ROOT = Path(__file__).resolve().parents[5]
 EXPORT_ROOT = PROJECT_ROOT / "export"
-EXPORT_PDF_DIR = EXPORT_ROOT / "pdf"
 EXPORT_EXCEL_DIR = EXPORT_ROOT / "excel"
-
-for directory in (EXPORT_PDF_DIR, EXPORT_EXCEL_DIR):
-    directory.mkdir(parents=True, exist_ok=True)
+EXPORT_EXCEL_DIR.mkdir(parents=True, exist_ok=True)
 
 
 def sanitize_export_name(value):
@@ -171,9 +167,8 @@ def build_export_filename(onglet, device_id, ext, device_name=None):
     return f"rapport_{safe_name}_{onglet}.{ext}"
 
 
-def save_export_file(buffer, ext, filename):
-    directory = EXPORT_PDF_DIR if ext == "pdf" else EXPORT_EXCEL_DIR
-    file_path = directory / filename
+def save_export_file(buffer, filename):
+    file_path = EXPORT_EXCEL_DIR / filename
     file_path.write_bytes(buffer.getvalue())
     return file_path
 
@@ -345,7 +340,7 @@ def generate_pdf(sections, titre_doc, sous_titre="", device_info=None):
     # Bloc Fiche d'information Matériel en haut du PDF si device_info est présent
     if device_info:
         recents_str = ", ".join(device_info.get("utilisateurs_recents") or []) or "Aucun"
-        
+
         info_table_data = [
             [Paragraph("<b>FICHE D'INFORMATION DU MATÉRIEL</b>", styles["Normal"]), "", "", ""],
             [
@@ -413,3 +408,86 @@ def generate_pdf(sections, titre_doc, sous_titre="", device_info=None):
     doc.build(elements)
     buffer.seek(0)
     return buffer
+
+
+TAILLE_EXPORT = 100000
+
+COLS_DEVICE = [
+    "N° de série", "Modèle", "Type", "Statut", "Filiale",
+    "Utilisateur assigné", "Utilisateurs récents", "IP", "MAC",
+    "ChromeOS", "Chrome", "CPU", "RAM", "Disque total",
+]
+
+COLS_IMPRIMANTE = ["Fabricant", "Nom", "VID", "PID"]
+
+
+def _ligne_device(d):
+    recents = d.get("utilisateurs_recents") or []
+    return [
+        d.get("serial_number") or "-", d.get("modele") or "-",
+        d.get("type_appareil") or "-", d.get("status") or "-",
+        d.get("filiale") or "-", d.get("utilisateur_email") or "-",
+        ", ".join(recents) if recents else "Aucun",
+        d.get("ip_adress") or "-", d.get("mac_adress") or "-",
+        d.get("chromeos_version") or "-", d.get("chrome_version") or "-",
+        d.get("cpu_model") or "-", d.get("ram_total_label") or "-",
+        d.get("disk_total_label") or "-",
+    ]
+
+
+def _ligne_imprimante(i):
+    return [i.get("vendor") or "-", i.get("nom") or "-",
+            i.get("vid") if i.get("vid") is not None else "-",
+            i.get("pid") if i.get("pid") is not None else "-"]
+
+
+def _titres_uniques(noms):
+    vus = set()
+    titres = []
+    for nom in noms:
+        base = (nom or "Filiale").strip()[:31]
+        titre = base
+        i = 2
+        while titre in vus:
+            suffixe = f" ({i})"
+            titre = base[:31 - len(suffixe)] + suffixe
+            i += 1
+        vus.add(titre)
+        titres.append(titre)
+    return titres
+
+
+def sections_devices():
+    from backend.fonction.metier.service.device_service import getDevicesPage
+    items = getDevicesPage(page=1, page_size=TAILLE_EXPORT).get("items") or []
+    return [("Appareils", COLS_DEVICE, [_ligne_device(d) for d in items])]
+
+
+def sections_imprimantes():
+    from backend.fonction.metier.service.imprimante_service import get_imprimante
+    items = get_imprimante() or []
+    return [("Imprimantes", COLS_IMPRIMANTE, [_ligne_imprimante(i) for i in items])]
+
+
+def sections_filiales():
+    from backend.fonction.metier.service.device_service import getDevicesPage
+    from backend.fonction.metier.service.filiale_service import get_all_filiales
+    filiales = get_all_filiales() or []
+    groupes = []
+    for filiale in filiales:
+        page = getDevicesPage(page=1, page_size=TAILLE_EXPORT, id_filiale=filiale[0])
+        groupes.append({"filiale": filiale[1], "devices": page.get("items") or []})
+
+    titres = _titres_uniques([g["filiale"] for g in groupes])
+    sections = []
+    for titre, groupe in zip(titres, groupes):
+        sections.append((titre, COLS_DEVICE, [_ligne_device(d) for d in groupe["devices"]]))
+    return sections
+
+
+# Même forme que TABLE_BUILDERS : nom -> (titre du document, builder de sections)
+EXPORT_BUILDERS = {
+    "devices": ("Liste des appareils", sections_devices),
+    "filiales": ("Appareils par filiale", sections_filiales),
+    "imprimantes": ("Liste des imprimantes", sections_imprimantes),
+}

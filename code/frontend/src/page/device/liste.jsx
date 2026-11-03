@@ -17,6 +17,8 @@ import '../../css/liste.css';
 import '../../css/filiale.css';
 import { getListeDevice, getBadgeClass, getListeStatut, getModeles } from "../../fonction/deviceFonction";
 import { getListeFiliale } from "../../fonction/filialeFonction";
+import { getListeUtilisateurRecent } from "../../fonction/userFonction";
+import UtilisateurDropDown from "../component/UtilisateurDropDown";
 
 function ListeDevice() {
     const navigate = useNavigate();
@@ -24,7 +26,7 @@ function ListeDevice() {
     const filterStatus = searchParams.get("status");
     const filterType = searchParams.get("type");
     const filterSearch = searchParams.get("search");
-    
+
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
     const [selectedDevice, setSelectedDevice] = useState(null);
@@ -43,6 +45,9 @@ function ListeDevice() {
     const [search, setSearch] = useState("");
     const debouncedSearch = useDebounce(search, 300);
 
+    const [listeUtilisateurRecent, setListeUtilisateurRecent] = useState([]);
+    const [utilisateurRecent, setUtilisateurRecent] = useState("");
+
     // Filtre modèle
     const [modeles, setModeles] = useState([]);
     const [modele, setModele] = useState("");
@@ -57,6 +62,7 @@ function ListeDevice() {
             type_appareil: filterType || undefined,
             modele: modele || undefined,
             recherche: debouncedSearch || filterSearch || undefined,
+            utilisateur_recent : utilisateurRecent || undefined
         }
     );
 
@@ -96,20 +102,31 @@ function ListeDevice() {
         }
     };
 
+    const getUtilisateurRecent = async()=>{
+        try{
+            const data = await getListeUtilisateurRecent();
+            setListeUtilisateurRecent(data);
+        }catch(e){
+            console.log(e)
+        }
+    };
+
     useEffect(() => {
         getFiliale();
         getStatut();
         getModeles().then(setModeles);
+        getUtilisateurRecent();
     }, []);
 
     // Revenir à la page 1 quand un filtre change
     useEffect(() => {
         setCurrentPage(1);
-    }, [filiale, statut, search, modele, filterSearch, filterStatus, filterType]);
+    }, [filiale, statut, search, modele, filterSearch, filterStatus, filterType,utilisateurRecent]);
 
-    const filtresActifs = filiale !== "" || statut !== "" || search !== "" || modele !== "";
+    const filtresActifs = filiale !== "" || statut !== "" || search !== "" || modele !== "" || utilisateurRecent!="";
 
     const reinitialiserFiltres = () => {
+        setUtilisateurRecent("");
         setFiliale("");
         setStatut("");
         setSearch("");
@@ -132,173 +149,180 @@ function ListeDevice() {
             contentClassName="space-y-6"
             headerRight={<ViewModeToggle viewMode={viewMode} setViewMode={setViewMode} />}
         >
-                    {/* Filtres : filiale + statut */}
-                    <div className="glass-panel rounded-2xl p-5 relative z-50">
-                        <div className="relative max-w-md mb-4">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
-                            <input
-                                type="text"
-                                placeholder="Rechercher par numéro de série…"
-                                value={search}
-                                onChange={e => setSearch(e.target.value)}
-                                className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-zinc-900/60 border border-white/10 text-zinc-200 text-sm placeholder-zinc-500 focus:outline-none focus:border-cyan-400/50"
-                            />
-                        </div>
-                        <div className="flex flex-wrap items-center gap-3">
-                            <span className="text-[10px] text-zinc-500 uppercase font-semibold tracking-wider">Filiale :</span>
+            {/* Filtres : filiale + statut */}
+            <div className="glass-panel rounded-2xl p-5 relative z-50">
+                <div className="relative max-w-md mb-4">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+                    <input
+                        type="text"
+                        placeholder="Rechercher par numéro de série…"
+                        value={search}
+                        onChange={e => setSearch(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-zinc-900/60 border border-white/10 text-zinc-200 text-sm placeholder-zinc-500 focus:outline-none focus:border-cyan-400/50"
+                    />
+                </div>
+                <div className="flex flex-wrap items-center gap-3">
+                    <span className="text-[10px] text-zinc-500 uppercase font-semibold tracking-wider">Filiale :</span>
 
-                            <FilialeDropdown
-                                listeFiliales={listeFiliales}
-                                filiale={filiale}
-                                setFiliale={setFiliale}
-                            />
+                    <FilialeDropdown
+                        listeFiliales={listeFiliales}
+                        filiale={filiale}
+                        setFiliale={setFiliale}
+                    />
 
-                            <span className="text-[10px] text-zinc-500 uppercase font-semibold tracking-wider ml-2">Statut :</span>
+                    <span className="text-[10px] text-zinc-500 uppercase font-semibold tracking-wider ml-2">Statut :</span>
 
-                            <StatutDropdown
-                                listeStatuts={listeStatuts}
-                                statut={statut}
-                                setStatut={setStatut}
-                            />
+                    <StatutDropdown
+                        listeStatuts={listeStatuts}
+                        statut={statut}
+                        setStatut={setStatut}
+                    />
 
-                            <span className="text-[10px] text-zinc-500 uppercase font-semibold tracking-wider ml-2">Modèle :</span>
-                            <StatutDropdown
-                                listeStatuts={modeles.map(m => ({ nom: m }))}
-                                statut={modele}
-                                setStatut={setModele}
-                                labelTous="Tous les modèles"
-                            />
+                    <span className="text-[10px] text-zinc-500 uppercase font-semibold tracking-wider ml-2">Modèle :</span>
+                    <StatutDropdown
+                        listeStatuts={modeles.map(m => ({ nom: m }))}
+                        statut={modele}
+                        setStatut={setModele}
+                        labelTous="Tous les modèles"
+                    />
 
-                            <ResetFiltreButton actif={filtresActifs} onClick={reinitialiserFiltres} />
-                        </div>
-                    </div>
+                    <span className="text-[10px] text-zinc-500 uppercase font-semibold tracking-wider ml-2">Utilisateur récent :</span>
+                    <UtilisateurDropDown
+                        listeUtilisateurRecent={listeUtilisateurRecent}
+                        utilisateurRecent={utilisateurRecent}
+                        setUtilisateurRecent={setUtilisateurRecent}
+                    />
 
-                    <div>
-                        {loading && device.length === 0 ? (
-                            <DeviceListSkeleton viewMode={viewMode} />
-                        ) : device.length === 0 ? (
-                            <EmptyState
-                                icon={Laptop}
-                                title="Aucun appareil trouvé"
-                                subtitle={filterSearch || filterStatus || filterType || filtresActifs ? "Modifiez vos filtres" : "Aucune donnée disponible"}
-                            />
-                        ) : viewMode === 'table' ? (
-                            <GenericTable columns={deviceColumns} data={device} />
-                        ) : (
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                                {device.map((d) => {
-                                    const status = d.status || 'UNKNOWN';
+                    <ResetFiltreButton actif={filtresActifs} onClick={reinitialiserFiltres} />
+                </div>
+            </div>
 
-                                    return (
-                                        <div key={d.id_device || d.serial_number} className="device-card">
-                                            <div className="flex justify-between items-start mb-4">
-                                                <div className="p-2.5 bg-white/5 rounded-xl text-zinc-300">
-                                                    <Laptop className="w-5 h-5" />
-                                                </div>
-                                                <div className={`badge badge-sm ${getBadgeClass(status)} font-medium tracking-wide`}>
-                                                    {status}
-                                                </div>
-                                            </div>
+            <div>
+                {loading && device.length === 0 ? (
+                    <DeviceListSkeleton viewMode={viewMode} />
+                ) : device.length === 0 ? (
+                    <EmptyState
+                        icon={Laptop}
+                        title="Aucun appareil trouvé"
+                        subtitle={filterSearch || filterStatus || filterType || filtresActifs ? "Modifiez vos filtres" : "Aucune donnée disponible"}
+                    />
+                ) : viewMode === 'table' ? (
+                    <GenericTable columns={deviceColumns} data={device} />
+                ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                        {device.map((d) => {
+                            const status = d.status || 'UNKNOWN';
 
-                                            <div className="card-title text-base text-zinc-100 mb-1 line-clamp-1" title={d.modele}>
-                                                {d.modele || 'Unknown Model'}
-                                            </div>
-                                            <div className="text-xs text-zinc-500 font-mono mb-4 flex items-center gap-1">
-                                                <Network className="w-3 h-3" /> {d.ip_adress || 'N/A'}
-                                            </div>
+                            return (
+                                <div key={d.id_device || d.serial_number} className="device-card">
+                                    <div className="flex justify-between items-start mb-4">
+                                        <div className="p-2.5 bg-white/5 rounded-xl text-zinc-300">
+                                            <Laptop className="w-5 h-5" />
+                                        </div>
+                                        <div className={`badge badge-sm ${getBadgeClass(status)} font-medium tracking-wide`}>
+                                            {status}
+                                        </div>
+                                    </div>
 
-                                            <div className="flex flex-col gap-2 mt-auto text-xs text-zinc-400">
-                                                <div className="flex justify-between items-center">
-                                                    <span>S/N</span>
-                                                    <div className="flex items-center gap-1.5">
-                                                        <span className="text-zinc-300 font-mono">{d.serial_number}</span>
-                                                        <button
-                                                            onClick={() => handleCopySN(d.serial_number)}
-                                                            className="text-zinc-500 hover:text-cyan-400 transition-colors p-0.5 cursor-pointer"
-                                                            title="Copier le numéro de série"
-                                                        >
-                                                            {copiedSN === d.serial_number ? (
-                                                                <Check className="w-3.5 h-3.5 text-emerald-400" />
-                                                            ) : (
-                                                                <Copy className="w-3.5 h-3.5" />
-                                                            )}
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                                <div className="flex justify-between">
-                                                    <span>Filiale</span>
-                                                    <span className="text-zinc-300 font-mono">{d.filiale}</span>
-                                                </div>
-                                                <div className="flex justify-between">
-                                                    <span>Création/Synchro</span>
-                                                    <span className="text-zinc-300 font-mono">{d.date}</span>
-                                                </div>
-                                                <div className="flex justify-between">
-                                                    <span>OS</span>
-                                                    <span className="text-zinc-300">{d.chromeos_version}</span>
-                                                </div>
-                                                <div className="flex justify-between">
-                                                    <span>Chrome</span>
-                                                    <span className="text-zinc-300">{d.chrome_version || 'N/A'}</span>
-                                                </div>
-                                                <div className="flex justify-between mt-2 pt-2 border-t border-white/5">
-                                                    <span className="flex items-center gap-1">
-                                                        <Network className="w-3 h-3" /> MAC
-                                                    </span>
-                                                    <span className="text-zinc-300 font-mono truncate max-w-[140px]">
-                                                        {d.mac_adress || 'N/A'}
-                                                    </span>
-                                                </div>
-                                                <div className="flex justify-between mt-2 pt-2 border-t border-white/5">
-                                                    <span className="flex items-center gap-1"><User className="w-3 h-3" /> Assigné</span>
-                                                    <span className="truncate max-w-[120px]" title={d.utilisateur_email || 'N/A'}>{d.utilisateur_email || 'N/A'}</span>
-                                                </div>
-                                                <div className="flex justify-between mt-2 pt-2 border-t border-white/5">
-                                                    <span className="flex items-center gap-1"><Users className="w-3 h-3 text-cyan-400" /> Récents</span>
-                                                    <span className="text-cyan-400 truncate max-w-[150px]" title={d.utilisateurs_recents?.length > 0 ? d.utilisateurs_recents.join(", ") : 'Aucun'}>
-                                                        {d.utilisateurs_recents?.length > 0 ? d.utilisateurs_recents.join(", ") : 'Aucun'}
-                                                    </span>
-                                                </div>
-                                                <div className="flex justify-between items-center mt-3 pt-3 border-t border-white/5">
-                                                    <button
-                                                        onClick={() => setSelectedDevice(d)}
-                                                        className="px-3 py-1.5 text-xs font-semibold text-cyan-400 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 hover:border-cyan-500/50 rounded-xl transition-all flex items-center gap-1 cursor-pointer shadow-sm"
-                                                    >
-                                                        Voir tout
-                                                    </button>
-                                                    <button
-                                                        onClick={() => navigate(`/device/${d.id || d.id_device}`)}
-                                                        className="px-3 py-1.5 text-xs font-semibold text-zinc-300 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 rounded-xl transition-all flex items-center gap-1 cursor-pointer"
-                                                    >
-                                                        Voir détails
-                                                    </button>
-                                                </div>
+                                    <div className="card-title text-base text-zinc-100 mb-1 line-clamp-1" title={d.modele}>
+                                        {d.modele || 'Unknown Model'}
+                                    </div>
+                                    <div className="text-xs text-zinc-500 font-mono mb-4 flex items-center gap-1">
+                                        <Network className="w-3 h-3" /> {d.ip_adress || 'N/A'}
+                                    </div>
+
+                                    <div className="flex flex-col gap-2 mt-auto text-xs text-zinc-400">
+                                        <div className="flex justify-between items-center">
+                                            <span>S/N</span>
+                                            <div className="flex items-center gap-1.5">
+                                                <span className="text-zinc-300 font-mono">{d.serial_number}</span>
+                                                <button
+                                                    onClick={() => handleCopySN(d.serial_number)}
+                                                    className="text-zinc-500 hover:text-cyan-400 transition-colors p-0.5 cursor-pointer"
+                                                    title="Copier le numéro de série"
+                                                >
+                                                    {copiedSN === d.serial_number ? (
+                                                        <Check className="w-3.5 h-3.5 text-emerald-400" />
+                                                    ) : (
+                                                        <Copy className="w-3.5 h-3.5" />
+                                                    )}
+                                                </button>
                                             </div>
                                         </div>
-                                    );
-                                })}
-                            </div>
-                        )}
+                                        <div className="flex justify-between">
+                                            <span>Filiale</span>
+                                            <span className="text-zinc-300 font-mono">{d.filiale}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span>Création/Synchro</span>
+                                            <span className="text-zinc-300 font-mono">{d.date}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span>OS</span>
+                                            <span className="text-zinc-300">{d.chromeos_version}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span>Chrome</span>
+                                            <span className="text-zinc-300">{d.chrome_version || 'N/A'}</span>
+                                        </div>
+                                        <div className="flex justify-between mt-2 pt-2 border-t border-white/5">
+                                            <span className="flex items-center gap-1">
+                                                <Network className="w-3 h-3" /> MAC
+                                            </span>
+                                            <span className="text-zinc-300 font-mono truncate max-w-[140px]">
+                                                {d.mac_adress || 'N/A'}
+                                            </span>
+                                        </div>
+                                        <div className="flex justify-between mt-2 pt-2 border-t border-white/5">
+                                            <span className="flex items-center gap-1"><User className="w-3 h-3" /> Assigné</span>
+                                            <span className="truncate max-w-[120px]" title={d.utilisateur_email || 'N/A'}>{d.utilisateur_email || 'N/A'}</span>
+                                        </div>
+                                        <div className="flex justify-between mt-2 pt-2 border-t border-white/5">
+                                            <span className="flex items-center gap-1"><Users className="w-3 h-3 text-cyan-400" /> Récents</span>
+                                            <span className="text-cyan-400 truncate max-w-[150px]" title={d.utilisateurs_recents?.length > 0 ? d.utilisateurs_recents.join(", ") : 'Aucun'}>
+                                                {d.utilisateurs_recents?.length > 0 ? d.utilisateurs_recents.join(", ") : 'Aucun'}
+                                            </span>
+                                        </div>
+                                        <div className="flex justify-between items-center mt-3 pt-3 border-t border-white/5">
+                                            <button
+                                                onClick={() => setSelectedDevice(d)}
+                                                className="px-3 py-1.5 text-xs font-semibold text-cyan-400 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 hover:border-cyan-500/50 rounded-xl transition-all flex items-center gap-1 cursor-pointer shadow-sm"
+                                            >
+                                                Voir tout
+                                            </button>
+                                            <button
+                                                onClick={() => navigate(`/device/${d.id || d.id_device}`)}
+                                                className="px-3 py-1.5 text-xs font-semibold text-zinc-300 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 rounded-xl transition-all flex items-center gap-1 cursor-pointer"
+                                            >
+                                                Voir détails
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })}
                     </div>
+                )}
+            </div>
 
-                    {loading && device.length > 0 && (
-                        <div className="mt-4">
-                            <TableSkeleton rows={2} />
-                        </div>
-                    )}
+            {loading && device.length > 0 && (
+                <div className="mt-4">
+                    <TableSkeleton rows={2} />
+                </div>
+            )}
 
-                    <Pagination
-                        page={currentPage}
-                        pageSize={pageSize}
-                        totalPages={totalPages}
-                        total={total}
-                        loading={loading}
-                        onPageChange={setCurrentPage}
-                        onPageSizeChange={(size) => {
-                            setPageSize(size);
-                            setCurrentPage(1);
-                        }}
-                    />
+            <Pagination
+                page={currentPage}
+                pageSize={pageSize}
+                totalPages={totalPages}
+                total={total}
+                loading={loading}
+                onPageChange={setCurrentPage}
+                onPageSizeChange={(size) => {
+                    setPageSize(size);
+                    setCurrentPage(1);
+                }}
+            />
 
             {selectedDevice && (
                 <div className="modal-overlay" onClick={() => setSelectedDevice(null)}>

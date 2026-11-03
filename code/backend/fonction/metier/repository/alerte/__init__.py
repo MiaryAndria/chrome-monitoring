@@ -22,4 +22,6 @@ from .device_alerte import (
     _compter_alertes,
     get_liste_device_alerte_by_date_resolue,
     get_nombre_alerte_resolue,
+    get_alertes_nouvelles,
+    get_nombre_alerte_nouvelle,
 )

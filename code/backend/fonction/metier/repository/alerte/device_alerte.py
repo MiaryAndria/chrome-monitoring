@@ -269,3 +269,32 @@ def _compter_alertes(cur, type_alerte, id_statut, date_debut=None, date_fin=None
     row = cur.fetchone()
     return row[0] if row else 0
 
+def get_nombre_alerte_nouvelle(cur, date_depuis):
+    cur.execute("SELECT COUNT(*) FROM t_device_alerte WHERE date >= %s", (date_depuis,))
+    row = cur.fetchone()
+    return row[0] if row else 0
+
+
+def get_alertes_nouvelles(cur, date_depuis, limit):
+    cur.execute(
+        """
+        SELECT da.id, da.id_device, d.serial_number, tr.type,
+               da.message, da.date,
+               (
+                   SELECT u.email
+                   FROM t_device_utilisateur_recent ur
+                   JOIN t_utilisateur u ON u.id = ur.id_utilisateur
+                   WHERE ur.id_device = da.id_device
+                   ORDER BY ur.date_observation DESC
+                   LIMIT 1
+               ) AS utilisateur_recent
+        FROM t_device_alerte da
+        JOIN t_device d ON d.id = da.id_device
+        JOIN t_alerte tr ON tr.id = da.id_alerte
+        WHERE da.date >= %s
+        ORDER BY da.date DESC, da.id DESC
+        LIMIT %s
+        """,
+        (date_depuis, limit),
+    )
+    return cur.fetchall()

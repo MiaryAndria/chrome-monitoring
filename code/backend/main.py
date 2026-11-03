@@ -18,6 +18,7 @@ from backend.fonction.metier.controller.cpu_controller import router as cpu_rout
 from backend.fonction.metier.controller.disk_controller import router as disk_router
 from backend.fonction.metier.controller.alerteController import router as alerte_router
 # from backend.fonction.metier.service.import_service import synchroniser_tout
+from backend.fonction.metier.controller.export_controller import router as export_router
 from backend.fonction.metier.service.reset_service import reset_data
 
 app = FastAPI()
@@ -50,6 +51,7 @@ app.include_router(ram_router,           prefix="/ram",           tags=["ram"], 
 app.include_router(cpu_router,           prefix="/cpu",           tags=["cpu"],           dependencies=protected)
 app.include_router(disk_router,          prefix="/disk",          tags=["disk"],          dependencies=protected)
 app.include_router(alerte_router,        prefix="/alerte",        tags=["alerte"],        dependencies=protected)
+app.include_router(export_router, prefix="/export", tags=["export"], dependencies=protected)
 
 @app.get("/")
 def accueil():

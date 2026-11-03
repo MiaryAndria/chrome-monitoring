@@ -139,13 +139,21 @@ export const exportPdf = async ({ onglet, id, date_debut, date_fin } = {}) => {
     if (date_fin) params.set('date_fin', date_fin);
 
     const query = params.toString() ? `?${params.toString()}` : '';
-    const response = await api_service.get(`/rapport/export/pdf/${encodeURIComponent(onglet)}/${id}${query}`);
+    const url = `/rapport/export/pdf/${encodeURIComponent(onglet)}/${id}${query}`;
+    const response = await api_service.get(url, { responseType: 'blob' });
 
-    const fileUrl = response.data?.url || response.data?.file_url;
+    const disposition = response.headers['content-disposition'] || '';
+    const match = disposition.match(/filename="?([^"]+)"?/);
+    const filename = match ? match[1] : 'rapport.xlsx';
 
-    if (fileUrl) {
-        window.open(fileUrl, '_blank', 'noopener,noreferrer');
-    }
+    const objectUrl = window.URL.createObjectURL(new Blob([response.data]));
+    const a = document.createElement('a');
+    a.href = objectUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(objectUrl);
 
     showExportSuccess('Rapport généré avec succès', 'PDF');
     return response;
@@ -161,13 +169,21 @@ export const exportExcel = async ({ onglet, id, date_debut, date_fin } = {}) => 
     if (date_fin) params.set('date_fin', date_fin);
 
     const query = params.toString() ? `?${params.toString()}` : '';
-    const response = await api_service.get(`/rapport/export/excel/${encodeURIComponent(onglet)}/${id}${query}`);
+    const url = `/rapport/export/excel/${encodeURIComponent(onglet)}/${id}${query}`;
+    const response = await api_service.get(url, { responseType: 'blob' });
 
-    const fileUrl = response.data?.url || response.data?.file_url;
+    const disposition = response.headers['content-disposition'] || '';
+    const match = disposition.match(/filename="?([^"]+)"?/);
+    const filename = match ? match[1] : 'rapport.xlsx';
 
-    if (fileUrl) {
-        window.open(fileUrl, '_blank', 'noopener,noreferrer');
-    }
+    const objectUrl = window.URL.createObjectURL(new Blob([response.data]));
+    const a = document.createElement('a');
+    a.href = objectUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(objectUrl);
 
     showExportSuccess('Rapport généré avec succès', 'Excel');
     return response;

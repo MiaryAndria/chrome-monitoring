@@ -22,7 +22,7 @@ from backend.fonction.metier.service.imprimante_service import get_imprimante_de
 
 from backend.fonction.metier.service.export_service import (
     build_sections, generate_excel, generate_pdf, TABLE_BUILDERS,
-    build_export_filename, resolve_device_export_name, save_export_file,
+    build_export_filename, resolve_device_export_name,
 )
 from backend.fonction.metier.models.rapport import RapportDeviceResponse,TypeRapportIdResponse
 from backend.utils.validation import is_valid_datetime_range
@@ -125,7 +125,6 @@ def exportImprimanteExcel(id: int):
         ext = "xlsx"
 
         filename = build_export_filename("imprimante", id, ext, nom)
-        save_export_file(buffer, ext, filename)
         return StreamingResponse(
             buffer, media_type=media,
             headers={"Content-Disposition": f'attachment; filename="{filename}"'}
@@ -142,7 +141,6 @@ def exportImprimantePdf(id: int):
     try:
         detail = get_imprimante_detail(id)
         if detail is None:
-            
             raise HTTPException(status_code=404, detail="Imprimante introuvable")
 
         nom = detail.get("nom") or f"imprimante_{id}"
@@ -155,7 +153,6 @@ def exportImprimantePdf(id: int):
         ext = "pdf"
 
         filename = build_export_filename("imprimante", id, ext, nom)
-        save_export_file(buffer, ext, filename)
         return StreamingResponse(
             buffer, media_type=media,
             headers={"Content-Disposition": f'attachment; filename="{filename}"'}
@@ -165,7 +162,8 @@ def exportImprimantePdf(id: int):
     except Exception as e:
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
-    
+
+
 @router.get("/export/excel/{onglet}/{id}")
 def exportRapportExcel(
     onglet: str,
@@ -188,7 +186,6 @@ def exportRapportExcel(
         ext = "xlsx"
 
         filename = build_export_filename(onglet, id, ext, device_name)
-        save_export_file(buffer, ext, filename)
         return StreamingResponse(
             buffer, media_type=media,
             headers={"Content-Disposition": f'attachment; filename="{filename}"'}
@@ -222,7 +219,6 @@ def exportPdf(
         ext = "pdf"
 
         filename = build_export_filename(onglet, id, ext, device_name)
-        save_export_file(buffer, ext, filename)
         return StreamingResponse(
             buffer, media_type=media,
             headers={"Content-Disposition": f'attachment; filename="{filename}"'}
@@ -231,9 +227,8 @@ def exportPdf(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    
 
-  
+
 @router.get("/liste")
 def getReport():
     try:

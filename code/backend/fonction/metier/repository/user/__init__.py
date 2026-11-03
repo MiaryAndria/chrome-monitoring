@@ -11,4 +11,5 @@ from .user import (
     find_users_paginated,
     find_users_archived_paginated,
     insert_user_statut,
+    get_liste_utilisateur_recent,
 )

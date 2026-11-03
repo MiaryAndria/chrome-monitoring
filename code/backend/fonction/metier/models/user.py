@@ -16,6 +16,11 @@ class UserSignin(BaseModel):
 
 class UserRoleUpdate(BaseModel):
     id_role: int
+    
+    
+class UserRecentResponse(BaseModel):
+    id :int 
+    email:str
 
 
 class UserResponse(BaseModel):

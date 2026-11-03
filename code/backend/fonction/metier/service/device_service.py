@@ -60,7 +60,7 @@ def getDeviceFiltered(recherche):
 
 def _fetch_devices_page(page=1, page_size=10, id_filiale=None, filiale=None,
                         statut=None, type_appareil=None, recherche=None,
-                        datetime_from=None, datetime_to=None,modele=None):
+                        datetime_from=None, datetime_to=None,modele=None,utilisateur_recent=None):
     connexion = get_connection()
     if connexion is None:
         return build_page([], 0, page, page_size)
@@ -68,7 +68,7 @@ def _fetch_devices_page(page=1, page_size=10, id_filiale=None, filiale=None,
         cur = connexion.cursor()
         rows = find_devices_paginated(
             cur, page, page_size, id_filiale, filiale,
-            statut, type_appareil, recherche, datetime_from, datetime_to,modele
+            statut, type_appareil, recherche, datetime_from, datetime_to,modele,utilisateur_recent
         )
         total = rows[0]["total"] if rows else 0
         # Page vide (page au-dela de la derniere) : le COUNT(*) OVER() n'est plus dispo,
@@ -76,7 +76,7 @@ def _fetch_devices_page(page=1, page_size=10, id_filiale=None, filiale=None,
         if not rows and page > 1:
             sonde = find_devices_paginated(
                 cur, 1, 1, id_filiale, filiale, statut, type_appareil,
-                recherche, datetime_from, datetime_to, modele
+                recherche, datetime_from, datetime_to, modele, utilisateur_recent
             )
             total = sonde[0]["total"] if sonde else 0
         items = []
@@ -89,19 +89,19 @@ def _fetch_devices_page(page=1, page_size=10, id_filiale=None, filiale=None,
 
 
 def _devices_cache_key(page, page_size, id_filiale, filiale, statut,
-                       type_appareil, recherche, datetime_from, datetime_to,modele):
+                       type_appareil, recherche, datetime_from, datetime_to,modele,utilisateur_recent):
     return (
-        f"devices:{page}:{page_size}:{id_filiale}:{filiale}:"
+        f"devices:{page}:{page_size}:{id_filiale}:{filiale}:{utilisateur_recent}:"
         f"{statut}:{type_appareil}:{recherche}:{datetime_from}:{datetime_to}:{modele}"
     )
 
 
 def getDevicesPage(page=1, page_size=10, id_filiale=None, filiale=None,
                    statut=None, type_appareil=None, recherche=None,
-                   datetime_from=None, datetime_to=None, modele=None):
+                   datetime_from=None, datetime_to=None, modele=None,utilisateur_recent=None):
     cle = _devices_cache_key(
         page, page_size, id_filiale, filiale, statut, type_appareil,
-        recherche, datetime_from, datetime_to, modele
+        recherche, datetime_from, datetime_to, modele,utilisateur_recent
     )
     valeur = cache_get(cle)
     if valeur is not None:
@@ -109,7 +109,7 @@ def getDevicesPage(page=1, page_size=10, id_filiale=None, filiale=None,
 
     resultat = _fetch_devices_page(
         page, page_size, id_filiale, filiale, statut, type_appareil,
-        recherche, datetime_from, datetime_to, modele
+        recherche, datetime_from, datetime_to, modele,utilisateur_recent
     )
     return cache_set(cle, resultat)
 

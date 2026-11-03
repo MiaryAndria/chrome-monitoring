@@ -29,6 +29,7 @@ def getListe(
     recherche: Optional[str] = None,
     datetime_from: Optional[datetime] = None,
     datetime_to: Optional[datetime] = None,
+    utilisateur_recent:Optional[str]=None,
 ):
     if not is_valid_datetime_range(datetime_from, datetime_to):
         raise HTTPException(
@@ -47,6 +48,7 @@ def getListe(
             recherche=recherche,
             datetime_from=datetime_from,
             datetime_to=datetime_to,
+            utilisateur_recent=utilisateur_recent
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

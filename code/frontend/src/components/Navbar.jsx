@@ -2,11 +2,13 @@ import { useState, useEffect } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
     Activity, Building2, Laptop, Printer, Bell, BarChart3,
-    Settings, ChevronDown, RotateCcw, RefreshCw, LogOut, Gauge, Copy, Check, Users, User
+    Settings, ChevronDown, RotateCcw, RefreshCw, LogOut, Gauge, Copy, Check, Users, User, Download, X, FileSpreadsheet
 } from 'lucide-react';
 import { resetData } from '../fonction/importResetFonction';
 import { Logout, GetMe } from "../fonction/userFonction";
-import { getNombreAlerte, getDixPremierAlerte } from '../fonction/alerteFonction';
+import { getNombreAlerteNouvelle,getNouvellesAlertes } from '../fonction/alerteFonction';
+import { exporterAppareilsExcel, exporterFilialesExcel, exporterImprimantesExcel } from '../fonction/exportFonction';
+
 
 export default function Navbar() {
     const navigate = useNavigate();
@@ -21,6 +23,8 @@ export default function Navbar() {
     const [copiedSN, setCopiedSN] = useState(null);
     const [me, setMe] = useState(null);
     const [isAdmin, setIsAdmin] = useState(false);
+    const [modalChoix, setModalChoix] = useState(false);
+
 
     // useEffect(() => {
     //     const storedTheme = localStorage.getItem('theme');
@@ -38,6 +42,59 @@ export default function Navbar() {
         setOpenMenu((courant) => (courant === name ? null : name));
     };
 
+    const [idsSelectionnes, setIdsSelectionnes] = useState([]);
+
+
+    const handleCheckboxChange = (id) => {
+        if (idsSelectionnes.includes(id)) {
+            setIdsSelectionnes(idsSelectionnes.filter((x) => x !== id));
+        } else {
+            setIdsSelectionnes([...idsSelectionnes, id]);
+        }
+    };
+
+    const choixExport = [
+        { id: 1, label: 'Liste des appareils' },
+        { id: 2, label: 'Appareils par filiale et leurs devices' },
+        { id: 3, label: 'Liste des imprimantes' },
+    ];
+
+
+    const exporterEnExcel = async (id) => {
+        if (id === 1) {
+            await exporterAppareilsExcel();
+        } else if (id === 2) {
+            await exporterFilialesExcel();
+        } else if (id === 3) {
+            await exporterImprimantesExcel();
+        }
+    };
+
+    const exporter = async (choix) => {
+        setModalChoix(false);
+        setIdsSelectionnes([]);
+        setLoading(true);
+        setMessage("Exportation en cours...");
+        try {
+            for (const c of choix) {
+                await exporterEnExcel(c);
+            }
+        } catch (e) {
+            console.log(e);
+        } finally {
+            setLoading(false);
+            setMessage("");
+        }
+    };
+
+    const toggleModal = () => {
+        if (modalChoix === false) {
+            setModalChoix(true)
+        } else {
+            setModalChoix(false)
+        }
+    };
+
     // Fermer le menu au clic extérieur (hors des zones .nav-dropdown)
     useEffect(() => {
         const handleClickOutside = (e) => {
@@ -50,7 +107,7 @@ export default function Navbar() {
     }, []);
 
     useEffect(() => {
-        const charger = () => getNombreAlerte().then((d) => setAlerteCount(d?.nombre ?? 0));
+        const charger = () => getNombreAlerteNouvelle().then((d) => setAlerteCount(d?.nombre ?? 0));
         charger();
         const timer = setInterval(charger, 60000);   // toutes les 60 s
         return () => clearInterval(timer);
@@ -108,7 +165,7 @@ export default function Navbar() {
         const ouvert = openMenu !== 'alerte';
         setOpenMenu(ouvert ? 'alerte' : null);
         if (ouvert) {
-            setAlertes(await getDixPremierAlerte());
+            setAlertes(await getNouvellesAlertes());
         }
     };
 
@@ -397,6 +454,17 @@ export default function Navbar() {
                                             <RotateCcw className="w-4 h-4" />
                                             Réinitialiser données
                                         </button>
+
+                                        <div className="config-dropdown-divider" />
+                                        <button
+                                            onClick={() => { setOpenMenu(null); toggleModal(); }}
+                                            disabled={loading}
+                                            className="config-dropdown-item"
+                                            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                                        >
+                                            <FileSpreadsheet className="w-4 h-4" />
+                                            <span>Exporter des données</span>
+                                        </button>
                                     </>
                                 )}
 
@@ -409,6 +477,54 @@ export default function Navbar() {
                     </div>
                 </div>
             </div>
+
+            {modalChoix && (
+                <div className="modal-overlay" onClick={toggleModal}>
+                    <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <div className="modal-header-left">
+                                <div className="modal-icon">
+                                    <Download className="w-5 h-5" />
+                                </div>
+                                <div>
+                                    <div className="modal-title">Exporter des données</div>
+                                    <div className="modal-subtitle">Choisissez les listes à exporter</div>
+                                </div>
+                            </div>
+                            <button type="button" className="modal-close-btn" onClick={toggleModal} aria-label="Fermer">
+                                <X className="w-4 h-4" />
+                            </button>
+                        </div>
+
+                        <div className="p-5 space-y-3">
+                            {choixExport.map((c) => (
+                                <label key={c.id} className="flex items-center gap-3 cursor-pointer text-sm text-zinc-300">
+                                    <input
+                                        type="checkbox"
+                                        checked={idsSelectionnes.includes(c.id)}
+                                        onChange={() => handleCheckboxChange(c.id)}
+                                    />
+                                    {c.label}
+                                </label>
+                            ))}
+                        </div>
+
+                        <div className="modal-footer">
+                            <button type="button" className="modal-close-action-btn" onClick={toggleModal}>
+                                Annuler
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => exporter(idsSelectionnes)}
+                                disabled={idsSelectionnes.length === 0}
+                                className="px-3 py-1.5 text-xs rounded-xl bg-emerald-500/15 text-emerald-300 border border-emerald-500/40 disabled:opacity-40"
+                            >
+                                Exporter
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {loading && (
                 <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex flex-col items-center justify-center z-50 animate-fadeIn">

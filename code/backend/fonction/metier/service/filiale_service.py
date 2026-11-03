@@ -55,6 +55,7 @@ def get_filiales_page(page=1, page_size=10, recherche=None):
 
 def get_devices_by_filiale(id_filiale, page=1, page_size=10, statut=None,
                            type_appareil=None, modele=None, recherche=None,
+                           utilisateur_recent=None,
                            datetime_from=None, datetime_to=None):
     return getDevicesPage(
         page=page,
@@ -64,6 +65,7 @@ def get_devices_by_filiale(id_filiale, page=1, page_size=10, statut=None,
         type_appareil=type_appareil,
         modele=modele,
         recherche=recherche,
+        utilisateur_recent=utilisateur_recent,
         datetime_from=datetime_from,
         datetime_to=datetime_to,
     )

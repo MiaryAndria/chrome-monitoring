@@ -1,9 +1,11 @@
+from typing import List
+
 from fastapi import APIRouter, HTTPException, Response, Depends, Query
 from backend.fonction.metier.models.user import (
-    UserLogin, UserSignin, UserRoleUpdate, UserResponse, UserPageResponse, MeResponse,
+    UserLogin, UserRecentResponse, UserSignin, UserRoleUpdate, UserResponse, UserPageResponse, MeResponse,
 )
 from backend.fonction.metier.service.user_service import (
-    login_user, signin_user, get_users, get_role, update_role,
+    get_utilisateur_recent, login_user, signin_user, get_users, get_role, update_role,
     getUsersPage, getUsersArchivePage, archiver_user, restaurer_user,
 )
 from backend.core.security import (
@@ -81,6 +83,12 @@ def supprimer(id: int, current_user: dict = Depends(require_admin)):
         raise HTTPException(status_code=400, detail=str(erreur))
     return {"message": "Utilisateur supprimé"}
 
+@router.get("/recent",response_model=List[UserRecentResponse])
+def liste_utilisateur_recent():
+    try:
+        return get_utilisateur_recent()
+    except ValueError as erreur:
+        raise HTTPException(status_code=500, detail=str(erreur))        
 
 @router.post("/{id}/restaurer")
 def restaurer(id: int, current_user: dict = Depends(require_admin)):

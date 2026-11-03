@@ -13,7 +13,9 @@ import ResetFiltreButton from "../component/ResetFiltreButton";
 import { getListeStatut, getModeles } from "../../fonction/deviceFonction";
 import '../../css/filiale.css';
 import { getDevicesByFiliale, getListeFiliale } from "../../fonction/filialeFonction";
+import { getListeUtilisateurRecent } from "../../fonction/userFonction";
 import { getBadgeClass } from "../../fonction/deviceFonction";
+import UtilisateurDropDown from "../component/UtilisateurDropDown";
 
 function ListeDeviceFiliale() {
     const { id_filiale } = useParams();
@@ -32,6 +34,9 @@ function ListeDeviceFiliale() {
     const [selectedDevice, setSelectedDevice] = useState(null);
     const [copiedSN, setCopiedSN] = useState(null);
 
+    const [listeUtilisateurRecent, setListeUtilisateurRecent] = useState([]);
+    const [utilisateurRecent, setUtilisateurRecent] = useState("");
+
     const fetchDevices = useCallback(
         (params) => getDevicesByFiliale(id_filiale, params),
         [id_filiale]
@@ -45,6 +50,7 @@ function ListeDeviceFiliale() {
             statut: statut || undefined,
             modele: modele || undefined,
             recherche: debouncedSearch || undefined,
+            utilisateur_recent: utilisateurRecent || undefined
         }
     );
 
@@ -57,14 +63,26 @@ function ListeDeviceFiliale() {
         }
     };
 
+
+    const getUtilisateurRecent = async () => {
+        try {
+            const data = await getListeUtilisateurRecent();
+            setListeUtilisateurRecent(data);
+        } catch (e) {
+            console.log(e)
+        }
+    };
+
     useEffect(() => {
         getStatut();
         getModeles().then(setModeles);
+        getUtilisateurRecent();
     }, []);
 
-    const filtresActifs = statut !== "" || search !== "" || modele !== "";
+    const filtresActifs = statut !== "" || search !== "" || modele !== ""|| utilisateurRecent!="";;
 
     const reinitialiserFiltres = () => {
+        setUtilisateurRecent("");
         setStatut("");
         setSearch("");
         setModele("");
@@ -160,7 +178,7 @@ function ListeDeviceFiliale() {
                     </div>
 
 
-                                        <div className="glass-panel rounded-2xl p-5 relative z-50">
+                    <div className="glass-panel rounded-2xl p-5 relative z-50">
                         <div className="relative max-w-md mb-4">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
                             <input
@@ -185,6 +203,13 @@ function ListeDeviceFiliale() {
                                 statut={modele}
                                 setStatut={setModele}
                                 labelTous="Tous les modèles"
+                            />
+
+                            <span className="text-[10px] text-zinc-500 uppercase font-semibold tracking-wider ml-2">Utilisateur récent :</span>
+                            <UtilisateurDropDown
+                                listeUtilisateurRecent={listeUtilisateurRecent}
+                                utilisateurRecent={utilisateurRecent}
+                                setUtilisateurRecent={setUtilisateurRecent}
                             />
 
                             <ResetFiltreButton actif={filtresActifs} onClick={reinitialiserFiltres} />

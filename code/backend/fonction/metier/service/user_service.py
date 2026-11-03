@@ -11,6 +11,7 @@ from backend.fonction.metier.repository.user import (
     find_users_paginated,
     find_users_archived_paginated,
     insert_user_statut,
+    get_liste_utilisateur_recent
 )
 from backend.fonction.metier.repository.statut import get_or_create_statut
 from backend.utils.password_hashage import verifier_password, hasher_password
@@ -123,6 +124,17 @@ def get_users():
     finally:
         close_connection(connexion)
 
+def get_utilisateur_recent ():
+    connexion = get_connection()
+    if connexion is None :
+        return []
+    try:
+        cur = connexion.cursor()
+        rows = get_liste_utilisateur_recent(cur)
+        cur.close()
+        return [{"id": r[0], "email": r[1]} for r in rows]
+    finally:
+        close_connection(connexion)
 
 def get_role():
     connexion = get_connection()

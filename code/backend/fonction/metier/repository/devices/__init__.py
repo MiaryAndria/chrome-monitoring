@@ -38,5 +38,4 @@ from .device_utilisateur_recent import (
     get_dernier_utilisateur_device,
     _get_recent_users,
     get_utilisateur_recent_by_device,
-    
 )

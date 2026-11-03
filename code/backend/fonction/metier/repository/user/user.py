@@ -169,3 +169,15 @@ def insert_user_statut(cur, id_user, id_statut):
         (id_user, id_statut),
     )
     return True
+
+
+def get_liste_utilisateur_recent(cur):
+    cur.execute(
+        """
+        SELECT DISTINCT u.id, u.email
+        FROM t_device_utilisateur_recent dur
+        JOIN t_utilisateur u ON u.id = dur.id_utilisateur
+        ORDER BY u.email ASC
+        """
+    )
+    return cur.fetchall()

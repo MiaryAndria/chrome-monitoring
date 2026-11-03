@@ -56,3 +56,4 @@ def get_utilisateur_recent_by_device(cur, device_id):
     if not dernier or not dernier[2]:
         return None
     return get_utilisateur_by_id(cur, dernier[2])
+

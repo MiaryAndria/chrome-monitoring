@@ -8,6 +8,21 @@ def insert_synchronisation_historique(cur, source, lancement, fenetre_debut, fen
     return cur.fetchone()[0]
 
 
+def get_date_derniere_synchronisation(cur):
+    cur.execute(
+        """
+        SELECT MAX(h.date_debut)
+        FROM t_synchronisation_historique h
+        WHERE EXISTS (
+            SELECT 1 FROM t_statut_synchronisation ss
+            JOIN t_statut s ON s.id = ss.id_statut
+            WHERE ss.id_synchronisation = h.id AND s.nom = 'TERMINER'
+        )
+        """
+    )
+    row = cur.fetchone()
+    return row[0] if row else None
+
 # def get_derniere_fenetre_fin_by_source(cur, source):
 #     cur.execute("""
 #         SELECT MAX(h.date_debut)

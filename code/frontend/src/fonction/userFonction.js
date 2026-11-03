@@ -20,6 +20,15 @@ export const Register = async (nom, email, mdp) => {
   }
 };
 
+export const getListeUtilisateurRecent=async()=>{
+  try{
+    const response = await api_service.get("/user/recent")
+    return response.data
+  }catch(e){
+    console.log(e)
+  }
+};
+
 export const Logout = async () => {
   await api_service.post("/user/logout");
 };

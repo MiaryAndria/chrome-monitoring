@@ -73,3 +73,23 @@ export const getListeType = async()=>{
         return []
     }
 };
+
+export const getNombreAlerteNouvelle = async () => {
+    try {
+        const response = await api_service.get('/alerte/nombre/nouvelle');
+        return response.data;
+    } catch (e) {
+        console.log(e);
+        return { nombre: 0 };
+    }
+};
+
+export const getNouvellesAlertes = async () => {
+    try {
+        const response = await api_service.get('/alerte/nouvelles');
+        return response.data;
+    } catch (e) {
+        console.log(e);
+        return [];
+    }
+};
