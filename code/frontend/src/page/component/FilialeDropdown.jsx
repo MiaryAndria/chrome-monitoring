@@ -50,7 +50,7 @@ function FilialeDropdown({
                 className={`flex items-center gap-2 min-w-[200px] px-3 py-1.5 rounded-xl text-sm border transition-all duration-200 cursor-pointer ${
                     filiale
                         ? "bg-purple-500/15 text-purple-300 border-purple-500/40 shadow-[0_0_12px_rgba(168,85,247,0.15)]"
-                        : "bg-zinc-900/60 text-zinc-400 border-white/8 hover:bg-zinc-800/80 hover:border-white/15"
+                        : "bg-zinc-900/60 text-zinc-400 border-white/10 hover:bg-zinc-800/80 hover:border-white/15"
                 }`}
             >
                 <span className="flex-1 text-left truncate">

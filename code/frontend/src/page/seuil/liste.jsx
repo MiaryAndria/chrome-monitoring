@@ -1,8 +1,9 @@
-import { useState } from 'react';
-import { getListeSeuilPage, deleteSeuil } from '../../fonction/seuilFonction';
+import { useState, useEffect } from 'react';
+import { getListeSeuilPage, deleteSeuil, getListeCategorieSeuil } from '../../fonction/seuilFonction';
 import { useNavigate } from 'react-router-dom';
 import { Gauge, Plus, Pencil, Trash2 } from 'lucide-react';
 import PageLayout from '../../components/PageLayout';
+import SelectDropdown from '../component/SelectDropdown';
 import GenericTable from '../../components/GenericTable';
 import Pagination from '../../components/Pagination';
 import TableSkeleton from '../../components/skeletons/TableSkeleton';
@@ -15,13 +16,23 @@ function SeuilListe() {
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
     const [refresh, setRefresh] = useState(0);
+    const [categorie, setCategorie] = useState('');
+    const [categories, setCategories] = useState([]);
 
     const { items: seuils, total, totalPages, loading } = usePaginatedData(
         getListeSeuilPage,
         currentPage,
         pageSize,
-        { refresh }
+        { refresh, categorie: categorie || undefined }
     );
+
+    useEffect(() => {
+        getListeCategorieSeuil().then((data) => setCategories(data || []));
+    }, []);
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [categorie]);
 
     const supprimerSeuil = async (id) => {
         try {
@@ -69,6 +80,20 @@ function SeuilListe() {
             }
         >
             <div className="space-y-6">
+                <div className="glass-panel rounded-2xl p-5 relative z-50">
+                    <div className="flex flex-wrap items-end gap-3">
+                        <div>
+                            <label className="config-form-label">Catégorie</label>
+                            <SelectDropdown
+                                options={categories.map((c) => ({ value: c.categorie, label: c.categorie }))}
+                                value={categorie}
+                                onChange={(value) => setCategorie(value)}
+                                labelTous="Toutes les catégories"
+                            />
+                        </div>
+                    </div>
+                </div>
+
                 {loading && seuils.length === 0 ? (
                     <TableSkeleton />
                 ) : !seuils || seuils.length === 0 ? (

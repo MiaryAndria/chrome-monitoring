@@ -1,8 +1,9 @@
-import { useState } from 'react';
-import { getListeConfigurationPage, deleteConfiguration } from '../../fonction/configurationFonction';
+import { useState, useEffect } from 'react';
+import { getListeConfigurationPage, deleteConfiguration, getListeCategorieConfiguration } from '../../fonction/configurationFonction';
 import { useNavigate } from 'react-router-dom';
 import { Settings, Plus, Pencil, Trash2 } from 'lucide-react';
 import PageLayout from '../../components/PageLayout';
+import SelectDropdown from '../component/SelectDropdown';
 import GenericTable from '../../components/GenericTable';
 import Pagination from '../../components/Pagination';
 import TableSkeleton from '../../components/skeletons/TableSkeleton';
@@ -15,13 +16,23 @@ function ConfigurationListe() {
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
     const [refresh, setRefresh] = useState(0);
+    const [categorie, setCategorie] = useState('');
+    const [categories, setCategories] = useState([]);
 
     const { items: conf, total, totalPages, loading } = usePaginatedData(
         getListeConfigurationPage,
         currentPage,
         pageSize,
-        { refresh }
+        { refresh, categorie: categorie || undefined }
     );
+
+    useEffect(() => {
+        getListeCategorieConfiguration().then((data) => setCategories(data || []));
+    }, []);
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [categorie]);
 
     const supprimerConfiguration = async (id) => {
         try {
@@ -68,6 +79,20 @@ function ConfigurationListe() {
             }
         >
             <div className="space-y-6">
+                <div className="glass-panel rounded-2xl p-5 relative z-50">
+                    <div className="flex flex-wrap items-end gap-3">
+                        <div>
+                            <label className="config-form-label">Catégorie</label>
+                            <SelectDropdown
+                                options={categories.map((c) => ({ value: c.categorie, label: c.categorie }))}
+                                value={categorie}
+                                onChange={(value) => setCategorie(value)}
+                                labelTous="Toutes les catégories"
+                            />
+                        </div>
+                    </div>
+                </div>
+
                 {loading && conf.length === 0 ? (
                     <TableSkeleton />
                 ) : !conf || conf.length === 0 ? (

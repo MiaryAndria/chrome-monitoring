@@ -3,6 +3,7 @@ import { updateSeuil, getDetailSeuil } from '../../fonction/seuilFonction';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Pencil, ArrowLeft } from 'lucide-react';
 import PageLayout from '../../components/PageLayout';
+import SelectDropdown from '../component/SelectDropdown';
 import '../../css/liste.css';
 import '../../css/configuration.css';
 
@@ -79,14 +80,15 @@ function SeuilUpdate() {
 
                     <div className="config-form-group">
                         <label className="config-form-label">Sens de comparaison</label>
-                        <select
-                            className="config-form-input"
+                        <SelectDropdown
+                            options={[
+                                { value: '>', label: 'Supérieur au seuil (>)' },
+                                { value: '<', label: 'Inférieur au seuil (<)' },
+                            ]}
                             value={sens}
-                            onChange={(e) => setSens(e.target.value)}
-                        >
-                            <option value=">">Supérieur au seuil (&gt;)</option>
-                            <option value="<">Inférieur au seuil (&lt;)</option>
-                        </select>
+                            onChange={(value) => setSens(value)}
+                            placeholder="Choisir le sens"
+                        />
                     </div>
 
                     <div className="config-form-actions">

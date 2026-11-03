@@ -32,9 +32,9 @@ def get_liste_configuration(cur):
     return cur.fetchall()
 
 
-def find_configurations_paginated(cur, page=1, page_size=10):
+def find_configurations_paginated(cur, page=1, page_size=10, categorie=None):
     offset = (page - 1) * page_size
-    cur.execute(
+    query = (
         CONFIG_COLONNES
         + """,
                COUNT(*) OVER() AS total
@@ -42,11 +42,16 @@ def find_configurations_paginated(cur, page=1, page_size=10):
         + CONFIG_FROM
         + """
         WHERE ds.id_statut <> 14
-        ORDER BY c.id ASC
-        LIMIT %s OFFSET %s
-        """,
-        (page_size, offset),
+        """
     )
+    params = []
+    if categorie:
+        query += " AND cat.categorie = %s"
+        params.append(categorie)
+    query += " ORDER BY c.id ASC LIMIT %s OFFSET %s"
+    params.append(page_size)
+    params.append(offset)
+    cur.execute(query, tuple(params))
     return cur.fetchall()
 
 

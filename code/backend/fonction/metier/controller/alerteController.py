@@ -88,7 +88,6 @@ def liste_device_alerte_resolue_page(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-
 @router.get("/device/page", response_model=AlerteResumePageResponse)
 def liste_device_alerte_page(
     page: int = Query(1, ge=1),

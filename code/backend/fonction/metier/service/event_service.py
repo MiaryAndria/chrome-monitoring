@@ -8,10 +8,12 @@ from backend.fonction.metier.repository.evenement import (
     find_evenements_paginated,
     get_last_event_date,
     get_evenement_by_id,
+    delete_evenements_avant
 )
 from backend.fonction.metier.repository.rapport import get_latest_battery_by_device
 from backend.utils.pagination import build_page
-from backend.core.cache import cache_get, cache_set
+from backend.core.cache import cache_get, cache_invalidate_prefix, cache_set
+from backend.utils.datetime_tools import _to_utc
 
 def get_event():
     connexion = get_connection()
@@ -212,14 +214,6 @@ def compute_battery_remaining(donnees):
     }
 
 
-def _to_utc(value):
-    if value is None:
-        return None
-    if value.tzinfo is None:
-        value = value.replace(tzinfo=timezone.utc)
-    return value.astimezone(timezone.utc)
-
-
 def _build_duree_vie(cur, id_device):
     batterie = get_latest_battery_by_device(cur, id_device)
     dernier_evenement = get_last_event_date(cur, id_device)
@@ -271,4 +265,19 @@ __all__ = [
     "get_duree_vie_evenement",
     "compute_battery_remaining",
 ]
+
+def delete_evenement(date_limite):
+    connexion = get_connection()
+    if connexion is None:
+        return 0
+    try:
+        cur = connexion.cursor()
+        delete_evenements_avant(cur, date_limite)
+        connexion.commit()
+        cache_invalidate_prefix("events:")
+    except Exception:
+        connexion.rollback()
+        raise
+    finally:
+        close_connection(connexion)
         

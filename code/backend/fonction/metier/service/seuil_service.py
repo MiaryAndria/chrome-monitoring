@@ -45,13 +45,13 @@ def getListeSeuil():
         close_connection(connexion)
 
 
-def _fetch_seuils_page(page=1, page_size=10):
+def _fetch_seuils_page(page=1, page_size=10, categorie=None):
     connexion = get_connection()
     if connexion is None:
         return build_page([], 0, page, page_size)
     try:
         cur = connexion.cursor()
-        rows = find_seuils_paginated(cur, page, page_size)
+        rows = find_seuils_paginated(cur, page, page_size, categorie)
         total = rows[0][7] if rows else 0
         items = [_row_to_dict(r) for r in rows]
         cur.close()
@@ -60,13 +60,13 @@ def _fetch_seuils_page(page=1, page_size=10):
         close_connection(connexion)
 
 
-def getSeuilsPage(page=1, page_size=10):
-    cle = f"seuils:{page}:{page_size}"
+def getSeuilsPage(page=1, page_size=10, categorie=None):
+    cle = f"seuils:{page}:{page_size}:{categorie}"
     valeur = cache_get(cle)
     if valeur is not None:
         return valeur
 
-    resultat = _fetch_seuils_page(page, page_size)
+    resultat = _fetch_seuils_page(page, page_size, categorie)
     return cache_set(cle, resultat)
 
 

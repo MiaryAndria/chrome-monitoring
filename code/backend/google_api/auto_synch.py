@@ -15,6 +15,10 @@ from backend.fonction.metier.repository.synchronisation import (
     insert_synchronisation_statut,
     update_synchronisation_resultat,
 )
+from backend.fonction.metier.service.event_service import delete_evenement
+from backend.fonction.metier.service.alerte_service import delete_alerte
+
+
 
 logger = logging.getLogger(__name__)
 
@@ -25,6 +29,7 @@ MARGE_HISTORIQUE_DEFAUT = 72
 PREMIERE_FENETRE_JOURS_DEFAUT = 90
 TZ_OFFSET_DEFAUT = 3
 SOURCE_DEFAUT = "google"
+CONFIG_SUPPRESSION_JOURS_DEFAUT = 30  
 
 _verrou = threading.Lock()           # empêche deux synchros en même temps
 _arret = threading.Event()           # pour arrêter proprement la boucle
@@ -39,6 +44,10 @@ def _changer_statut(conn, cur, id_sync, nom_statut):
     id_statut = get_or_create_statut(cur, nom_statut)
     insert_synchronisation_statut(cur, id_statut, id_sync, datetime.now(timezone.utc))
     conn.commit()
+
+def get_config_date_suppression():
+    jours = get_int_configuration("CONFIGURATION_SUPPRESSION", CONFIG_SUPPRESSION_JOURS_DEFAUT)
+    return timedelta(days=jours)
 
 
 def executer_synchronisation():
@@ -108,6 +117,14 @@ def executer_synchronisation():
 
         suivi.update({"statut": "TERMINER", "nb_lignes": nb_lignes})
         logger.info("Synchronisation terminée (%s lignes)", nb_lignes)
+        
+        try:
+            date_limite = datetime.now(timezone.utc) - get_config_date_suppression()
+            delete_evenement(date_limite)
+            delete_alerte(date_limite)
+        except Exception:
+            logger.exception("Purge des données anciennes échouée")
+
         return True
 
     except Exception as e:

@@ -35,9 +35,9 @@ def get_liste():
 
 
 @router.get("/liste/page", response_model=SeuilPageResponse)
-def get_liste_page(page: int = Query(1, ge=1), page_size: int = Query(10, ge=1, le=100)):
+def get_liste_page(page: int = Query(1, ge=1), page_size: int = Query(10, ge=1, le=100), categorie: str | None = None):
     try:
-        return getSeuilsPage(page=page, page_size=page_size)
+        return getSeuilsPage(page=page, page_size=page_size, categorie=categorie)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

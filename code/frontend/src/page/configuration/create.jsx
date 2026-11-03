@@ -3,6 +3,7 @@ import { createConfiguration, getListeCategorieConfiguration, getListeTypeConfig
 import { useNavigate } from 'react-router-dom';
 import { Plus, ArrowLeft } from 'lucide-react';
 import PageLayout from '../../components/PageLayout';
+import SelectDropdown from '../component/SelectDropdown';
 import '../../css/liste.css';
 import '../../css/configuration.css';
 
@@ -30,8 +31,7 @@ function ConfigurationCreate() {
         setIdType('');
     };
 
-    const changerCategorie = (e) => {
-        const idCat = e.target.value;
+    const changerCategorie = (idCat) => {
         setIdCategorie(idCat);
         chargerTypes(idCat);
     };
@@ -67,30 +67,22 @@ function ConfigurationCreate() {
 
                     <div className="config-form-group">
                         <label className="config-form-label">Catégorie</label>
-                        <select
-                            className="config-form-input"
+                        <SelectDropdown
+                            options={categories.map((c) => ({ value: String(c.id), label: c.categorie }))}
                             value={idCategorie}
                             onChange={changerCategorie}
-                        >
-                            <option value="">-- Choisir une catégorie --</option>
-                            {categories.map((c) => (
-                                <option key={c.id} value={c.id}>{c.categorie}</option>
-                            ))}
-                        </select>
+                            placeholder="-- Choisir une catégorie --"
+                        />
                     </div>
                     {idCategorie ? (
                         <div className="config-form-group">
                             <label className="config-form-label">Type</label>
-                            <select
-                                className="config-form-input"
+                            <SelectDropdown
+                                options={types.map((t) => ({ value: String(t.id), label: t.type }))}
                                 value={idType}
-                                onChange={(e) => setIdType(e.target.value)}
-                            >
-                                <option value="">-- Choisir un type --</option>
-                                {types.map((t) => (
-                                    <option key={t.id} value={t.id}>{t.type}</option>
-                                ))}
-                            </select>
+                                onChange={(value) => setIdType(value)}
+                                placeholder="-- Choisir un type --"
+                            />
                         </div>
                     ) : (
                         <div>

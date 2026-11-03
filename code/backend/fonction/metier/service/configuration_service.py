@@ -43,13 +43,13 @@ def getListeConfiguration():
         close_connection(connexion)
 
 
-def _fetch_configurations_page(page=1, page_size=10):
+def _fetch_configurations_page(page=1, page_size=10, categorie=None):
     connexion = get_connection()
     if connexion is None:
         return build_page([], 0, page, page_size)
     try:
         cur = connexion.cursor()
-        rows = find_configurations_paginated(cur, page, page_size)
+        rows = find_configurations_paginated(cur, page, page_size, categorie)
         total = rows[0][6] if rows else 0
         items = [_row_to_dict(r) for r in rows]
         cur.close()
@@ -58,13 +58,13 @@ def _fetch_configurations_page(page=1, page_size=10):
         close_connection(connexion)
 
 
-def getConfigurationsPage(page=1, page_size=10):
-    cle = f"configurations:{page}:{page_size}"
+def getConfigurationsPage(page=1, page_size=10, categorie=None):
+    cle = f"configurations:{page}:{page_size}:{categorie}"
     valeur = cache_get(cle)
     if valeur is not None:
         return valeur
 
-    resultat = _fetch_configurations_page(page, page_size)
+    resultat = _fetch_configurations_page(page, page_size, categorie)
     return cache_set(cle, resultat)
 
 

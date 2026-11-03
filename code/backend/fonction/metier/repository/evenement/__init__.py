@@ -5,6 +5,7 @@ from .evenement_device import (
     find_evenements_paginated,
     get_last_event_date,
     count_evenements_device_period,
+    delete_evenements_avant
 )
 
 

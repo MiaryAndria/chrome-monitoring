@@ -130,3 +130,9 @@ def find_evenements_paginated(cur, page=1, page_size=10, type_evenement=None,
         tuple(params + [page_size, offset])
     )
     return _rows_to_dicts(cur)
+
+def delete_evenements_avant(cur, date_limite):
+    cur.execute(
+        "DELETE FROM t_evenement_device WHERE date_evenement < %s",
+        (date_limite,),
+    )

@@ -18,6 +18,7 @@ from backend.fonction.metier.repository.alerte import (
     get_liste_device_alerte_by_date_resolue,
     get_nombre_alerte_resolue,
     get_type_alerte,
+    delete_alertes_avant
 )
 from backend.fonction.metier.repository.cpu import get_latest_by_device as get_latest_cpu
 from backend.fonction.metier.repository.ram import get_latest_by_device as get_latest_ram
@@ -318,5 +319,20 @@ def getNombreAlerteParType(type_alerte, statut="active", date_debut=None, date_f
     try:
         cur = connexion.cursor()
         return _compter_alertes(cur, type_alerte, id_statut, date_debut, date_fin)
+    finally:
+        close_connection(connexion)
+
+def delete_alerte(date_limite):
+    connexion = get_connection()
+    if connexion is None:
+        return 0
+    try:
+        cur = connexion.cursor()
+        delete_alertes_avant(cur, date_limite)
+        connexion.commit()
+        cache_invalidate_prefix("alertes:")
+    except Exception:
+        connexion.rollback()
+        raise
     finally:
         close_connection(connexion)

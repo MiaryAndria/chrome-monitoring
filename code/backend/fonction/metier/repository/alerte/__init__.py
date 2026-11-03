@@ -3,6 +3,7 @@ from .alerte import (
     insert_alerte,
     get_temperature_max_device,
     get_type_alerte,
+    delete_alertes_avant
 )
 
 from .alerte_statut import (

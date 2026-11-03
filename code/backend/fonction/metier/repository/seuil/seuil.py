@@ -33,9 +33,9 @@ def get_liste_seuil(cur):
     return cur.fetchall()
 
 
-def find_seuils_paginated(cur, page=1, page_size=10):
+def find_seuils_paginated(cur, page=1, page_size=10, categorie=None):
     offset = (page - 1) * page_size
-    cur.execute(
+    query = (
         SEUIL_COLONNES
         + """,
                COUNT(*) OVER() AS total
@@ -43,11 +43,16 @@ def find_seuils_paginated(cur, page=1, page_size=10):
         + SEUIL_FROM
         + """
         WHERE ds.id_statut <> 14
-        ORDER BY s.id ASC
-        LIMIT %s OFFSET %s
-        """,
-        (page_size, offset),
+        """
     )
+    params = []
+    if categorie:
+        query += " AND c.categorie = %s"
+        params.append(categorie)
+    query += " ORDER BY s.id ASC LIMIT %s OFFSET %s"
+    params.append(page_size)
+    params.append(offset)
+    cur.execute(query, tuple(params))
     return cur.fetchall()
 
 
