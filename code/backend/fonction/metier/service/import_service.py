@@ -16,7 +16,8 @@ from backend.google_api.print import extract_printers_from_telemetry
 from backend.google_api.event import fetch_crash_sources, build_crash_incidents
 from backend.fonction.metier.repository.devices import (insert_device,update_device,insert_device_cpu,get_last_cpu_for_device,
     update_device_ram_total,get_device_by_device_id,insert_device_filiale,insert_device_utilisateur_recent,
-    insert_device_utilisateur,get_or_create_type_appareil,get_map_devices
+    insert_device_utilisateur,get_or_create_type_appareil,get_map_devices,
+    get_last_version,insert_device_version
 )
 from backend.fonction.metier.repository.filiale import get_or_create_filiale
 from backend.fonction.metier.repository.cpu import get_or_create_cpu
@@ -60,14 +61,23 @@ def _upsert_device(cur, d, model_nom, type_appareil_id, date_creation, ip_adress
     device_id = d.get("deviceId")
     if get_device_by_device_id(cur, device_id):
         return update_device(cur,device_id,d.get("serialNumber"),
-            model_nom,d.get("osVersion"),d.get("osVersion"),
+            model_nom,
             ip_adresse,mac_adresse,
         )
         
     return insert_device(cur,device_id,d.get("serialNumber"),model_nom,
-        type_appareil_id,d.get("osVersion"),d.get("osVersion"),date_creation,
+        type_appareil_id,date_creation,
         ip_adresse,mac_adresse,
     )
+
+
+def _enregistrer_version(cur, id_device, version):
+    """Ajoute une ligne dans t_device_version uniquement si la version a change."""
+    if not version:
+        return
+    derniere = get_last_version(cur, id_device)
+    if derniere is None or derniere != version:
+        insert_device_version(cur, id_device, version)
 
 
 def _lier_reseau_device(cur, db_device_id, id_filiale, ip_adresse):
@@ -116,6 +126,7 @@ def insertion_device(cur, dvc_list):
                 cur, d, model_nom, type_appareil_id, date_creation, ip_adresse, mac_adresse
             )
             if db_device_id:
+                _enregistrer_version(cur, db_device_id, d.get("osVersion"))
                 insert_device_utilisateur(cur, db_device_id, utilisateur_id)
                 if id_filiale:
                     insert_device_filiale(cur, db_device_id, id_filiale)

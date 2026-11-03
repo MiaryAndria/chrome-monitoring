@@ -7,6 +7,8 @@ from .devices import (
     insert_device,
     update_device,
     insert_device_filiale,
+    get_last_version,
+    insert_device_version,
     delete_all,
     recherche_multicritere,
     insert_device_cpu,

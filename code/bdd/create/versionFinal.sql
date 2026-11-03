@@ -378,8 +378,6 @@ CREATE TABLE t_device (
     serial_number VARCHAR(255),
     modele VARCHAR(255),
     id_type_appareil INT NOT NULL REFERENCES t_type_appareil(id),
-    chromeos_version VARCHAR(100),
-    chrome_version VARCHAR(100),
     mac_adress VARCHAR(255),
     ram_total BIGINT,
     ip_adress VARCHAR(255),
@@ -537,19 +535,13 @@ CREATE TABLE t_seuil(
     valeur INT NOT NULL
 );
 
--- CREATE TABLE t_device_version(
---     id SERIAL PRIMARY KEY ,
---     id_device INT NOT NULL UNIQUE REFERENCES t_device(id),
---     id_version INT NOT NULL UNIQUE REFERENCES t_version_pc(id),
---     date TIMESTAMPTZ NOT NULL DEFAULT NOW() 
--- );
-
--- CREATE TABLE t_device_version_2(
---     id SERIAL PRIMARY KEY ,
---     id_device INT NOT NULL REFERENCES t_device(id),
---     version VARCHAR(255),
---     date TIMESTAMPTZ NOT NULL DEFAULT NOW()
--- );
+CREATE TABLE t_device_version (
+    id               SERIAL PRIMARY KEY,
+    id_device        INT NOT NULL REFERENCES t_device(id),
+    chromeos_version VARCHAR(100),      
+    date             TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE (id_device, date)
+);
 
 CREATE TABLE t_configuration (
     id SERIAL PRIMARY KEY,

@@ -21,10 +21,17 @@ def get_devices_by_imprimante(cur, id_imprimante):
             d.modele,
             d.ip_adress,
             d.mac_adress,
-            d.chromeos_version,
+            v.chromeos_version,
             idv.date            AS derniere_detection
         FROM t_imprimante_device idv
         JOIN t_device d ON d.id = idv.id_device
+        LEFT JOIN LATERAL (
+            SELECT dv.chromeos_version
+            FROM t_device_version dv
+            WHERE dv.id_device = d.id
+            ORDER BY dv.date DESC, dv.id DESC
+            LIMIT 1
+        ) v ON TRUE
         WHERE idv.id_imprimante = %s
         ORDER BY d.id, idv.date DESC
     """, (id_imprimante,))

@@ -11,6 +11,8 @@ import '../../../css/configuration.css';
 import '../../../css/detail.css';
 import usePaginatedData from '../../../hooks/usePaginatedData';
 import useDebounce from '../../../hooks/useDebounce';
+import DateHeureFilter from '../../component/DateHeureFilter';
+import ResetFiltreButton from '../../component/ResetFiltreButton';
 import Pagination from '../../../components/Pagination';
 
 function ListeDeviceAlerte() {
@@ -23,15 +25,17 @@ function ListeDeviceAlerte() {
     const [stats, setStats] = useState({});
     const [TypeFiltered, setTypeFiltered] = useState('');
     const [dateDebut, setDateDebut] = useState('');
+    const [heureDebut, setHeureDebut] = useState('00:00');
     const [dateFin, setDateFin] = useState('');
-    const dateDebutApplique = useDebounce(dateDebut, 500);
-    const dateFinApplique = useDebounce(dateFin, 500);
+    const [heureFin, setHeureFin] = useState('23:59');
+    const [datetimeDebutApplique, setDatetimeDebutApplique] = useState('');
+    const [datetimeFinApplique, setDatetimeFinApplique] = useState('');
 
     const { items: liste, total, totalPages, loading } = usePaginatedData(
         getListeAlertePage,
         page,
         pageSize,
-        { date_debut: dateDebutApplique || undefined, date_fin: dateFinApplique || undefined, type: TypeFiltered || undefined, search: debouncedSearch }
+        { date_debut: datetimeDebutApplique || undefined, date_fin: datetimeFinApplique || undefined, type: TypeFiltered || undefined, search: debouncedSearch }
     );
 
     const getType = async () => {
@@ -47,18 +51,42 @@ function ListeDeviceAlerte() {
         const resultat = {};
         for (const t of type) {
             resultat[t.type] = await getNombreAlerteType(
-                t.type, 'active', dateDebutApplique || undefined, dateFinApplique || undefined
+                t.type, 'active', datetimeDebutApplique || undefined, datetimeFinApplique || undefined
             );
         }
         setStats(resultat);
     }
 
-    const reset = () => {
+    const filtrerByDate = () => {
+        if (dateDebut && dateFin && dateDebut > dateFin) {
+            alert("La date de début doit être antérieure ou égale à la date de fin.");
+            return;
+        }
+        if (dateDebut && dateFin && dateDebut === dateFin && heureDebut > heureFin) {
+            alert("L'heure de début doit être antérieure ou égale à l'heure de fin.");
+            return;
+        }
+
+        setDatetimeDebutApplique(dateDebut ? `${dateDebut}T${heureDebut || '00:00'}:00` : '');
+        setDatetimeFinApplique(dateFin ? `${dateFin}T${heureFin || '23:59'}:59` : '');
+        setPage(1);
+    };
+
+    const resetDate = () => {
         setDateDebut('');
+        setHeureDebut('00:00');
         setDateFin('');
+        setHeureFin('23:59');
+        setDatetimeDebutApplique('');
+        setDatetimeFinApplique('');
+    };
+
+    const reinitialiserFiltres = () => {
+        resetDate();
         setTypeFiltered('');
         setSearch('');
-    }
+        setPage(1);
+    };
 
     useEffect(() => {
         getType()
@@ -68,12 +96,14 @@ function ListeDeviceAlerte() {
         if (type.length > 0) {
             chargerStats()
         }
-    }, [type, dateDebutApplique, dateFinApplique])
+    }, [type, datetimeDebutApplique, datetimeFinApplique])
 
     // Un changement de filtre repart en page 1 (le hook refetch tout seul).
     useEffect(() => {
         setPage(1);
-    }, [dateDebut, dateFin, TypeFiltered, search]);
+    }, [search, TypeFiltered, datetimeDebutApplique, datetimeFinApplique]);
+
+    const filtresActifs = TypeFiltered !== "" || search !== "" || !!datetimeDebutApplique || !!datetimeFinApplique;
 
     const totalActives = Number(total) || 0;
 
@@ -151,58 +181,51 @@ function ListeDeviceAlerte() {
             }
         >
             <div className="space-y-6">
-                <div className="glass-panel rounded-2xl p-5 relative z-50">
-                    <div className="relative max-w-md mb-4">
+                <div className="glass-panel rounded-2xl p-5 space-y-4 relative z-50">
+                    <div className="relative max-w-md">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
                         <input
                             type="text"
                             placeholder="Rechercher par numéro de série…"
                             value={search}
                             onChange={e => setSearch(e.target.value)}
-                            className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-zinc-900/60 border border-white/10 text-zinc-200 text-sm placeholder-zinc-500 focus:outline-none focus:border-cyan-400/50"
+                            className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-zinc-900/60 border border-white/10 text-zinc-200 text-sm placeholder-zinc-500 focus:outline-none focus:border-cyan-400/50 focus:ring-1 focus:ring-cyan-400/20 transition-all"
                         />
                     </div>
 
-                    <div className="flex flex-wrap items-end gap-3">
-                        <div>
-                            <label className="config-form-label">Début (date et heure)</label>
-                            <input
-                                type="datetime-local"
-                                className="config-form-input"
-                                value={dateDebut}
-                                onChange={(e) => setDateDebut(e.target.value)}
-                            />
-                        </div>
-                        <div>
-                            <label className="config-form-label">Fin (date et heure)</label>
-                            <input
-                                type="datetime-local"
-                                className="config-form-input"
-                                value={dateFin}
-                                onChange={(e) => setDateFin(e.target.value)}
-                            />
-                        </div>
-                        <div>
-                            <label className="config-form-label">Type</label>
-                            <select
-                                className="config-form-input"
-                                value={TypeFiltered}
-                                onChange={(e) => setTypeFiltered(e.target.value)}
-                            >
-                                <option value="">Tous les types</option>
-                                {type.map((t) => (
-                                    <option key={t.id} value={t.type}>
-                                        {t.type?.replace('ALERTE_', '')}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-                        <button
-                            className="config-btn config-btn-ghost"
-                            onClick={() => reset()}
-                        >
-                            Réinitialiser
-                        </button>
+                    <DateHeureFilter
+                        dateDebut={dateDebut}
+                        heureDebut={heureDebut}
+                        dateFin={dateFin}
+                        heureFin={heureFin}
+                        setDateDebut={setDateDebut}
+                        setHeureDebut={setHeureDebut}
+                        setDateFin={setDateFin}
+                        setHeureFin={setHeureFin}
+                        onFilter={filtrerByDate}
+                        onReset={resetDate}
+                    />
+
+                    <div className="flex flex-wrap items-center gap-3">
+                        <span className="text-[10px] text-zinc-500 uppercase font-semibold tracking-wider">Type :</span>
+                        {[{ id: 'tous', type: '' }, ...type].map((t) => {
+                            const value = t.type || '';
+                            const label = value ? value.replace('ALERTE_', '') : 'Tous';
+                            return (
+                                <button
+                                    key={t.id}
+                                    onClick={() => setTypeFiltered(value)}
+                                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all duration-200 cursor-pointer ${TypeFiltered === value
+                                        ? "bg-cyan-500/15 text-cyan-300 border-cyan-500/40 shadow-[0_0_12px_rgba(6,182,212,0.15)]"
+                                        : "bg-zinc-900/60 text-zinc-400 border-white/10 hover:bg-zinc-800/80 hover:text-zinc-300 hover:border-white/15"
+                                        }`}
+                                >
+                                    {label}
+                                </button>
+                            );
+                        })}
+
+                        <ResetFiltreButton actif={filtresActifs} onClick={reinitialiserFiltres} />
                     </div>
                 </div>
 
@@ -231,7 +254,7 @@ function ListeDeviceAlerte() {
                         <BarChart3 className="w-4 h-4 text-cyan-400" />
                         <span className="text-sm font-semibold text-zinc-200">Statistiques des alertes actives</span>
                         <span className="text-[10px] text-zinc-500 ml-auto">
-                            {dateDebut || dateFin ? 'Période filtrée' : 'Toutes périodes'}
+                            {datetimeDebutApplique || datetimeFinApplique ? 'Période filtrée' : 'Toutes périodes'}
                         </span>
                     </div>
 

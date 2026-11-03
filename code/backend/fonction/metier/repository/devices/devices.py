@@ -2,12 +2,19 @@ def get_liste_device(cur):
     cur.execute(
         """
         SELECT d.id, d.device_id, d.serial_number, d.modele, d.id_type_appareil,
-               d.chromeos_version, d.chrome_version, d.mac_adress, d.ip_adress,
+               v.chromeos_version, v.chromeos_version AS chrome_version, d.mac_adress, d.ip_adress,
                d.date_creation, d.ram_total, c.cpu_model, c.freq_max_proc,
                c.cpu_architecture
         FROM t_device d
         LEFT JOIN t_device_cpu dc ON d.id = dc.id_device AND dc.id = (SELECT MAX(id) FROM t_device_cpu WHERE id_device = d.id)
         LEFT JOIN t_cpu c ON c.id = dc.id_cpu
+        LEFT JOIN LATERAL (
+            SELECT dv.chromeos_version
+            FROM t_device_version dv
+            WHERE dv.id_device = d.id
+            ORDER BY dv.date DESC, dv.id DESC
+            LIMIT 1
+        ) v ON TRUE
         ORDER BY d.id ASC
         """
     )
@@ -19,12 +26,19 @@ def get_device_by_id(cur,id):
     cur.execute(
         """
         SELECT d.id, d.device_id, d.serial_number, d.modele, d.id_type_appareil,
-               d.chromeos_version, d.chrome_version, d.mac_adress, d.ip_adress,
+               v.chromeos_version, v.chromeos_version AS chrome_version, d.mac_adress, d.ip_adress,
                d.date_creation, d.ram_total, c.cpu_model, c.freq_max_proc,
                c.cpu_architecture
         FROM t_device d
         LEFT JOIN t_device_cpu dc ON d.id = dc.id_device AND dc.id = (SELECT MAX(id) FROM t_device_cpu WHERE id_device = d.id)
         LEFT JOIN t_cpu c ON c.id = dc.id_cpu
+        LEFT JOIN LATERAL (
+            SELECT dv.chromeos_version
+            FROM t_device_version dv
+            WHERE dv.id_device = d.id
+            ORDER BY dv.date DESC, dv.id DESC
+            LIMIT 1
+        ) v ON TRUE
         WHERE d.id = %s
         """,(id,)
     )
@@ -35,12 +49,19 @@ def get_device_by_device_id(cur,device_id):
     cur.execute(
         """
         SELECT d.id, d.device_id, d.serial_number, d.modele, d.id_type_appareil,
-               d.chromeos_version, d.chrome_version, d.mac_adress, d.ip_adress,
+               v.chromeos_version, v.chromeos_version AS chrome_version, d.mac_adress, d.ip_adress,
                d.date_creation, d.ram_total, c.cpu_model, c.freq_max_proc,
                c.cpu_architecture
         FROM t_device d
         LEFT JOIN t_device_cpu dc ON d.id = dc.id_device AND dc.id = (SELECT MAX(id) FROM t_device_cpu WHERE id_device = d.id)
         LEFT JOIN t_cpu c ON c.id = dc.id_cpu
+        LEFT JOIN LATERAL (
+            SELECT dv.chromeos_version
+            FROM t_device_version dv
+            WHERE dv.id_device = d.id
+            ORDER BY dv.date DESC, dv.id DESC
+            LIMIT 1
+        ) v ON TRUE
         WHERE d.device_id = %s
         """,(device_id,)
     )
@@ -51,12 +72,19 @@ def get_device_by_serial_number(cur,serial_number):
     cur.execute(
         """
         SELECT d.id, d.device_id, d.serial_number, d.modele, d.id_type_appareil,
-               d.chromeos_version, d.chrome_version, d.mac_adress, d.ip_adress,
+               v.chromeos_version, v.chromeos_version AS chrome_version, d.mac_adress, d.ip_adress,
                d.date_creation, d.ram_total, c.cpu_model, c.freq_max_proc,
                c.cpu_architecture
         FROM t_device d
         LEFT JOIN t_device_cpu dc ON d.id = dc.id_device AND dc.id = (SELECT MAX(id) FROM t_device_cpu WHERE id_device = d.id)
         LEFT JOIN t_cpu c ON c.id = dc.id_cpu
+        LEFT JOIN LATERAL (
+            SELECT dv.chromeos_version
+            FROM t_device_version dv
+            WHERE dv.id_device = d.id
+            ORDER BY dv.date DESC, dv.id DESC
+            LIMIT 1
+        ) v ON TRUE
         WHERE d.serial_number = %s
         """,(serial_number,)
     )
@@ -86,7 +114,7 @@ def recherche_multicritere(cur, recherche):
     cur.execute(
         """
         SELECT DISTINCT d.id, d.device_id, d.serial_number, d.modele, d.id_type_appareil,
-               d.chromeos_version, d.chrome_version, d.mac_adress, d.ip_adress,
+               v.chromeos_version, v.chromeos_version AS chrome_version, d.mac_adress, d.ip_adress,
                d.date_creation, ta.nom AS type_appareil, s.nom AS statut,
                f.org_unit_path AS filiale
         FROM t_device d
@@ -104,6 +132,13 @@ def recherche_multicritere(cur, recherche):
         LEFT JOIN t_statut s ON ds.id_statut = s.id
         LEFT JOIN t_device_filiale df ON d.id = df.id_device
         LEFT JOIN t_filiale f ON df.id_filiale = f.id
+        LEFT JOIN LATERAL (
+            SELECT dv.chromeos_version
+            FROM t_device_version dv
+            WHERE dv.id_device = d.id
+            ORDER BY dv.date DESC, dv.id DESC
+            LIMIT 1
+        ) v ON TRUE
         WHERE d.device_id ILIKE %s
            OR d.serial_number ILIKE %s
            OR d.modele ILIKE %s
@@ -121,37 +156,34 @@ def recherche_multicritere(cur, recherche):
 
 
 def insert_device(cur, device_id, serial_number, modele, id_type_appareil,
-    chromeos_version, chrome_version, date_creation, ip_adress, mac_adress, ram_total=None):
+    date_creation, ip_adress, mac_adress, ram_total=None):
     cur.execute(
         """
         INSERT INTO t_device (device_id, serial_number, modele, id_type_appareil,
-            chromeos_version, chrome_version, mac_adress, ram_total, ip_adress, date_creation)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            mac_adress, ram_total, ip_adress, date_creation)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
         RETURNING id;
         """,
         (device_id, serial_number, modele, id_type_appareil,
-         chromeos_version, chrome_version, mac_adress, ram_total, ip_adress, date_creation)
+         mac_adress, ram_total, ip_adress, date_creation)
     )
     row = cur.fetchone()
     return row[0] if row else None
 
 def update_device(cur, device_id, serial_number, modele,
-    chromeos_version, chrome_version, ip_adress, mac_adress, ram_total=None):
+    ip_adress, mac_adress, ram_total=None):
     cur.execute(
         """
         UPDATE t_device SET
             serial_number = %s,
             modele = %s,
-            chromeos_version = %s,
-            chrome_version = %s,
             ip_adress = %s,
             mac_adress = %s,
             ram_total = COALESCE(ram_total, %s)
         WHERE device_id = %s
         RETURNING id;
         """,
-        (serial_number, modele, chromeos_version, chrome_version,
-         ip_adress, mac_adress, ram_total, device_id)
+        (serial_number, modele, ip_adress, mac_adress, ram_total, device_id)
     )
     row = cur.fetchone()
     return row[0] if row else None
@@ -204,6 +236,31 @@ def insert_device_filiale(cur, id_device, id_filiale):
         """,
         (id_device, id_filiale, id_device, id_filiale)
     )
+
+
+def get_last_version(cur, id_device):
+    cur.execute(
+        """
+        SELECT chromeos_version FROM t_device_version
+        WHERE id_device = %s
+        ORDER BY date DESC, id DESC
+        LIMIT 1
+        """,
+        (id_device,)
+    )
+    row = cur.fetchone()
+    return row[0] if row else None
+
+
+def insert_device_version(cur, id_device, chromeos_version):
+    cur.execute(
+        """
+        INSERT INTO t_device_version (id_device, chromeos_version)
+        VALUES (%s, %s)
+        """,
+        (id_device, chromeos_version)
+    )
+
     
 def delete_all(cur):
     cur.execute(
@@ -219,6 +276,7 @@ def delete_all(cur):
         t_device_utilisateur_recent,
         t_disk_device,
         t_device_ram,
+        t_device_version,
         t_rapport_device,
         t_evenement_device,
         t_imprimante_device,

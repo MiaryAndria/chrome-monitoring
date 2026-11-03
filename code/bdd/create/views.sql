@@ -88,6 +88,13 @@ dernier_disk AS (
     FROM t_disk_device dd
     JOIN t_disk dk ON dk.id = dd.id_disk
     ORDER BY dd.id_device, dd.date DESC, dd.id DESC
+),
+derniere_version AS (
+    SELECT DISTINCT ON (v.id_device)
+        v.id_device,
+        v.chromeos_version
+    FROM t_device_version v
+    ORDER BY v.id_device, v.date DESC, v.id DESC
 )
 SELECT
     d.id,
@@ -96,8 +103,8 @@ SELECT
     d.modele,
     d.id_type_appareil,
     ta.nom AS type_appareil,
-    d.chromeos_version,
-    d.chrome_version,
+    dv.chromeos_version,
+    dv.chromeos_version AS chrome_version,
     d.mac_adress,
     d.ip_adress,
     d.date_creation AS date,
@@ -123,7 +130,9 @@ LEFT JOIN dernier_statut st ON st.id_device = d.id
 LEFT JOIN derniere_filiale fi ON fi.id_device = d.id
 LEFT JOIN utilisateurs_recents ru ON ru.id_device = d.id
 LEFT JOIN dernier_cpu cp ON cp.id_device = d.id
-LEFT JOIN dernier_disk di ON di.id_device = d.id;
+LEFT JOIN dernier_disk di ON di.id_device = d.id
+LEFT JOIN derniere_version dv ON dv.id_device = d.id;
+
 
 -- ------------------------------------------------------------
 -- v_evenements_avec_appareil
