@@ -136,6 +136,7 @@ function ListeDevice() {
 
     const handleCopySN = (serialNumber) => {
         if (!serialNumber) return;
+        
         navigator.clipboard.writeText(serialNumber);
         setCopiedSN(serialNumber);
         setTimeout(() => setCopiedSN(null), 2000);
