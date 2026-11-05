@@ -53,7 +53,7 @@ dernier_utilisateur AS (
 utilisateurs_recents AS (
     SELECT
         dur.id_device,
-        array_agg(u.email ORDER BY dur.date_observation DESC) AS emails
+        array_agg(DISTINCT u.email) AS emails
     FROM t_device_utilisateur_recent dur
     JOIN t_utilisateur u ON u.id = dur.id_utilisateur
     GROUP BY dur.id_device

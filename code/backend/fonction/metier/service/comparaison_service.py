@@ -1,7 +1,13 @@
 import json
+from datetime import datetime, timezone
 
 from backend.fonction.conn.connexion import get_connection, close_connection
-from backend.fonction.metier.repository.devices import get_device_by_id, _get_device_cpu_info
+from backend.fonction.metier.repository.devices import (
+    get_device_by_id,
+    _get_device_cpu_info,
+    get_liste_version_by_device,
+    get_version_intervalle,
+)
 from backend.fonction.metier.repository.cpu import get_cpu_device_date
 from backend.fonction.metier.repository.ram import get_ram_device_date
 from backend.fonction.metier.repository.comparaison.comparaison import (
@@ -11,12 +17,12 @@ from backend.fonction.metier.repository.comparaison.comparaison import (
     insert_comparaison_statut,
 )
 from backend.utils.comparaison_stats import (
+    normaliser_ram_pct,
     resume_serie,
     score_puissance_cpu,
     score_puissance_ram,
     vainqueur,
 )
-from backend.utils.format_valeur import usage_percent
 
 # t_type_comparaison : 1 = Simple, 2 = Double
 TYPE_SIMPLE = 1
@@ -28,7 +34,6 @@ STATUT_EN_COURS = 6
 STATUT_TERMINER = 7
 STATUT_ECHEC = 8
 
-
 def getListeComparaison():
     connexion = get_connection()
     if connexion is None:
@@ -36,21 +41,30 @@ def getListeComparaison():
     try:
         cur = connexion.cursor()
         rows = get_liste_comparaison(cur)
-        return [
-            {
+        resultat = []
+        for r in rows:
+            id_a = r[1]
+            id_b = r[2]
+            device_a = get_device_by_id(cur, id_a)
+            device_b = get_device_by_id(cur, id_b)
+            resultat.append({
                 "id": r[0],
-                "id_device_a": r[1],
-                "id_device_b": r[2],
+                "id_device_a": id_a,
+                "version_a":r[8],
+                "version_b":r[9],
+                "id_device_b": id_b,
+                "device_a": device_a[2] if device_a else None,
+                "device_b": device_b[2] if device_b else None,
                 "id_type_comparaison": r[3],
                 "date_reference_a": str(r[4]) if r[4] else None,
                 "date_reference_b": str(r[5]) if r[5] else None,
                 "date_comparaison": str(r[6]) if r[6] else None,
                 "resultat": r[7],
-            }
-            for r in rows
-        ]
+            })
+        return resultat
     finally:
         close_connection(connexion)
+
 
 
 def _extraire_specs(device, cpu_info):
@@ -62,36 +76,59 @@ def _extraire_specs(device, cpu_info):
         "ram_total": device[10] if len(device) > 10 else None,
     }
 
+def get_liste_version_device(id_device):
+    connexion = get_connection()
+    if connexion is None :
+        return []
+    try:
+        cur = connexion.cursor()
+        liste = get_liste_version_by_device(cur,id_device)
+        result = []
+        for l in liste:
+            result.append({
+                "id": l[0],
+                "chromeos_version": l[1],
+                "date": l[2],
+            })
+        return result 
+    finally:
+        close_connection(connexion)
+             
+def get_data_device(cur, id_device, chromeos_version):
+    """Données comparables d'un appareil sur l'intervalle d'une version."""
+    intervalle = get_version_intervalle(cur, id_device, chromeos_version)
+    if intervalle is None:
+        return None
 
-def get_device_comparison_data(cur, id_device, date_debut, date_fin):
-    """
-    Données comparables d'un appareil sur une plage de dates :
-    specs + résumé d'usage CPU (%) et RAM (normalisée en % de la capacité).
-    Retourne None si l'appareil n'existe pas.
-    """
+    date_debut, date_fin = intervalle
+    if date_fin is None:
+        date_fin = datetime.now(timezone.utc)
+
     device = get_device_by_id(cur, id_device)
     if device is None:
         return None
 
-    cpu_info = _get_device_cpu_info(cur, id_device)
-    specs = _extraire_specs(device, cpu_info)
+    specs = _extraire_specs(device, _get_device_cpu_info(cur, id_device))
 
     releves_cpu = get_cpu_device_date(cur, id_device, date_debut, date_fin)
     releves_ram = get_ram_device_date(cur, id_device, date_debut, date_fin)
 
     cpu_resume = resume_serie([r["valeur"] for r in releves_cpu])
     ram_resume = resume_serie([r["valeur"] for r in releves_ram])
-
+    
     return {
         "id_device": device[0],
         "device_id": device[1],
         "serial_number": device[2],
         "modele": device[3],
+        "version": chromeos_version,
+        "date_reference": date_debut,
         "specs": specs,
+        "version":chromeos_version,
         "cpu": cpu_resume or {"moyenne": None, "min": None, "max": None, "n": 0},
         "ram": {
             "moyenne_util": ram_resume["moyenne"] if ram_resume else None,
-            "moyenne_pct": usage_percent(ram_resume["moyenne"], specs["ram_total"]) if ram_resume else None,
+            "moyenne_pct": normaliser_ram_pct(ram_resume["moyenne"], specs["ram_total"]) if ram_resume else None,
             "total": specs["ram_total"],
             "n": ram_resume["n"] if ram_resume else 0,
         },
@@ -156,8 +193,10 @@ def _bloc_puissance_ram(detail_a, detail_b):
     }
 
 
-def _nom_detail(detail):
-    return detail.get("serial_number") or detail.get("device_id") or f"device {detail.get('id_device')}"
+def _etiquette(detail):
+    nom = detail.get("serial_number") or detail.get("device_id") or f"device {detail.get('id_device')}"
+    version = detail.get("version")
+    return f"{nom} · {version}" if version else nom
 
 
 def _phrase(titre, nom_a, nom_b, gagnant, ecart, unite):
@@ -170,10 +209,9 @@ def _phrase(titre, nom_a, nom_b, gagnant, ecart, unite):
         return f"{titre} : {nom} en tête."
     return f"{titre} : {nom} en tête (écart {ecart}{unite})."
 
-
 def _resume_verdict(detail_a, detail_b, cpu, ram):
-    nom_a = _nom_detail(detail_a)
-    nom_b = _nom_detail(detail_b)
+    nom_a = _etiquette(detail_a)
+    nom_b = _etiquette(detail_b)
     return " ".join([
         _phrase("CPU usage", nom_a, nom_b, cpu["usage"]["plus_utilise"], cpu["usage"].get("ecart_pts"), " pts"),
         _phrase("CPU puissance", nom_a, nom_b, cpu["puissance"]["plus_puissant"], cpu["puissance"].get("ecart"), ""),
@@ -215,8 +253,7 @@ def _marquer_echec(connexion, id_comparaison):
         connexion.rollback()
 
 
-def _executer_comparaison(id_device_a, id_device_b, date_debut_a, date_fin_a,
-                          date_debut_b, date_fin_b, id_type_comparaison):
+def _executer_comparaison(id_device_a, id_device_b, version_a, version_b, id_type_comparaison):
     connexion = get_connection()
     if connexion is None:
         return None
@@ -224,19 +261,22 @@ def _executer_comparaison(id_device_a, id_device_b, date_debut_a, date_fin_a,
     try:
         cur = connexion.cursor()
 
+        detail_a = get_data_device(cur, id_device_a, version_a)
+        detail_b = get_data_device(cur, id_device_b, version_b)
+        if detail_a is None or detail_b is None:
+            raise ValueError("Appareil ou version introuvable")
+
         id_comparaison = insert_comparaison(
-            cur, id_device_a, id_device_b, date_debut_a, date_fin_a, id_type_comparaison
+            cur, id_device_a, id_device_b,
+            detail_a["date_reference"], detail_b["date_reference"],
+            id_type_comparaison,
+            version_a, version_b,
         )
         insert_comparaison_statut(cur, id_comparaison, STATUT_COMMENCER)
         connexion.commit()
 
         insert_comparaison_statut(cur, id_comparaison, STATUT_EN_COURS)
         connexion.commit()
-
-        detail_a = get_device_comparison_data(cur, id_device_a, date_debut_a, date_fin_a)
-        detail_b = get_device_comparison_data(cur, id_device_b, date_debut_b, date_fin_b)
-        if detail_a is None or detail_b is None:
-            raise ValueError("Appareil introuvable")
 
         resultat = compare(detail_a, detail_b)
         update_comparaison_resultat(cur, id_comparaison, json.dumps(resultat, default=str))
@@ -252,30 +292,28 @@ def _executer_comparaison(id_device_a, id_device_b, date_debut_a, date_fin_a,
         close_connection(connexion)
 
 
-def comparaisonSimple(id_device, date_debut_a, date_fin_a, date_debut_b, date_fin_b):
-    """Un même appareil comparé sur deux plages de dates (type Simple)."""
-    return _executer_comparaison(
-        id_device, id_device, date_debut_a, date_fin_a, date_debut_b, date_fin_b, TYPE_SIMPLE
-    )
+def comparaisonSimple(id_device, version_a, version_b):
+    if version_a == version_b:
+        raise ValueError("Il faut deux versions différentes")
+    return _executer_comparaison(id_device, id_device, version_a, version_b, TYPE_SIMPLE)
 
 
-def comparaisonDouble(id_device_a, id_device_b, date_debut_a, date_fin_a, date_debut_b, date_fin_b):
-    """Deux appareils comparés sur deux plages de dates (type Double)."""
-    return _executer_comparaison(
-        id_device_a, id_device_b, date_debut_a, date_fin_a, date_debut_b, date_fin_b, TYPE_DOUBLE
-    )
+def comparaisonDouble(id_device_a, version_a, id_device_b, version_b):
+    if id_device_a == id_device_b:
+        raise ValueError("Il faut deux appareils différents")
+    return _executer_comparaison(id_device_a, id_device_b, version_a, version_b, TYPE_DOUBLE)
 
 
-if __name__ == "__main__":
-    # Test manuel :
-    #   python -m backend.fonction.metier.service.comparaison_service <id_a> <id_b> [debut] [fin]
-    import sys
+# if __name__ == "__main__":
+#     # Test manuel :
+#     #   python -m backend.fonction.metier.service.comparaison_service <id_a> <version_a> <id_b> <version_b>
+#     import sys
 
-    args = sys.argv[1:]
-    id_a = int(args[0]) if len(args) > 0 else 1
-    id_b = int(args[1]) if len(args) > 1 else 2
-    debut = args[2] if len(args) > 2 else "2026-10-05T00:00:00"
-    fin = args[3] if len(args) > 3 else "2026-10-05T23:59:59"
+#     args = sys.argv[1:]
+#     if len(args) < 4:
+#         print("Usage: python -m backend.fonction.metier.service.comparaison_service <id_a> <version_a> <id_b> <version_b>")
+#         sys.exit(1)
 
-    resultat = comparaisonDouble(id_a, id_b, debut, fin, debut, fin)
-    print(json.dumps(resultat["resultat"] if resultat else None, ensure_ascii=False, indent=2))
+#     id_a, version_a, id_b, version_b = int(args[0]), args[1], int(args[2]), args[3]
+#     resultat = comparaisonDouble(id_a, version_a, id_b, version_b)
+#     print(json.dumps(resultat["resultat"] if resultat else None, ensure_ascii=False, indent=2))

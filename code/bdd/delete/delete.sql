@@ -87,6 +87,7 @@ TRUNCATE TABLE
     t_disk
 RESTART IDENTITY;
 
+TRUNCATE TABLE t_statut_comparaison, t_comparaison RESTART IDENTITY CASCADE;
 TRUNCATE TABLE t_configuration_statut,t_configuration RESTART IDENTITY;
 -- Supression doublons 
 -- WITH doublons AS (

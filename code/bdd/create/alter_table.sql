@@ -15,7 +15,8 @@ ALTER TABLE t_type_seuil
     ADD COLUMN IF NOT EXISTS type_alerte VARCHAR(100),
     ADD COLUMN IF NOT EXISTS metrique VARCHAR(50),
     ADD COLUMN IF NOT EXISTS message TEXT;
-
+ALTER TABLE t_comparaison ADD COLUMN IF NOT EXISTS verison_a VARCHAR(255);
+ALTER TABLE t_comparaison ADD COLUMN IF NOT EXISTS version_b VARCHAR(255);
 UPDATE t_type_seuil SET sens='>', type_alerte='ALERTE_CPU',            metrique='cpu',            message='Utilisation CPU supérieure au seuil'               WHERE type='seuil_utilisation_cpu';
 UPDATE t_type_seuil SET sens='>', type_alerte='ALERTE_RAM',            metrique='ram',            message='Utilisation RAM supérieure au seuil'               WHERE type='seuil_utilisation_ram';
 UPDATE t_type_seuil SET sens='>', type_alerte='ALERTE_TEMPERATURE',    metrique='temperature',    message='Température capteur CPU supérieure au seuil'       WHERE type='seuil_capteur_cpu';

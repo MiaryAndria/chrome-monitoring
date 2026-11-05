@@ -205,7 +205,7 @@ export default function Navbar() {
     ]
 
     const configPaths = ['/liste/configuration', '/creer/configuration', '/liste/configuration/archive'];
-    const comparePaths = ['/comparaison/single', '/comparaison/double'];
+    const comparePaths = ['/comparaison/liste', '/comparaison/single', '/comparaison/double'];
     const devicePaths = ['/liste/device', '/imprimantes'];
     const seuilPaths = ['/liste/seuil', '/creer/seuil', '/liste/seuil/archive'];
     const compareActive = comparePaths.some((c) => location.pathname.startsWith(c))

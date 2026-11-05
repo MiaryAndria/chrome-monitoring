@@ -71,3 +71,20 @@ def vainqueur(a, b):
     if b > a:
         return "b"
     return "egal"
+
+
+def normaliser_ram_pct(ram_utiliser, ram_total, decimals=1):
+    """
+    Met l'usage RAM en pourcentage de la capacité totale (*100), pour pouvoir
+    comparer deux appareils ayant des capacités différentes.
+    Retourne None si une valeur est absente/invalide ou si le total est <= 0.
+    """
+    try:
+        utilise = float(ram_utiliser)
+        total = float(ram_total)
+    except (TypeError, ValueError):
+        return None
+    if total <= 0:
+        return None
+    pct = utilise / total * 100
+    return round(min(max(pct, 0.0), 100.0), decimals)

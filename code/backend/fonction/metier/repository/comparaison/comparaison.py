@@ -2,7 +2,8 @@ def get_liste_comparaison(cur):
     cur.execute(
         """
         SELECT id, id_device_a, id_device_b, id_type_comparaison,
-               date_reference_a, date_reference_b, date_comparaison, resultat
+               date_reference_a, date_reference_b, date_comparaison, resultat,
+               version_a, version_b
         FROM t_comparaison
         ORDER BY date_comparaison DESC
         """
@@ -141,7 +142,7 @@ def get_comparaisons_device_b_by_period(cur, id_device_b, date_debut, date_fin):
 
 
 def insert_comparaison(cur, id_device_a, id_device_b, date_reference_a, date_reference_b,
-                       id_type_comparaison, resultat=None):
+                       id_type_comparaison, version_a,version_b,resultat=None):
     """
     Insère une comparaison (resultat NULL au départ) et retourne son id.
     La colonne PK réelle de t_comparaison est `id` (pas `id_comparaison`).
@@ -150,12 +151,12 @@ def insert_comparaison(cur, id_device_a, id_device_b, date_reference_a, date_ref
         """
         INSERT INTO t_comparaison
             (id_device_a, id_device_b, id_type_comparaison,
-             date_reference_a, date_reference_b, resultat)
-        VALUES (%s, %s, %s, %s, %s, %s)
+             date_reference_a, date_reference_b, version_a, version_b, resultat)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
         RETURNING id
         """,
         (id_device_a, id_device_b, id_type_comparaison,
-         date_reference_a, date_reference_b, resultat)
+         date_reference_a, date_reference_b, version_a, version_b, resultat)
     )
     row = cur.fetchone()
     return row[0] if row else None
@@ -173,7 +174,8 @@ def update_comparaison_resultat(cur, id_comparaison, resultat):
 def insert_comparaison_statut(cur, id_comparaison, id_statut):
     cur.execute(
         """
-        INSERT INTO t_statut_comparaison (id_comparaison, id_statut) VALUES (%s, %s)
+        INSERT INTO t_statut_comparaison (id_comparaison, id_statut, date)
+        VALUES (%s, %s, NOW())
         """,
         (id_comparaison, id_statut)
     )

@@ -1,4 +1,5 @@
 from typing import List, Optional
+from datetime import datetime
 from pydantic import BaseModel
 
 class Device(BaseModel):
@@ -51,3 +52,9 @@ class DevicePageResponse(BaseModel):
     page: int
     page_size: int
     total_pages: int
+    
+class DeviceVersionResponse(BaseModel):
+    id: int
+    chromeos_version: Optional[str] = None
+    date: Optional[datetime] = None
+    

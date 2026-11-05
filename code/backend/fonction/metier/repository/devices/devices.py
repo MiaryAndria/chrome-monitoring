@@ -417,3 +417,34 @@ def find_devices_paginated(cur, page=1, page_size=10, id_filiale=None,
         tuple(params + [page_size, offset])
     )
     return _rows_to_dicts(cur)
+
+def get_liste_version_by_device(cur, id_device):
+    """Toutes les versions d'un appareil (source de la liste déroulante)."""
+    cur.execute(
+        """
+        SELECT id, chromeos_version, date
+        FROM t_device_version
+        WHERE id_device = %s
+        ORDER BY date ASC, id ASC
+        """,
+        (id_device,)
+    )
+    return cur.fetchall()
+
+
+def get_version_intervalle(cur, id_device, chromeos_version):
+    cur.execute(
+        """
+        SELECT v.date AS debut,
+               (SELECT MIN(dv.date)
+                FROM t_device_version dv
+                WHERE dv.id_device = v.id_device
+                  AND dv.date > v.date) AS fin
+        FROM t_device_version v
+        WHERE v.id_device = %s AND v.chromeos_version = %s
+        ORDER BY v.date ASC
+        LIMIT 1
+        """,
+        (id_device, chromeos_version)
+    )
+    return cur.fetchone()

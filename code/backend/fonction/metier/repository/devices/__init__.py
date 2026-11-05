@@ -19,6 +19,8 @@ from .devices import (
     get_map_devices,
     get_liste_modele,
     find_devices_paginated,
+    get_version_intervalle,
+    get_liste_version_by_device,
 )
 
 from .type_appareil import (

@@ -591,6 +591,8 @@ CREATE TABLE t_comparaison (
     date_reference_a TIMESTAMPTZ,
     date_reference_b TIMESTAMPTZ,
     date_comparaison TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    version_a VARCHAR (255),
+    version_b VARCHAR(255),
     resultat JSONB
 );
 

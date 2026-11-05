@@ -16,6 +16,7 @@ from backend.fonction.metier.controller.seuil_controller import router as seuil_
 from backend.fonction.metier.controller.ram_controller import router as ram_router
 from backend.fonction.metier.controller.cpu_controller import router as cpu_router
 from backend.fonction.metier.controller.disk_controller import router as disk_router
+from backend.fonction.metier.controller.comparaison_controller import router as comparaison_router
 from backend.fonction.metier.controller.alerteController import router as alerte_router
 # from backend.fonction.metier.service.import_service import synchroniser_tout
 from backend.fonction.metier.controller.export_controller import router as export_router
@@ -50,6 +51,7 @@ app.include_router(seuil_router,         prefix="/seuil",         tags=["seuil"]
 app.include_router(ram_router,           prefix="/ram",           tags=["ram"],           dependencies=protected)
 app.include_router(cpu_router,           prefix="/cpu",           tags=["cpu"],           dependencies=protected)
 app.include_router(disk_router,          prefix="/disk",          tags=["disk"],          dependencies=protected)
+app.include_router(comparaison_router,   prefix="/comparaison",   tags=["comparaison"],   dependencies=protected)
 app.include_router(alerte_router,        prefix="/alerte",        tags=["alerte"],        dependencies=protected)
 app.include_router(export_router, prefix="/export", tags=["export"], dependencies=protected)
 
