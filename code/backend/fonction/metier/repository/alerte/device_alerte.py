@@ -1,5 +1,10 @@
 from datetime import datetime
 
+from backend.fonction.metier.repository.statut.constants import (
+    ID_STATUT_ACTIVE,
+    ID_STATUT_RESOLUE,
+)
+
 # Occurrence ACTIVE / RESOLUE, déterminée par le dernier t_device_alerte_statut
 DERNIER_STATUT_SQL = """
     (
@@ -28,7 +33,7 @@ def get_liste_device_alerte_by_date(cur, date_debut=None, date_fin=None):
         FROM t_device_alerte da
         JOIN t_device d ON d.id = da.id_device
         JOIN t_alerte tr ON tr.id = da.id_alerte
-        WHERE {DERNIER_STATUT_SQL} = 1
+        WHERE {DERNIER_STATUT_SQL} = {ID_STATUT_ACTIVE}
     """
     params = []
     if date_debut is not None:
@@ -57,7 +62,7 @@ def get_liste_device_alerte_by_date_resolue(cur, date_debut=None, date_fin=None)
         FROM t_device_alerte da
         JOIN t_device d ON d.id = da.id_device
         JOIN t_alerte tr ON tr.id = da.id_alerte
-        WHERE {DERNIER_STATUT_SQL} = 15
+        WHERE {DERNIER_STATUT_SQL} = {ID_STATUT_RESOLUE}
     """
     params = []
     if date_debut is not None:
@@ -77,7 +82,7 @@ def get_nombre_alerte_active(cur):
         f"""
         SELECT COUNT(*)
         FROM t_device_alerte da
-        WHERE {DERNIER_STATUT_SQL} = 1
+        WHERE {DERNIER_STATUT_SQL} = {ID_STATUT_ACTIVE}
         """
     )
     row = cur.fetchone()
@@ -88,7 +93,7 @@ def get_nombre_alerte_resolue(cur):
         f"""
         SELECT COUNT(*)
         FROM t_device_alerte da
-        WHERE {DERNIER_STATUT_SQL} = 15
+        WHERE {DERNIER_STATUT_SQL} = {ID_STATUT_RESOLUE}
         """
     )
     row = cur.fetchone()
@@ -101,7 +106,7 @@ def get_device_alerte_active_by_device_and_alerte(cur, id_device, id_alerte):
         f"""
         SELECT da.id, da.id_device, da.id_alerte, da.message, da.date
         FROM t_device_alerte da
-        WHERE da.id_device = %s AND da.id_alerte = %s AND {DERNIER_STATUT_SQL} = 1
+        WHERE da.id_device = %s AND da.id_alerte = %s AND {DERNIER_STATUT_SQL} = {ID_STATUT_ACTIVE}
         ORDER BY da.date DESC, da.id DESC
         LIMIT 1
         """,
@@ -139,7 +144,7 @@ def get_dernieres_alertes(cur, limit):
         FROM t_device_alerte da
         JOIN t_device d ON d.id = da.id_device
         JOIN t_alerte tr ON tr.id = da.id_alerte
-        WHERE {DERNIER_STATUT_SQL} = 1
+        WHERE {DERNIER_STATUT_SQL} = {ID_STATUT_ACTIVE}
         ORDER BY da.date DESC, da.id DESC
         LIMIT %s
         """,
@@ -165,7 +170,7 @@ def find_device_alertes_paginated(cur, page=1, page_size=10, date_debut=None, da
         FROM t_device_alerte da
         JOIN t_device d ON d.id = da.id_device
         JOIN t_alerte tr ON tr.id = da.id_alerte
-        WHERE {DERNIER_STATUT_SQL} = 1
+        WHERE {DERNIER_STATUT_SQL} = {ID_STATUT_ACTIVE}
     """
     params = []
     if date_debut is not None:
@@ -210,7 +215,7 @@ def find_device_alertes_resolues_paginated(cur, page=1, page_size=10, date_debut
         FROM t_device_alerte da
         JOIN t_device d ON d.id = da.id_device
         JOIN t_alerte tr ON tr.id = da.id_alerte
-        WHERE {DERNIER_STATUT_SQL} = 15
+        WHERE {DERNIER_STATUT_SQL} = {ID_STATUT_RESOLUE}
     """
     params = []
     if date_debut is not None:

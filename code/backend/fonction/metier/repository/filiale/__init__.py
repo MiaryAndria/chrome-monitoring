@@ -4,4 +4,5 @@ from .filiale import (
     insert_filiale,
     get_or_create_filiale,
     find_filiales_paginated,
+    get_filiale_device_stats,
 )

@@ -22,10 +22,10 @@ export const getNombreAlerte = async () => {
     }
 };
 
-export const getNombreAlerteType = async (type, statut = 'active', date_debut, date_fin) => {
+export const getNombreAlerteType = async (type, idStatut = 1, date_debut, date_fin) => {
     try {
         const response = await api_service.get(`/alerte/stats/${type}`, {
-            params: { statut, date_debut, date_fin }
+            params: { id_statut: idStatut, date_debut, date_fin }
         });
         return response.data.nombre;
     } catch (e) {

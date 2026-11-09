@@ -5,6 +5,7 @@ import PageLayout from "../../components/PageLayout";
 import SelectDropdown from "../component/SelectDropdown";
 import DeviceSelector from "./DeviceSelector";
 import ComparaisonResult from "./ComparaisonResult";
+import ComparaisonChart from "./ComparaisonChart";
 import { listeDeviceVersion, effectuerComparaisonSimple } from "../../fonction/comparaisonFonction";
 import "../../css/liste.css";
 import "../../css/filiale.css";
@@ -134,6 +135,7 @@ function ComparaisonSingle() {
             )}
 
             <ComparaisonResult resultat={resultat} labels={labels} />
+            <ComparaisonChart resultat={resultat} labels={labels} />
         </PageLayout>
     );
 }

@@ -132,7 +132,7 @@ function ComparaisonResult({ resultat, labels }) {
                         labels={labels}
                         ligneA={lignePuissanceRam(ram.puissance.a)}
                         ligneB={lignePuissanceRam(ram.puissance.b)}
-                        ecart={ram.puissance.ecart_octets != null ? formatBytes(Math.abs(ram.puissance.ecart_octets)) : null}
+                        ecart={ram.puissance.ecart_octets != null ? formatBytes(ram.puissance.ecart_octets) : null}
                     />
                 </CarteRessource>
             </div>

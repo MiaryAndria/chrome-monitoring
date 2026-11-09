@@ -12,7 +12,7 @@ import StatutDropdown from "../component/StatutDropdown";
 import ResetFiltreButton from "../component/ResetFiltreButton";
 import { getListeStatut, getModeles } from "../../fonction/deviceFonction";
 import '../../css/filiale.css';
-import { getDevicesByFiliale, getListeFiliale } from "../../fonction/filialeFonction";
+import { getDevicesByFiliale, getListeFiliale, getFilialeStats } from "../../fonction/filialeFonction";
 import { getListeUtilisateurRecent } from "../../fonction/userFonction";
 import { getBadgeClass } from "../../fonction/deviceFonction";
 import UtilisateurDropDown from "../component/UtilisateurDropDown";
@@ -47,7 +47,7 @@ function ListeDeviceFiliale() {
         currentPage,
         pageSize,
         {
-            statut: statut || undefined,
+            id_statut: statut || undefined,
             modele: modele || undefined,
             recherche: debouncedSearch || undefined,
             utilisateur_recent: utilisateurRecent || undefined
@@ -98,17 +98,16 @@ function ListeDeviceFiliale() {
 
     const chargerInfos = async () => {
         try {
-            const filiales = await getListeFiliale();
+            const [filiales, stats] = await Promise.all([
+                getListeFiliale(),
+                getFilialeStats(id_filiale),
+            ]);
             if (filiales) {
                 const current = filiales.find(f => f.id === parseInt(id_filiale));
                 if (current) setFilialeInfo(current);
             }
-            const [statsData, activeData] = await Promise.all([
-                getDevicesByFiliale(id_filiale, { page: 1, page_size: 1 }),
-                getDevicesByFiliale(id_filiale, { page: 1, page_size: 1, statut: 'ACTIVE' }),
-            ]);
-            setActiveCount(activeData?.total || 0);
-            setFilialeTotal(statsData?.total || 0);
+            setActiveCount(stats?.actifs || 0);
+            setFilialeTotal(stats?.total || 0);
         } catch (e) {
             console.log(e);
         }
@@ -240,7 +239,7 @@ function ListeDeviceFiliale() {
                                             <span className="text-zinc-500 text-xs flex items-center gap-1">
                                                 <Users className="w-3.5 h-3.5 text-cyan-400" /> Device #{d.id}
                                             </span>
-                                            <span className={`status-badge ${getBadgeClass(d.status)}`}>
+                                            <span className={`status-badge ${getBadgeClass(d.id_status != null ? d.id_status : d.status)}`}>
                                                 {d.status || 'N/A'}
                                             </span>
                                         </div>

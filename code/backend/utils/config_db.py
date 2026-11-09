@@ -1,7 +1,10 @@
 import logging
 
 from backend.fonction.conn.connexion import get_connection, close_connection
-from backend.fonction.metier.repository.configuration import get_valeur_configuration
+from backend.fonction.metier.repository.configuration import (
+    get_valeur_configuration,
+    get_valeur_configuration_by_id,
+)
 from backend.core.cache import cache_get, cache_set
 
 logger = logging.getLogger(__name__)
@@ -35,7 +38,10 @@ def get_configuration(cle, default=None):
         return default
     try:
         cur = connexion.cursor()
-        row = get_valeur_configuration(cur, cle)
+        if isinstance(cle, int):
+            row = get_valeur_configuration_by_id(cur, cle)
+        else:
+            row = get_valeur_configuration(cur, cle)
         if row and row[0] is not None:
             return cache_set(cache_key, row[0], _TTL_SECONDES)
         _signaler_absence(cle)
@@ -44,16 +50,16 @@ def get_configuration(cle, default=None):
         close_connection(connexion)
 
 
-def get_int_configuration(cle, default):
-    valeur = get_configuration(cle)
+def get_int_configuration(id_ou_cle, default):
+    valeur = get_configuration(id_ou_cle)
     try:
         return int(valeur)
     except (TypeError, ValueError):
         return int(default)
 
 
-def get_float_configuration(cle, default):
-    valeur = get_configuration(cle)
+def get_float_configuration(id_ou_cle, default):
+    valeur = get_configuration(id_ou_cle)
     try:
         return float(valeur)
     except (TypeError, ValueError):

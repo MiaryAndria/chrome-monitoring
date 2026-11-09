@@ -19,7 +19,12 @@ from backend.fonction.metier.repository.seuil import (
 )
 from backend.utils.pagination import build_page
 from backend.core.cache import cache_get, cache_set, cache_invalidate_prefix
-
+from backend.fonction.metier.repository.statut.constants import (
+    ID_STATUT_CREER,
+    ID_STATUT_MODIFIER,
+    ID_STATUT_SUPPRIMER,
+    ID_STATUT_RESTAURER,
+)
 
 def _row_to_dict(row):
     return {
@@ -121,7 +126,7 @@ def getDetailSeuil(id_seuil):
         close_connection(connexion)
 
 
-def InsertSeuil(id_type, valeur, status_id=12):
+def InsertSeuil(id_type, valeur):
     connexion = get_connection()
     if connexion is None:
         return None
@@ -134,7 +139,7 @@ def InsertSeuil(id_type, valeur, status_id=12):
             )
         id_seuil = insert_seuil(cur, id_type, valeur)
         if id_seuil is not None:
-            insert_seuil_statut(cur, id_seuil, status_id)
+            insert_seuil_statut(cur, id_seuil, ID_STATUT_CREER)
         connexion.commit()
         cache_invalidate_prefix("seuils:")
         return id_seuil
@@ -145,7 +150,7 @@ def InsertSeuil(id_type, valeur, status_id=12):
         close_connection(connexion)
 
 
-def UpdateSeuil(id_seuil, valeur, status_id=13, sens=None):
+def UpdateSeuil(id_seuil, valeur, sens=None):
     connexion = get_connection()
     if connexion is None:
         return False
@@ -153,7 +158,7 @@ def UpdateSeuil(id_seuil, valeur, status_id=13, sens=None):
         cur = connexion.cursor()
         updated_id = update_seuil(cur, id_seuil, valeur)
         if updated_id is not None:
-            insert_seuil_statut(cur, updated_id, status_id)
+            insert_seuil_statut(cur, updated_id, ID_STATUT_MODIFIER)
         if sens:
             update_sens_seuil(cur, id_seuil, sens)
         connexion.commit()
@@ -166,13 +171,13 @@ def UpdateSeuil(id_seuil, valeur, status_id=13, sens=None):
         close_connection(connexion)
 
 
-def deleteSeuil(id_seuil, status_id=14):
+def deleteSeuil(id_seuil):
     connexion = get_connection()
     if connexion is None:
         return False
     try:
         cur = connexion.cursor()
-        delete_seuil(cur, id_seuil, status_id)
+        delete_seuil(cur, id_seuil, ID_STATUT_SUPPRIMER)
         connexion.commit()
         cache_invalidate_prefix("seuils:")
         return True
@@ -200,7 +205,7 @@ def hardDeleteSeuil(id_seuil):
         close_connection(connexion)
 
 
-def reStaurer(id_seuil, status_id=16):
+def reStaurer(id_seuil):
     connexion = get_connection()
     if connexion is None:
         return False
@@ -210,7 +215,7 @@ def reStaurer(id_seuil, status_id=16):
         if parametre is None:
             return False
 
-        restore_seuil(cur, id_seuil, status_id)
+        restore_seuil(cur, id_seuil,ID_STATUT_RESTAURER)
         connexion.commit()
         cache_invalidate_prefix("seuils:")
         return id_seuil

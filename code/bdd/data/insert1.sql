@@ -1,10 +1,9 @@
 INSERT INTO t_user (nom,email,mdp) VALUES('administrateur','gtadmin@gmail.com','Gtadmin','Gtadmin');
-INSERT INTO t_statut(nom)VALUES('COMMENCER');
-INSERT INTO t_statut(nom)VALUES('EN_COURS');
-INSERT INTO t_statut(nom)VALUES('TERMINER');
-INSERT INTO t_statut (nom) VALUES ('ECHEC');
-INSERT INTO t_statut (nom) VALUES ('CREER'),('MODIFIER'),('SUPPRIMER'), ('RESOLUE');
-INSERT INTO t_statut(nom)VALUES('RESTAURER')
+INSERT INTO t_statut (id, nom) VALUES
+ (1,'ACTIVE'), (2,'DELINQUENT'), (3,'DISABLED'), (4,'DEPROVISIONED'),
+ (5,'COMMENCER'), (6,'EN_COURS'), (7,'TERMINER'), (8,'ECHEC'),
+ (12,'CREER'), (13,'MODIFIER'), (14,'SUPPRIMER'), (15,'RESOLUE'), (16,'RESTAURER')
+ON CONFLICT (id) DO NOTHING;
 INSERT INTO t_type_comparaison(type)VALUES('Simple'),('Double');
 
 INSERT INTO t_vendor (vendor)

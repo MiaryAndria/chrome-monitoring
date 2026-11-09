@@ -108,10 +108,10 @@ def liste_device_alerte_page(
 
 
 @router.get("/stats/{type_alerte}", response_model=AlerteNombreResponse)
-def stats_alerte_type(type_alerte: str, statut: str = "active",
+def stats_alerte_type(type_alerte: str, id_statut: int = 1,
                       date_debut: Optional[datetime] = None, date_fin: Optional[datetime] = None):
     try:
-        return {"nombre": getNombreAlerteParType(type_alerte, statut, date_debut, date_fin)}
+        return {"nombre": getNombreAlerteParType(type_alerte, id_statut, date_debut, date_fin)}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

@@ -352,8 +352,8 @@ def _rows_to_dicts(cur):
     return [dict(zip(colonnes, row)) for row in cur.fetchall()]
 
 
-def _build_device_filter_clause(id_filiale=None, filiale=None, statut=None,
-                                type_appareil=None, recherche=None,
+def _build_device_filter_clause(id_filiale=None, filiale=None, id_statut=None,
+                                statut=None, type_appareil=None, recherche=None,
                                 datetime_from=None, datetime_to=None,modele=None,utilisateur_recent=None):
     clauses = []
     params = []
@@ -366,7 +366,10 @@ def _build_device_filter_clause(id_filiale=None, filiale=None, statut=None,
     if filiale:
         clauses.append("filiale = %s")
         params.append(filiale)
-    if statut:
+    if id_statut is not None:
+        clauses.append("id_status = %s")
+        params.append(id_statut)
+    elif statut:
         clauses.append("UPPER(status) = UPPER(%s)")
         params.append(statut)
     if utilisateur_recent:
@@ -389,12 +392,14 @@ def _build_device_filter_clause(id_filiale=None, filiale=None, statut=None,
 
 
 def find_devices_paginated(cur, page=1, page_size=10, id_filiale=None,
-                           filiale=None, statut=None, type_appareil=None,
-                           recherche=None, datetime_from=None,
-                           datetime_to=None,modele=None,utilisateur_recent=None):
+                           filiale=None, id_statut=None, statut=None,
+                           type_appareil=None, recherche=None,
+                           datetime_from=None, datetime_to=None,modele=None,utilisateur_recent=None):
     clauses, params = _build_device_filter_clause(
-        id_filiale, filiale, statut, type_appareil, recherche,
-        datetime_from, datetime_to,modele,utilisateur_recent
+        id_filiale=id_filiale, filiale=filiale, id_statut=id_statut,
+        statut=statut, type_appareil=type_appareil, recherche=recherche,
+        datetime_from=datetime_from, datetime_to=datetime_to,
+        modele=modele, utilisateur_recent=utilisateur_recent
     )
     where = "WHERE " + " AND ".join(clauses) if clauses else ""
     offset = (page - 1) * page_size
@@ -405,7 +410,7 @@ def find_devices_paginated(cur, page=1, page_size=10, id_filiale=None,
             id, device_id, serial_number, modele, id_type_appareil,
             type_appareil, chromeos_version, chrome_version, mac_adress,
             ip_adress, date, ram_total, id_utilisateur, utilisateur_email,
-            status, id_filiale, filiale, utilisateurs_recents, cpu_model,
+            status, id_status, id_filiale, filiale, utilisateurs_recents, cpu_model,
             cpu_freq_max, cpu_architecture, disk_total, disk_free, disk_used,
             disk_model, disk_type,
             COUNT(*) OVER() AS total

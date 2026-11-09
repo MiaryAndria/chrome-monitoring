@@ -36,6 +36,7 @@ CREATE OR REPLACE VIEW v_appareils_filtres AS
 WITH dernier_statut AS (
     SELECT DISTINCT ON (ds.id_device)
         ds.id_device,
+        ds.id_statut,
         s.nom
     FROM t_device_statut ds
     JOIN t_statut s ON s.id = ds.id_statut
@@ -122,7 +123,8 @@ SELECT
     di.disponible AS disk_free,
     di.total_utiliser AS disk_used,
     di.model AS disk_model,
-    di.type AS disk_type
+    di.type AS disk_type,
+    st.id_statut AS id_status
 FROM t_device d
 LEFT JOIN t_type_appareil ta ON ta.id = d.id_type_appareil
 LEFT JOIN dernier_utilisateur du ON du.id_device = d.id
@@ -208,7 +210,7 @@ LEFT JOIN derniere_filiale fi ON fi.id_device = d.id;
 -- ------------------------------------------------------------
 CREATE OR REPLACE VIEW v_tableau_de_bord_resume AS
 WITH derniers_statuts AS (
-    SELECT d.id AS id_device, s.nom
+    SELECT d.id AS id_device, ds.id_statut, s.nom
     FROM t_device d
     JOIN LATERAL (
         SELECT ds.id_statut
@@ -221,6 +223,13 @@ WITH derniers_statuts AS (
 ),
 derniers_statuts_alerte AS (
     SELECT da.id AS id_device_alerte,
+           (
+               SELECT das.id_statut
+               FROM t_device_alerte_statut das
+               WHERE das.id_device_alerte = da.id
+               ORDER BY das.date DESC NULLS LAST, das.id DESC
+               LIMIT 1
+           ) AS id_statut,
            (
                SELECT s.nom
                FROM t_device_alerte_statut das
@@ -260,17 +269,16 @@ repartition_evenements AS (
 )
 SELECT
     (SELECT COUNT(*) FROM t_device) AS nb_total_appareils,
-    (SELECT COUNT(*) FROM derniers_statuts WHERE nom = 'ACTIVE') AS nb_actifs,
+    (SELECT COUNT(*) FROM derniers_statuts WHERE id_statut = 1) AS nb_actifs,
     (SELECT COUNT(*) FROM derniers_statuts
-      WHERE nom IN ('DISABLED', 'DEPROVISIONED')) AS nb_indisponibles,
-    (SELECT COUNT(*) FROM derniers_statuts WHERE nom = 'DELINQUENT') AS nb_anomalie,
+      WHERE id_statut IN (3, 4)) AS nb_indisponibles,
+    (SELECT COUNT(*) FROM derniers_statuts WHERE id_statut = 2) AS nb_anomalie,
     (SELECT COUNT(DISTINCT da.id_device)
        FROM t_device_alerte da
       WHERE NOT EXISTS (
           SELECT 1
           FROM t_device_alerte_statut das
-          JOIN t_statut s ON s.id = das.id_statut
-          WHERE das.id_device_alerte = da.id AND s.nom = 'RESOLUE'
+          WHERE das.id_device_alerte = da.id AND das.id_statut = 15
       )) AS nb_reparation,
     (SELECT COUNT(*) FROM t_evenement_device) AS nb_crashs,
     (SELECT COUNT(DISTINCT ed.details->>'incident_key')
@@ -280,8 +288,8 @@ SELECT
     (SELECT valeur FROM repartition_types) AS repartition_types,
     (SELECT valeur FROM repartition_evenements) AS repartition_evenements,
     (SELECT COUNT(*) FROM derniers_statuts_alerte ) AS total_alerte,
-    (SELECT COUNT(*) FROM derniers_statuts_alerte WHERE nom = 'ACTIVE') AS alerte_active,
-    (SELECT COUNT(*) FROM derniers_statuts_alerte WHERE nom = 'RESOLUE') AS alerte_resolue;
+    (SELECT COUNT(*) FROM derniers_statuts_alerte WHERE id_statut = 1) AS alerte_active,
+    (SELECT COUNT(*) FROM derniers_statuts_alerte WHERE id_statut = 15) AS alerte_resolue;
 
 -- ------------------------------------------------------------
 -- v_imprimantes_filtrees

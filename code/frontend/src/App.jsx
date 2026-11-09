@@ -19,14 +19,18 @@ import SeuilCreate from './page/seuil/create'
 import SeuilListe from './page/seuil/liste'
 import SeuilUpdate from './page/seuil/update'
 import ArchivedSeuil from './page/seuil/archived'
+import StatutListe from './page/statut/liste'
+import StatutUpdate from './page/statut/update'
 import DetailImprimante from './page/imprimante/detailImprimante'
 import ComparaisonSingle from './page/comparaison/comparaison_single'
 import ComparaisonDouble from './page/comparaison/comparaison_double'
 import Comparaison from './page/comparaison/comparaison'
+import ComparaisonDetail from './page/comparaison/comparaison_detail'
 import ListeDeviceAlerte from './page/alerte/device/liste'
 import ListeDeviceAlerteResolue from './page/alerte/device/resolue'
 import ListeUtilisateur from './page/utilisateur/liste'
 import ArchivedUtilisateur from './page/utilisateur/archived'
+import ListeUtilisateursEntreprise from './page/entreprise/utilisateurs'
 function App() {
   return (
     <main className="main-content">
@@ -42,6 +46,7 @@ function App() {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/filiale" element={<ListeFiliale />} />
           <Route path="/filiale/:id_filiale/devices" element={<ListeDeviceFiliale />} />
+          <Route path="/entreprise/utilisateurs" element={<ListeUtilisateursEntreprise />} />
           <Route path="/liste/device" element={<ListeDevice />} />
           <Route path="/device/:id" element={<DetailDevice />} />
           <Route path="/liste/event" element={<ListeEvent />} />
@@ -50,6 +55,7 @@ function App() {
           <Route path="/comparaison/liste" element={<Comparaison/>} />
           <Route path="/comparaison/single" element={<ComparaisonSingle />} />
           <Route path="/comparaison/double" element={<ComparaisonDouble />} />
+          <Route path="/comparaison/detail/:id" element={<ComparaisonDetail />} />
           <Route path="/alerte/device" element={<ListeDeviceAlerte />} />
           <Route path="/alerte/device/resolue" element={<ListeDeviceAlerteResolue />} />
 
@@ -63,6 +69,8 @@ function App() {
             <Route path="/liste/seuil" element={<SeuilListe />} />
             <Route path="/liste/seuil/archive" element={<ArchivedSeuil />} />
             <Route path="/update/seuil/:id" element={<SeuilUpdate />} />
+            <Route path="/liste/statut" element={<StatutListe />} />
+            <Route path="/update/statut/:id" element={<StatutUpdate />} />
             <Route path="/liste/utilisateur" element={<ListeUtilisateur />} />
             <Route path="/liste/utilisateur/archive" element={<ArchivedUtilisateur />} />
           </Route>

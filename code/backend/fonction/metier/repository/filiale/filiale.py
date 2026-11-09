@@ -57,3 +57,21 @@ def find_filiales_paginated(cur, page=1, page_size=10, recherche=None):
         tuple(params + [page_size, offset])
     )
     return _rows_to_dicts(cur)
+
+
+def get_filiale_device_stats(cur, id_filiale):
+    """Total et nombre d'appareils actifs d'une filiale en une seule requête."""
+    cur.execute(
+        """
+        SELECT COUNT(*) AS total,
+               COUNT(*) FILTER (WHERE id_status = 1) AS actifs
+        FROM v_appareils_filtres
+        WHERE id_filiale = %s
+        """,
+        (id_filiale,)
+    )
+    row = cur.fetchone()
+    return {
+        "total": row[0] if row else 0,
+        "actifs": row[1] if row else 0,
+    }

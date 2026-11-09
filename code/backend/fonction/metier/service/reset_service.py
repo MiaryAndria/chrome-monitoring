@@ -1,5 +1,6 @@
 from backend.fonction.conn.connexion import get_connection, close_connection
 from backend.fonction.metier.repository.devices import delete_all
+from backend.core.cache import cache_clear
 
 def reset_data():
     connexion = get_connection()
@@ -11,6 +12,7 @@ def reset_data():
     try:
         delete_all(cur)
         connexion.commit()
+        cache_clear()
         return True
     finally:
         close_connection(connexion)

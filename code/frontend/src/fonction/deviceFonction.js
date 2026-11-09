@@ -59,15 +59,18 @@ export const getDeviceDetail = async (id) => {
 }
 
 export const getBadgeClass = (status) => {
-    const s = (status || '').toUpperCase();
+    const id = typeof status === 'number' ? status : Number(status);
 
-    if (s === 'ACTIVE' || s === 'ACTIFS') {
-        return "badge-success bg-emerald-500/10 text-emerald-400 border-emerald-500/20";
+    if (Number.isInteger(id)) {
+        if (id === 1) {
+            return "badge-success bg-emerald-500/10 text-emerald-400 border-emerald-500/20";
+        }
+        if (id === 3 || id === 4) {
+            return "badge-error bg-red-500/10 text-red-400 border-red-500/20";
+        }
+        return "badge-warning bg-amber-500/10 text-amber-400 border-amber-500/20";
     }
-    if (s === 'INACTIVE' || s === 'DEPROVISIONED' || s === 'INDISPONIBLES') {
-        return "badge-error bg-red-500/10 text-red-400 border-red-500/20"; // Rouge
-    }
-    return "badge-warning bg-amber-500/10 text-amber-400 border-amber-500/20"; // Jaune / Orange
+
 }
 
 

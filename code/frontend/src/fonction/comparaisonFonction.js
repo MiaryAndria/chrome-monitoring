@@ -10,6 +10,16 @@ export const listeComparaison = async () => {
     }
 };
 
+export const listeComparaisonPage = async (params = {}) => {
+    try {
+        const response = await api_service.get("comparaison/liste/page", { params });
+        return response.data;
+    } catch (e) {
+        console.log(e);
+        return { items: [], total: 0, page: 1, page_size: params.page_size || 10, total_pages: 0 };
+    }
+};
+
 export const listeDeviceVersion = async (id_device) => {
     try {
         const response = await api_service.get(`comparaison/version/${id_device}`);
@@ -36,5 +46,10 @@ export const effectuerDoubleComparaison = async (id_device_a, version_a, id_devi
         id_device_b,
         version_b,
     });
+    return response.data;
+};
+
+export const getComparaisonDetail = async (id) => {
+    const response = await api_service.get(`comparaison/${id}`);
     return response.data;
 };

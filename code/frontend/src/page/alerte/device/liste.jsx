@@ -49,11 +49,11 @@ function ListeDeviceAlerte() {
 
     const chargerStats = async () => {
         const resultat = {};
-        for (const t of type) {
+        await Promise.all(type.map(async (t) => {
             resultat[t.type] = await getNombreAlerteType(
-                t.type, 'active', datetimeDebutApplique || undefined, datetimeFinApplique || undefined
+                t.type, 1, datetimeDebutApplique || undefined, datetimeFinApplique || undefined
             );
-        }
+        }));
         setStats(resultat);
     }
 

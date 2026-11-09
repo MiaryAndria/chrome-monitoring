@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional
+from typing import List, Optional
 
 from pydantic import BaseModel
 
@@ -30,3 +30,11 @@ class ComparaisonResponse(BaseModel):
     date_reference_b: Optional[datetime] = None
     date_comparaison: Optional[datetime] = None
     resultat: Optional[dict] = None
+
+
+class ComparaisonPageResponse(BaseModel):
+    items: List[ComparaisonResponse]
+    total: int
+    page: int
+    page_size: int
+    total_pages: int

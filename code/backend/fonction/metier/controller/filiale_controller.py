@@ -13,6 +13,7 @@ from backend.fonction.metier.service.filiale_service import (
     get_all_filiales,
     get_devices_by_filiale,
     get_filiales_page,
+    get_filiale_stats,
 )
 from backend.utils.validation import is_valid_datetime_range
 
@@ -49,11 +50,20 @@ def getFilialesPage(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.get("/{id_filiale}/stats")
+def getFilialeStats(id_filiale: int):
+    try:
+        return get_filiale_stats(id_filiale)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.get("/{id_filiale}/devices", response_model=DevicePageResponse)
 def getDevicesByFiliale(
     id_filiale: int,
     page: int = Query(1, ge=1),
     page_size: int = Query(10, ge=1, le=100),
+    id_statut: Optional[int] = None,
     statut: Optional[str] = None,
     type_appareil: Optional[str] = None,
     modele: Optional[str] = None,
@@ -72,6 +82,7 @@ def getDevicesByFiliale(
             id_filiale,
             page=page,
             page_size=page_size,
+            id_statut=id_statut,
             statut=statut,
             type_appareil=type_appareil,
             modele=modele,

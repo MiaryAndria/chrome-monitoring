@@ -2,11 +2,11 @@ import { useRef, useEffect, useState } from "react";
 import { ChevronDown } from "lucide-react";
 
 /**
- * Composant réutilisable : dropdown de sélection de statut.
+ * Composant réutilisable : dropdown de sélection.
  *
  * Props :
- *  - listeStatuts : tableau d'objets { nom, id? }
- *  - statut       : valeur sélectionnée (nom du statut), "" = tous
+ *  - listeStatuts : tableau d'objets { id?, nom }
+ *  - statut       : valeur sélectionnée (id si disponible, sinon nom), "" = tous
  *  - setStatut    : setter de la valeur
  *  - labelTous    : label de l'option "tous" (défaut : "Tous les statuts")
  */
@@ -20,6 +20,12 @@ function StatutDropdown({
     // État interne — inutile de l'exposer au parent
     const [open, setOpen] = useState(false);
 
+    // Valeur d'un item : son id s'il existe, sinon son nom (modèles, vendors…)
+    const valeurItem = (s) => (s.id !== undefined ? s.id : s.nom);
+    const itemSelectionne = listeStatuts.find((s) => valeurItem(s) === statut);
+    const labelSelectionne =
+        itemSelectionne?.nom || (typeof statut === "string" && statut) || labelTous;
+
     // Fermer en cliquant à l'extérieur
     useEffect(() => {
         const handleClickOutside = (e) => {
@@ -31,8 +37,8 @@ function StatutDropdown({
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
 
-    const handleSelect = (nom) => {
-        setStatut(nom);
+    const handleSelect = (valeur) => {
+        setStatut(valeur);
         setOpen(false);
     };
 
@@ -42,13 +48,13 @@ function StatutDropdown({
                 type="button"
                 onClick={() => setOpen(!open)}
                 className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-sm border transition-all duration-200 cursor-pointer focus:outline-none ${
-                    statut
+                    statut !== "" && statut !== undefined && statut !== null
                         ? "bg-purple-500/15 text-purple-300 border-purple-500/40 shadow-[0_0_12px_rgba(168,85,247,0.15)]"
                         : "bg-zinc-900/60 text-zinc-400 border-white/10 hover:bg-zinc-800/80 hover:border-white/15"
                 }`}
             >
                 <span className="flex-1 text-left truncate">
-                    {statut || labelTous}
+                    {labelSelectionne}
                 </span>
                 <ChevronDown
                     className={`w-3.5 h-3.5 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
@@ -73,13 +79,14 @@ function StatutDropdown({
                     </button>
 
                     {listeStatuts.map((s, i) => {
+                        const valeur = valeurItem(s);
                         const nom = s.nom || "";
                         return (
                             <button
                                 key={s.id ?? i}
-                                onClick={() => handleSelect(nom)}
+                                onClick={() => handleSelect(valeur)}
                                 className={`w-full text-left px-3 py-2 rounded-lg text-xs transition-all cursor-pointer ${
-                                    statut === nom
+                                    statut === valeur
                                         ? "bg-purple-500/15 text-purple-300"
                                         : "text-zinc-400 hover:bg-white/5 hover:text-zinc-200"
                                 }`}

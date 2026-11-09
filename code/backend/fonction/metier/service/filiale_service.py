@@ -2,6 +2,7 @@ from backend.fonction.conn.connexion import get_connection, close_connection
 from backend.fonction.metier.repository.filiale import (
     get_liste_filiale,
     find_filiales_paginated,
+    get_filiale_device_stats,
 )
 from backend.fonction.metier.service.device_service import getDevicesPage
 from backend.utils.pagination import build_page
@@ -53,7 +54,7 @@ def get_filiales_page(page=1, page_size=10, recherche=None):
     return cache_set(cle, resultat)
 
 
-def get_devices_by_filiale(id_filiale, page=1, page_size=10, statut=None,
+def get_devices_by_filiale(id_filiale, page=1, page_size=10, id_statut=None, statut=None,
                            type_appareil=None, modele=None, recherche=None,
                            utilisateur_recent=None,
                            datetime_from=None, datetime_to=None):
@@ -61,6 +62,7 @@ def get_devices_by_filiale(id_filiale, page=1, page_size=10, statut=None,
         page=page,
         page_size=page_size,
         id_filiale=id_filiale,
+        id_statut=id_statut,
         statut=statut,
         type_appareil=type_appareil,
         modele=modele,
@@ -69,3 +71,21 @@ def get_devices_by_filiale(id_filiale, page=1, page_size=10, statut=None,
         datetime_from=datetime_from,
         datetime_to=datetime_to,
     )
+
+
+def get_filiale_stats(id_filiale):
+    cle = f"filiales:stats:{id_filiale}"
+    valeur = cache_get(cle)
+    if valeur is not None:
+        return valeur
+
+    connexion = get_connection()
+    if connexion is None:
+        return {"total": 0, "actifs": 0}
+    try:
+        cur = connexion.cursor()
+        resultat = get_filiale_device_stats(cur, id_filiale)
+        cur.close()
+        return cache_set(cle, resultat)
+    finally:
+        close_connection(connexion)

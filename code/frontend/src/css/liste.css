@@ -248,6 +248,7 @@
   color: #d4d4d8;
   text-decoration: none;
   font-size: 0.875rem;
+  cursor: pointer;
 }
 
 .config-dropdown-item:hover {
@@ -601,31 +602,6 @@
 .modal-close-action-btn:hover {
   background: rgba(6, 182, 212, 0.18);
   border-color: rgba(6, 182, 212, 0.5);
-}
-
-@keyframes progressSlide {
-  0% {
-    left: -40%;
-    width: 30%;
-  }
-  50% {
-    left: 40%;
-    width: 60%;
-  }
-  100% {
-    left: 100%;
-    width: 30%;
-  }
-}
-
-.progress-bar-animated {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  background: linear-gradient(90deg, #06b6d4, #3b82f6, #67e8f9);
-  border-radius: 9999px;
-  animation: progressSlide 1.6s infinite ease-in-out;
-  box-shadow: 0 0 12px rgba(6, 182, 212, 0.6);
 }
 
 /* ============================================================

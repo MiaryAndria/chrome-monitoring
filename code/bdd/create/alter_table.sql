@@ -15,6 +15,10 @@ ALTER TABLE t_type_seuil
     ADD COLUMN IF NOT EXISTS type_alerte VARCHAR(100),
     ADD COLUMN IF NOT EXISTS metrique VARCHAR(50),
     ADD COLUMN IF NOT EXISTS message TEXT;
+
+ALTER TABLE t_device_filiale ADD COLUMN date TIMESTAMPTZ DEFAULT NOW () ;
+ALTER TABLE t_filiale_utilisateur ADD COLUMN date TIMESTAMPTZ DEFAULT NOW();
+ALTER TABLE t_reseau_filiale ADD COLUMN date TIMESTAMPTZ DEFAULT NOW();
 ALTER TABLE t_comparaison ADD COLUMN IF NOT EXISTS verison_a VARCHAR(255);
 ALTER TABLE t_comparaison ADD COLUMN IF NOT EXISTS version_b VARCHAR(255);
 UPDATE t_type_seuil SET sens='>', type_alerte='ALERTE_CPU',            metrique='cpu',            message='Utilisation CPU supérieure au seuil'               WHERE type='seuil_utilisation_cpu';

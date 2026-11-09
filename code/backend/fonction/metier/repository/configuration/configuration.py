@@ -133,6 +133,18 @@ def get_valeur_configuration(cur, type_):
     return cur.fetchone()
 
 
+def get_valeur_configuration_by_id(cur, id_configuration):
+    cur.execute(
+        """
+        SELECT c.valeur
+        FROM t_configuration c
+        WHERE c.id = %s
+        """,
+        (id_configuration,),
+    )
+    return cur.fetchone()
+
+
 def verifier_configuration_type_existe(cur, id_type_configuration):
     cur.execute(
         """

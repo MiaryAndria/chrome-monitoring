@@ -6,7 +6,10 @@ from backend.fonction.metier.repository.devices import (
     get_type_appareil_by_id,
     get_utilisateurs_by_device,
 )
-from backend.fonction.metier.repository.statut import get_status_actuel_device
+from backend.fonction.metier.repository.statut import (
+    get_status_actuel_device,
+    get_id_status_actuel_device,
+)
 from backend.utils.format_valeur import format_bytes, format_frequency
 
 
@@ -16,6 +19,7 @@ def _build_device_response(cur, d):
 
     device_id = d[0]
     status = get_status_actuel_device(cur, device_id)
+    id_status = get_id_status_actuel_device(cur, device_id)
     utilisateurs = get_utilisateurs_by_device(cur, device_id)
     id_utilisateur = utilisateurs[0][0] if utilisateurs else None
     utilisateur_email = utilisateurs[0][1] if utilisateurs else "N/A"
@@ -60,6 +64,7 @@ def _build_device_response(cur, d):
         "date": str(d[9]) if d[9] else None,
         "id_utilisateur": id_utilisateur,
         "status": status,
+        "id_status": id_status,
         "utilisateur_email": utilisateur_email,
         "utilisateurs_recents": recent_users,
         "filiale": filiale_nom,
@@ -151,6 +156,7 @@ def _serialize_device_row(row):
         "cpu_architecture": row.get("cpu_architecture"),
         "id_utilisateur": row.get("id_utilisateur"),
         "status": row.get("status") or "UNKNOWN",
+        "id_status": row.get("id_status"),
         "utilisateur_email": row.get("utilisateur_email") or "N/A",
         "utilisateurs_recents": row.get("utilisateurs_recents") or [],
         "filiale": row.get("filiale"),

@@ -27,4 +27,14 @@ export const getDevicesByFiliale = async (id_filiale, params = {}) => {
         console.log(e);
         return { items: [], total: 0, page: 1, page_size: params.page_size || 10, total_pages: 0 };
     }
+};
+
+export const getFilialeStats = async (id_filiale) => {
+    try {
+        const response = await api_service.get(`/filiale/${id_filiale}/stats`);
+        return response.data;
+    } catch (e) {
+        console.log(e);
+        return { total: 0, actifs: 0 };
+    }
 };

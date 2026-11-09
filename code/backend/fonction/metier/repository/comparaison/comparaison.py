@@ -12,137 +12,55 @@ def get_liste_comparaison(cur):
     return result
 
 
+def find_comparaisons_paginated(cur, page=1, page_size=10, datetime_from=None, datetime_to=None):
+    offset = (page - 1) * page_size
+    query = """
+        SELECT c.id, c.id_device_a, c.id_device_b, c.id_type_comparaison,
+               c.date_reference_a, c.date_reference_b, c.date_comparaison, c.resultat,
+               c.version_a, c.version_b,
+               da.serial_number AS device_a,
+               db.serial_number AS device_b,
+               COUNT(*) OVER() AS total
+        FROM t_comparaison c
+        LEFT JOIN t_device da ON da.id = c.id_device_a
+        LEFT JOIN t_device db ON db.id = c.id_device_b
+    """
+    clauses = []
+    params = []
+    if datetime_from is not None:
+        clauses.append("c.date_comparaison >= %s")
+        params.append(datetime_from)
+    if datetime_to is not None:
+        clauses.append("c.date_comparaison <= %s")
+        params.append(datetime_to)
+    if clauses:
+        query += " WHERE " + " AND ".join(clauses)
+    query += " ORDER BY c.date_comparaison DESC, c.id DESC LIMIT %s OFFSET %s"
+    params.extend([page_size, offset])
+    cur.execute(query, tuple(params))
+    return cur.fetchall()
+
+
 def get_comparaison_by_id(cur, id):
     cur.execute(
         """
-        SELECT id, id_device_a, id_device_b, id_type_comparaison,
-               date_reference_a, date_reference_b, date_comparaison, resultat
-        FROM t_comparaison WHERE id = %s
+        SELECT c.id, c.id_device_a, c.id_device_b, c.id_type_comparaison,
+               c.date_reference_a, c.date_reference_b, c.date_comparaison, c.resultat,
+               c.version_a, c.version_b,
+               da.serial_number AS device_a,
+               db.serial_number AS device_b
+        FROM t_comparaison c
+        LEFT JOIN t_device da ON da.id = c.id_device_a
+        LEFT JOIN t_device db ON db.id = c.id_device_b
+        WHERE c.id = %s
         """,
         (id,)
     )
-    result = cur.fetchone()
-    return result
-
-
-def get_comparaison_by_device(cur, id_device):
-    cur.execute(
-        """
-        SELECT * FROM t_comparaison
-        WHERE id_device_a = %s OR id_device_b = %s
-        ORDER BY date_comparaison DESC
-        """,
-        (id_device, id_device,)
-    )
-    result = cur.fetchall()
-    return result
-
-
-def get_comparaisons_device_a(cur, id_device_a):
-    cur.execute(
-        """
-        SELECT * FROM t_comparaison WHERE id_device_a = %s
-        ORDER BY date_comparaison DESC
-        """,
-        (id_device_a,)
-    )
-    result = cur.fetchall()
-    return result
-
-
-def get_comparaisons_device_b(cur, id_device_b):
-    cur.execute(
-        """
-        SELECT * FROM t_comparaison WHERE id_device_b = %s
-        ORDER BY date_comparaison DESC
-        """,
-        (id_device_b,)
-    )
-    result = cur.fetchall()
-    return result
-
-
-def get_comparaisons_between_devices(cur, id_device_a, id_device_b):
-    cur.execute(
-        """
-        SELECT * FROM t_comparaison
-        WHERE id_device_a = %s AND id_device_b = %s
-        ORDER BY date_comparaison DESC
-        """,
-        (id_device_a, id_device_b,)
-    )
-    result = cur.fetchall()
-    return result
-
-
-def get_comparaisons_by_period(cur, date_debut, date_fin):
-    cur.execute(
-        """
-        SELECT * FROM t_comparaison
-        WHERE date_comparaison BETWEEN %s AND %s
-        ORDER BY date_comparaison DESC
-        """,
-        (date_debut, date_fin,)
-    )
-    result = cur.fetchall()
-    return result
-
-
-def get_derniere_comparaison(cur, id_device_a, id_device_b):
-    cur.execute(
-        """
-        SELECT * FROM t_comparaison
-        WHERE id_device_a = %s AND id_device_b = %s
-        ORDER BY date_comparaison DESC
-        LIMIT 1
-        """,
-        (id_device_a, id_device_b,)
-    )
-    result = cur.fetchone()
-    return result
-
-
-def get_comparaisons_between_devices_by_period(cur, id_device_a, id_device_b, date_debut, date_fin):
-    cur.execute(
-        """
-        SELECT * FROM t_comparaison
-        WHERE id_device_a = %s AND id_device_b = %s AND date_comparaison BETWEEN %s AND %s
-        ORDER BY date_comparaison DESC
-        """,
-        (id_device_a, id_device_b, date_debut, date_fin,)
-    )
-    result = cur.fetchall()
-    return result
-
-
-def get_comparaisons_device_a_by_period(cur, id_device_a, date_debut, date_fin):
-    cur.execute(
-        """
-        SELECT * FROM t_comparaison
-        WHERE id_device_a = %s AND date_comparaison BETWEEN %s AND %s
-        ORDER BY date_comparaison DESC
-        """,
-        (id_device_a, date_debut, date_fin,)
-    )
-    result = cur.fetchall()
-    return result
-
-
-def get_comparaisons_device_b_by_period(cur, id_device_b, date_debut, date_fin):
-    cur.execute(
-        """
-        SELECT * FROM t_comparaison
-        WHERE id_device_b = %s AND date_comparaison BETWEEN %s AND %s
-        ORDER BY date_comparaison DESC
-        """,
-        (id_device_b, date_debut, date_fin,)
-    )
-    result = cur.fetchall()
-    return result
+    return cur.fetchone()
 
 
 def insert_comparaison(cur, id_device_a, id_device_b, date_reference_a, date_reference_b,
-                       id_type_comparaison, version_a,version_b,resultat=None):
+                       id_type_comparaison, version_a, version_b, resultat=None):
     """
     Insère une comparaison (resultat NULL au départ) et retourne son id.
     La colonne PK réelle de t_comparaison est `id` (pas `id_comparaison`).

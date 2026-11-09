@@ -345,6 +345,7 @@ CREATE TABLE t_reseau_filiale (
     id SERIAL PRIMARY KEY,
     id_reseau INT NOT NULL REFERENCES t_reseau(id),
     id_filiale INT NOT NULL REFERENCES t_filiale(id),
+    date TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     UNIQUE (id_reseau, id_filiale)
 );
 
@@ -362,6 +363,7 @@ CREATE TABLE t_filiale_utilisateur (
     id SERIAL PRIMARY KEY,
     id_filiale INT NOT NULL REFERENCES t_filiale(id),
     id_utilisateur INT NOT NULL REFERENCES t_utilisateur(id),
+    date TIMESTAMPTZ DEFAULT NOT NULL NOW(),
     UNIQUE (id_filiale, id_utilisateur)
 );
 
@@ -428,6 +430,7 @@ CREATE TABLE t_device_filiale (
     id SERIAL PRIMARY KEY,
     id_device INT NOT NULL REFERENCES t_device(id),
     id_filiale INT NOT NULL REFERENCES t_filiale(id),
+    date TIMESTAMPTZ DEFAULT NOT NULL NOW(),
     UNIQUE (id_device, id_filiale)
 );
 

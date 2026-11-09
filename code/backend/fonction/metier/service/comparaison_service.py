@@ -12,10 +12,16 @@ from backend.fonction.metier.repository.cpu import get_cpu_device_date
 from backend.fonction.metier.repository.ram import get_ram_device_date
 from backend.fonction.metier.repository.comparaison.comparaison import (
     get_liste_comparaison,
+    find_comparaisons_paginated,
+    get_comparaison_by_id,
     insert_comparaison,
     update_comparaison_resultat,
     insert_comparaison_statut,
 )
+from backend.utils.pagination import build_page
+from backend.core.cache import cache_get, cache_set, cache_invalidate_prefix
+from backend.utils.datetime_tools import local_to_utc
+from backend.utils.config_db import get_int_configuration
 from backend.utils.comparaison_stats import (
     normaliser_ram_pct,
     resume_serie,
@@ -23,16 +29,22 @@ from backend.utils.comparaison_stats import (
     score_puissance_ram,
     vainqueur,
 )
+from backend.fonction.metier.repository.statut.constants import (
+    ID_STATUT_COMMENCER,
+    ID_STATUT_EN_COURS,
+    ID_STATUT_TERMINER,
+    ID_STATUT_ECHEC,
+)
 
 # t_type_comparaison : 1 = Simple, 2 = Double
 TYPE_SIMPLE = 1
 TYPE_DOUBLE = 2
 
 # t_statut : cycle de vie d'une comparaison
-STATUT_COMMENCER = 5
-STATUT_EN_COURS = 6
-STATUT_TERMINER = 7
-STATUT_ECHEC = 8
+STATUT_COMMENCER = ID_STATUT_COMMENCER
+STATUT_EN_COURS = ID_STATUT_EN_COURS
+STATUT_TERMINER = ID_STATUT_TERMINER
+STATUT_ECHEC = ID_STATUT_ECHEC
 
 def getListeComparaison():
     connexion = get_connection()
@@ -65,6 +77,68 @@ def getListeComparaison():
     finally:
         close_connection(connexion)
 
+
+
+def _comparaison_row_to_dict(r):
+    return {
+        "id": r[0],
+        "id_device_a": r[1],
+        "id_device_b": r[2],
+        "device_a": r[10],
+        "device_b": r[11],
+        "id_type_comparaison": r[3],
+        "date_reference_a": str(r[4]) if r[4] else None,
+        "date_reference_b": str(r[5]) if r[5] else None,
+        "date_comparaison": str(r[6]) if r[6] else None,
+        "resultat": r[7],
+        "version_a": r[8],
+        "version_b": r[9],
+    }
+
+
+def _fetch_comparaisons_page(page=1, page_size=10, datetime_from=None, datetime_to=None):
+    connexion = get_connection()
+    if connexion is None:
+        return build_page([], 0, page, page_size)
+    try:
+        cur = connexion.cursor()
+        rows = find_comparaisons_paginated(cur, page, page_size, datetime_from, datetime_to)
+        total = rows[0][12] if rows else 0
+        items = [_comparaison_row_to_dict(r) for r in rows]
+        cur.close()
+        return build_page(items, total, page, page_size)
+    finally:
+        close_connection(connexion)
+
+
+def getComparaisonsPage(page=1, page_size=10, datetime_from=None, datetime_to=None):
+    offset = get_int_configuration("TZ_OFFSET", 3)
+    datetime_from = local_to_utc(datetime_from, offset)
+    datetime_to = local_to_utc(datetime_to, offset)
+
+    cle = f"comparaisons:{page}:{page_size}:{datetime_from}:{datetime_to}"
+    valeur = cache_get(cle)
+    if valeur is not None:
+        return valeur
+
+    return cache_set(
+        cle,
+        _fetch_comparaisons_page(page, page_size, datetime_from, datetime_to)
+    )
+
+
+def get_comparaison_detail(id):
+    connexion = get_connection()
+    if connexion is None:
+        return None
+    try:
+        cur = connexion.cursor()
+        row = get_comparaison_by_id(cur, id)
+        if row is None:
+            return None
+        return _comparaison_row_to_dict(row)
+    finally:
+        close_connection(connexion)
 
 
 def _extraire_specs(device, cpu_info):
@@ -189,7 +263,7 @@ def _bloc_puissance_ram(detail_a, detail_b):
         "a": {"ram_total": specs_a.get("ram_total"), "score": score_a},
         "b": {"ram_total": specs_b.get("ram_total"), "score": score_b},
         "plus_puissant": vainqueur(score_a, score_b),
-        "ecart_octets": (score_a - score_b) if (score_a is not None and score_b is not None) else None,
+        "ecart_octets": _ecart(score_a, score_b),
     }
 
 
@@ -283,6 +357,7 @@ def _executer_comparaison(id_device_a, id_device_b, version_a, version_b, id_typ
 
         insert_comparaison_statut(cur, id_comparaison, STATUT_TERMINER)
         connexion.commit()
+        cache_invalidate_prefix("comparaisons:")
         return {"id_comparaison": id_comparaison, "resultat": resultat}
     except Exception:
         connexion.rollback()

@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 def parse_dt(s):
     """Parse ISO8601 ou format FR pour les logs d'impression et télémétrie."""
@@ -30,3 +30,15 @@ def _to_utc(value):
     if value.tzinfo is None:
         value = value.replace(tzinfo=timezone.utc)
     return value.astimezone(timezone.utc)
+
+
+def local_to_utc(value, offset_hours):
+    """Convertit une borne de filtre locale (naive) en UTC.
+
+    Si la valeur est deja timezone-aware, elle est simplement ramenee en UTC.
+    """
+    if value is None:
+        return None
+    if value.tzinfo is not None:
+        return value.astimezone(timezone.utc)
+    return (value - timedelta(hours=offset_hours)).replace(tzinfo=timezone.utc)

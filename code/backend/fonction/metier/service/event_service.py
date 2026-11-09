@@ -13,7 +13,8 @@ from backend.fonction.metier.repository.evenement import (
 from backend.fonction.metier.repository.rapport import get_latest_battery_by_device
 from backend.utils.pagination import build_page
 from backend.core.cache import cache_get, cache_invalidate_prefix, cache_set
-from backend.utils.datetime_tools import _to_utc
+from backend.utils.datetime_tools import _to_utc, local_to_utc
+from backend.utils.config_db import get_int_configuration
 
 def get_event():
     connexion = get_connection()
@@ -151,6 +152,10 @@ def _events_cache_key(page, page_size, type_evenement, id_filiale, filiale,
 def get_events_page(page=1, page_size=10, type_evenement=None, id_filiale=None,
                     filiale=None, recherche=None, datetime_from=None,
                     datetime_to=None):
+    offset = get_int_configuration("TZ_OFFSET", 3)
+    datetime_from = local_to_utc(datetime_from, offset)
+    datetime_to = local_to_utc(datetime_to, offset)
+
     cle = _events_cache_key(
         page, page_size, type_evenement, id_filiale, filiale,
         recherche, datetime_from, datetime_to

@@ -32,7 +32,14 @@ from backend.fonction.metier.repository.devices import (
     get_liste_device,
     get_utilisateur_recent_by_device,
 )
-from backend.fonction.metier.repository.statut import get_statut_by_name
+from backend.fonction.metier.repository.statut.constants import (
+    ID_STATUT_ACTIVE,
+    ID_STATUT_RESOLUE,
+    ID_STATUT_CREER,
+)
+from backend.fonction.metier.repository.configuration.constants import (
+    ID_CONFIG_ALERTE_EVENEMENTS_FENETRE_JOURS,
+)
 from backend.utils.config_db import get_int_configuration
 from backend.utils.format_valeur import usage_percent
 from backend.utils.pagination import build_page
@@ -40,21 +47,10 @@ from backend.core.cache import cache_get, cache_set, cache_invalidate_prefix
 from backend.utils.builder import _serialize_alerte_resume
 from backend.fonction.metier.repository.synchronisation.synchronisation_historique import get_date_derniere_synchronisation
 
-# Noms de statuts (t_statut.nom) : les ids sont resolus en base, jamais codes en dur
-NOM_STATUT_ACTIVE = "ACTIVE"
-NOM_STATUT_RESOLUE = "RESOLUE"
-NOM_STATUT_CREER = "CREER"
-
 # Cle de configuration : fenetre (jours) du seuil d'evenements.
-CLE_FENETRE_EVENEMENTS = "ALERTE_EVENEMENTS_FENETRE_JOURS"
 FENETRE_EVENEMENTS_DEFAUT = 7
 
 logger = logging.getLogger(__name__)
-
-
-def _id_statut(cur, nom):
-    row = get_statut_by_name(cur, nom)
-    return row[0] if row else None
 
 
 def _get_or_create_alerte(cur, type_):
@@ -63,7 +59,7 @@ def _get_or_create_alerte(cur, type_):
         return existante[0]
     id_alerte = insert_alerte(cur, type_)
     if id_alerte is not None:
-        insert_alerte_statut(cur, id_alerte, _id_statut(cur, NOM_STATUT_CREER))
+        insert_alerte_statut(cur, id_alerte, ID_STATUT_CREER)
     return id_alerte
 
 def getNombreAlerte():
@@ -257,9 +253,6 @@ def _appliquer_etat(cur, id_device, id_alerte, message, depasse,
         insert_device_alerte_statut(cur, active[0], id_statut_resolue)
 
 def _executer_moteur(cur):
-    id_statut_active = _id_statut(cur, NOM_STATUT_ACTIVE)
-    id_statut_resolue = _id_statut(cur, NOM_STATUT_RESOLUE)
-
     try:
         regles = get_regles_seuil(cur)
     except Exception:
@@ -270,7 +263,9 @@ def _executer_moteur(cur):
         return
 
     seuils = _seuils_actifs(cur)
-    jours_evenements = get_int_configuration(CLE_FENETRE_EVENEMENTS, FENETRE_EVENEMENTS_DEFAUT)
+    jours_evenements = get_int_configuration(
+        ID_CONFIG_ALERTE_EVENEMENTS_FENETRE_JOURS, FENETRE_EVENEMENTS_DEFAUT
+    )
 
     # Regles actives : on ne cree PAS encore le type d'alerte ici.
     # Il sera cree au premier device qui a reellement une valeur (evite les
@@ -305,17 +300,16 @@ def _executer_moteur(cur):
                 depasse = valeur > regle["valeur_seuil"]
             _appliquer_etat(
                 cur, id_device, regle["id_alerte"], regle["message"], depasse,
-                id_statut_active, id_statut_resolue,
+                ID_STATUT_ACTIVE, ID_STATUT_RESOLUE,
             )
 
 def insertAlerte(cur):
     _executer_moteur(cur)
     cache_invalidate_prefix("alertes:")
+    cache_invalidate_prefix("dashboard:")
 
 
-def getNombreAlerteParType(type_alerte, statut="active", date_debut=None, date_fin=None):
-    # Meme reference de statut que les listes (device_alerte.py) : 1 = active, 15 = resolue.
-    id_statut = 15 if statut == "resolue" else 1
+def getNombreAlerteParType(type_alerte, id_statut=ID_STATUT_ACTIVE, date_debut=None, date_fin=None):
     connexion = get_connection()
     if connexion is None:
         return 0
@@ -334,6 +328,7 @@ def delete_alerte(date_limite):
         delete_alertes_avant(cur, date_limite)
         connexion.commit()
         cache_invalidate_prefix("alertes:")
+        cache_invalidate_prefix("dashboard:")
     except Exception:
         connexion.rollback()
         raise

@@ -202,6 +202,20 @@ def generate_excel(sections, titre_doc, device_info=None):
     header_font = Font(bold=True, color="FFFFFF")
     label_font = Font(bold=True, color="334155")
     value_font = Font(bold=False, color="0F172A")
+    header_border = Border(
+        left=Side(style='thin', color='D1D5DB'),
+        right=Side(style='thin', color='D1D5DB'),
+        top=Side(style='thin', color='D1D5DB'),
+        bottom=Side(style='thin', color='D1D5DB')
+    )
+    body_border = Border(
+        left=Side(style='thin', color='E5E7EB'),
+        right=Side(style='thin', color='E5E7EB'),
+        top=Side(style='thin', color='E5E7EB'),
+        bottom=Side(style='thin', color='E5E7EB')
+    )
+    header_alignment = Alignment(horizontal="center", vertical="center")
+    body_alignment = Alignment(vertical="center")
 
     # Onglet Fiche Matériel si device_info est fourni
     if device_info:
@@ -274,13 +288,8 @@ def generate_excel(sections, titre_doc, device_info=None):
         for cell in ws[3]:
             cell.fill = header_fill
             cell.font = header_font
-            cell.alignment = Alignment(horizontal="center", vertical="center")
-            cell.border = Border(
-                left=Side(style='thin', color='D1D5DB'),
-                right=Side(style='thin', color='D1D5DB'),
-                top=Side(style='thin', color='D1D5DB'),
-                bottom=Side(style='thin', color='D1D5DB')
-            )
+            cell.alignment = header_alignment
+            cell.border = header_border
 
         for row in data:
             ws.append([str(cell) if (cell is not None and str(cell).strip() != "") else "-" for cell in row])
@@ -294,13 +303,8 @@ def generate_excel(sections, titre_doc, device_info=None):
             for cell in row:
                 if cell.row in (1, 3):
                     continue
-                cell.alignment = Alignment(vertical="center")
-                cell.border = Border(
-                    left=Side(style='thin', color='E5E7EB'),
-                    right=Side(style='thin', color='E5E7EB'),
-                    top=Side(style='thin', color='E5E7EB'),
-                    bottom=Side(style='thin', color='E5E7EB')
-                )
+                cell.alignment = body_alignment
+                cell.border = body_border
 
         ws.auto_filter.ref = f"A3:{get_column_letter(len(cols))}{ws.max_row}"
 
@@ -310,11 +314,11 @@ def generate_excel(sections, titre_doc, device_info=None):
     return buffer
 
 
-def generate_pdf(sections, titre_doc, sous_titre="", device_info=None):
+def generate_pdf(sections, titre_doc, sous_titre="", device_info=None, paysage=True, col_widths=None):
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(
         buffer,
-        pagesize=landscape(A4),
+        pagesize=landscape(A4) if paysage else A4,
         leftMargin=18,
         rightMargin=18,
         topMargin=18,
@@ -387,7 +391,11 @@ def generate_pdf(sections, titre_doc, sous_titre="", device_info=None):
                 [str(c) if (c is not None and str(c).strip() != "") else "-" for c in row]
                 for row in data
             ]
-            table = Table(table_data, repeatRows=1, colWidths=[None] * len(cols))
+            table = Table(
+                table_data,
+                repeatRows=1,
+                colWidths=col_widths if (col_widths and len(col_widths) == len(cols)) else [None] * len(cols),
+            )
             table.setStyle(TableStyle([
                 ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#0E7490")),
                 ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
@@ -472,16 +480,24 @@ def sections_imprimantes():
 def sections_filiales():
     from backend.fonction.metier.service.device_service import getDevicesPage
     from backend.fonction.metier.service.filiale_service import get_all_filiales
-    filiales = get_all_filiales() or []
-    groupes = []
-    for filiale in filiales:
-        page = getDevicesPage(page=1, page_size=TAILLE_EXPORT, id_filiale=filiale[0])
-        groupes.append({"filiale": filiale[1], "devices": page.get("items") or []})
 
-    titres = _titres_uniques([g["filiale"] for g in groupes])
+    filiales = get_all_filiales() or []
+    devices = getDevicesPage(page=1, page_size=TAILLE_EXPORT).get("items") or []
+
+    par_filiale = {}
+    for d in devices:
+        par_filiale.setdefault(d.get("filiale"), []).append(d)
+
+    # Ordre des filiales connu en base, puis d'éventuelles valeurs inattendues
+    noms = [f[1] for f in filiales]
+    for nom in par_filiale:
+        if nom and nom not in noms:
+            noms.append(nom)
+
+    titres = _titres_uniques(noms)
     sections = []
-    for titre, groupe in zip(titres, groupes):
-        sections.append((titre, COLS_DEVICE, [_ligne_device(d) for d in groupe["devices"]]))
+    for titre, nom in zip(titres, noms):
+        sections.append((titre, COLS_DEVICE, [_ligne_device(d) for d in par_filiale.get(nom, [])]))
     return sections
 
 
@@ -491,3 +507,145 @@ EXPORT_BUILDERS = {
     "filiales": ("Appareils par filiale", sections_filiales),
     "imprimantes": ("Liste des imprimantes", sections_imprimantes),
 }
+
+
+# ---------- Comparaisons ----------
+
+def _fmt_num(v, suffixe=""):
+    return f"{v}{suffixe}" if v is not None else "—"
+
+
+def _esc(s):
+    return str(s).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+
+def _comparaison_table(detail):
+    """Un seul tableau : Sujet × Appareil A × Appareil B (toutes les données)."""
+    resultat = detail.get("resultat") or {}
+    cpu = resultat.get("cpu") or {}
+    ram = resultat.get("ram") or {}
+    cpu_usage = cpu.get("usage") or {}
+    cpu_puis = cpu.get("puissance") or {}
+    ram_usage = ram.get("usage") or {}
+    ram_puis = ram.get("puissance") or {}
+
+    etiq_a = f"{detail.get('device_a') or detail.get('id_device_a')} · {detail.get('version_a') or '—'}"
+    etiq_b = f"{detail.get('device_b') or detail.get('id_device_b')} · {detail.get('version_b') or '—'}"
+
+    ca = cpu_usage.get("a") or {}
+    cb = cpu_usage.get("b") or {}
+    pa = cpu_puis.get("a") or {}
+    pb = cpu_puis.get("b") or {}
+    ra = ram_usage.get("a") or {}
+    rb = ram_usage.get("b") or {}
+    qa = ram_puis.get("a") or {}
+    qb = ram_puis.get("b") or {}
+
+    cols = ["Sujet de comparaison", f"A — {etiq_a}", f"B — {etiq_b}", "Écart"]
+
+    def ecart_val(v, suffixe=""):
+        return f"{v}{suffixe}" if v is not None else "—"
+
+    rows = [
+        ["Usage CPU (moyenne %)", _fmt_num(ca.get("moyenne")), _fmt_num(cb.get("moyenne")),
+         ecart_val(cpu_usage.get("ecart_pts"), " pts")],
+        ["CPU minimum (%)", _fmt_num(ca.get("min")), _fmt_num(cb.get("min")), ""],
+        ["CPU maximum (%)", _fmt_num(ca.get("max")), _fmt_num(cb.get("max")), ""],
+        ["CPU relevés (n)", _fmt_num(ca.get("n")), _fmt_num(cb.get("n")), ""],
+        ["CPU modèle", pa.get("cpu_model") or "—", pb.get("cpu_model") or "—", ""],
+        ["Fréquence max (kHz)", _fmt_num(pa.get("freq_max_proc")), _fmt_num(pb.get("freq_max_proc")), ""],
+        ["Architecture", pa.get("cpu_architecture") or "—", pb.get("cpu_architecture") or "—", ""],
+        ["Score puissance CPU", _fmt_num(pa.get("score")), _fmt_num(pb.get("score")),
+         ecart_val(cpu_puis.get("ecart"))],
+        ["Usage RAM (moyenne %)", _fmt_num(ra.get("moyenne_pct")), _fmt_num(rb.get("moyenne_pct")),
+         ecart_val(ram_usage.get("ecart_pct"), " %")],
+        ["RAM utilisée", _fmt_bytes(ra.get("moyenne_util")) or "—", _fmt_bytes(rb.get("moyenne_util")) or "—", ""],
+        ["RAM totale", _fmt_bytes(ra.get("total")) or "—", _fmt_bytes(rb.get("total")) or "—", ""],
+        ["RAM relevés (n)", _fmt_num(ra.get("n")), _fmt_num(rb.get("n")), ""],
+        ["Score capacité RAM", _fmt_num(qa.get("score")), _fmt_num(qb.get("score")),
+         _fmt_bytes(ram_puis.get("ecart_octets")) or "—"],
+    ]
+
+    verdict = (resultat.get("verdict") or {}).get("resume") or ""
+    return cols, rows, verdict
+
+
+def _generate_comparaison_excel(titre_doc, cols, rows, verdict=""):
+    """Excel dédié : une feuille propre, en-tête en ligne 2, données ensuite."""
+    border = lambda color: Border(
+        left=Side(style="thin", color=color),
+        right=Side(style="thin", color=color),
+        top=Side(style="thin", color=color),
+        bottom=Side(style="thin", color=color),
+    )
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Comparaison"
+    ws.sheet_view.showGridLines = False
+
+    ws.append([titre_doc])
+    ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=len(cols))
+    titre_cell = ws.cell(row=1, column=1)
+    titre_cell.font = Font(bold=True, size=14, color="FFFFFF")
+    titre_cell.fill = PatternFill("solid", fgColor="0F172A")
+    titre_cell.alignment = Alignment(horizontal="center", vertical="center")
+    ws.row_dimensions[1].height = 26
+
+    ws.append(cols)
+    for cell in ws[2]:
+        cell.fill = PatternFill("solid", fgColor="0E7490")
+        cell.font = Font(bold=True, color="FFFFFF")
+        cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+        cell.border = border("D1D5DB")
+
+    for row in rows:
+        ws.append([str(x) if x is not None and str(x).strip() != "" else "—" for x in row])
+        for cell in ws[ws.max_row]:
+            cell.alignment = Alignment(vertical="center", wrap_text=True)
+            cell.border = border("E5E7EB")
+
+    if verdict:
+        ws.append([])
+        ws.append(["Verdict", verdict])
+        r = ws.max_row
+        ws.merge_cells(start_row=r, start_column=2, end_row=r, end_column=len(cols))
+        ws.cell(row=r, column=1).font = Font(bold=True)
+        ws.cell(row=r, column=2).alignment = Alignment(vertical="center", wrap_text=True)
+
+    ws.column_dimensions["A"].width = 26
+    for i in range(2, len(cols) + 1):
+        ws.column_dimensions[get_column_letter(i)].width = 40
+
+    buffer = io.BytesIO()
+    wb.save(buffer)
+    buffer.seek(0)
+    return buffer
+
+
+def exporter_comparaison(detail, format):
+    """Construit le fichier PDF ou Excel d'une comparaison.
+    Retourne (buffer, filename, media_type)."""
+    cols, rows, verdict = _comparaison_table(detail)
+    titre = f"Comparaison #{detail.get('id')}"
+    date = detail.get("date_comparaison")
+
+    if format == "pdf":
+        sous_titre = f"Date : {date}" if date else ""
+        if verdict:
+            sous_titre += f"<br/><b>Verdict :</b> {_esc(verdict)}"
+        buffer = generate_pdf(
+            [("Comparaison", cols, rows)],
+            titre,
+            sous_titre,
+            paysage=False,
+            col_widths=[150, 160, 160, 85],
+        )
+        return buffer, f"comparaison_{detail.get('id')}.pdf", "application/pdf"
+
+    buffer = _generate_comparaison_excel(titre, cols, rows, verdict)
+    return (
+        buffer,
+        f"comparaison_{detail.get('id')}.xlsx",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )

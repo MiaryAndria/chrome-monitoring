@@ -20,6 +20,7 @@ from backend.fonction.metier.controller.comparaison_controller import router as 
 from backend.fonction.metier.controller.alerteController import router as alerte_router
 # from backend.fonction.metier.service.import_service import synchroniser_tout
 from backend.fonction.metier.controller.export_controller import router as export_router
+from backend.fonction.metier.controller.utilisateur_controller import router as utilisateur_router
 from backend.fonction.metier.service.reset_service import reset_data
 
 app = FastAPI()
@@ -54,6 +55,7 @@ app.include_router(disk_router,          prefix="/disk",          tags=["disk"],
 app.include_router(comparaison_router,   prefix="/comparaison",   tags=["comparaison"],   dependencies=protected)
 app.include_router(alerte_router,        prefix="/alerte",        tags=["alerte"],        dependencies=protected)
 app.include_router(export_router, prefix="/export", tags=["export"], dependencies=protected)
+app.include_router(utilisateur_router, prefix="/utilisateur", tags=["utilisateur"], dependencies=protected)
 
 @app.get("/")
 def accueil():

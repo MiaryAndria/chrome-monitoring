@@ -27,6 +27,7 @@ class DeviceResponses(BaseModel):
     ip_adress: Optional[str] = None
     mac_adress: Optional[str] = None
     status: Optional[str] = None
+    id_status: Optional[int] = None
     utilisateur_email: Optional[str] = None
     utilisateurs_recents: Optional[list[str]] = None
     filiale: Optional[str] = None

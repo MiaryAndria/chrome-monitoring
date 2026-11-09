@@ -18,7 +18,12 @@ from backend.fonction.metier.repository.configuration import (
 )
 from backend.utils.pagination import build_page
 from backend.core.cache import cache_get, cache_set, cache_invalidate_prefix
-
+from backend.fonction.metier.repository.statut.constants import (
+    ID_STATUT_CREER,
+    ID_STATUT_MODIFIER,
+    ID_STATUT_SUPPRIMER,
+    ID_STATUT_RESTAURER,
+)
 
 def _row_to_dict(row):
     return {
@@ -30,7 +35,6 @@ def _row_to_dict(row):
         "date": row[5],
     }
 
-
 def getListeConfiguration():
     connexion = get_connection()
     if connexion is None:
@@ -41,7 +45,6 @@ def getListeConfiguration():
         return [_row_to_dict(r) for r in rows]
     finally:
         close_connection(connexion)
-
 
 def _fetch_configurations_page(page=1, page_size=10, categorie=None):
     connexion = get_connection()
@@ -119,7 +122,7 @@ def getDetailConfiguration(id_configuration):
         close_connection(connexion)
 
 
-def InsertConfiguration(id_type, valeur, status_id=12):
+def InsertConfiguration(id_type, valeur):
     connexion = get_connection()
     if connexion is None:
         return None
@@ -132,7 +135,7 @@ def InsertConfiguration(id_type, valeur, status_id=12):
             )
         id_configuration = insert_configuration(cur, id_type, valeur)
         if id_configuration is not None:
-            insert_configuration_statut(cur, id_configuration, status_id)
+            insert_configuration_statut(cur, id_configuration, ID_STATUT_CREER)
         connexion.commit()
         cache_invalidate_prefix("configurations:")
         return id_configuration
@@ -143,7 +146,7 @@ def InsertConfiguration(id_type, valeur, status_id=12):
         close_connection(connexion)
 
 
-def UpdateConfiguration(id_configuration, valeur, status_id=13):
+def UpdateConfiguration(id_configuration, valeur):
     connexion = get_connection()
     if connexion is None:
         return False
@@ -151,7 +154,7 @@ def UpdateConfiguration(id_configuration, valeur, status_id=13):
         cur = connexion.cursor()
         updated_id = update_configuration(cur, id_configuration, valeur)
         if updated_id is not None:
-            insert_configuration_statut(cur, updated_id, status_id)
+            insert_configuration_statut(cur, updated_id,ID_STATUT_MODIFIER)
         connexion.commit()
         cache_invalidate_prefix("configurations:")
         return True
@@ -162,13 +165,13 @@ def UpdateConfiguration(id_configuration, valeur, status_id=13):
         close_connection(connexion)
 
 
-def deleteConfiguration(id_configuration, status_id=14):
+def deleteConfiguration(id_configuration):
     connexion = get_connection()
     if connexion is None:
         return False
     try:
         cur = connexion.cursor()
-        delete_configuration(cur, id_configuration, status_id)
+        delete_configuration(cur, id_configuration, ID_STATUT_SUPPRIMER)
         connexion.commit()
         cache_invalidate_prefix("configurations:")
         return True
@@ -196,7 +199,7 @@ def hardDeleteConfiguration(id_configuration):
         close_connection(connexion)
 
 
-def reStaurer(id_configuration, status_id=16):
+def reStaurer(id_configuration):
     connexion = get_connection()
     if connexion is None:
         return False
@@ -207,7 +210,7 @@ def reStaurer(id_configuration, status_id=16):
         if parametre is None:
             return False
 
-        restore_configuration(cur, id_configuration, status_id)
+        restore_configuration(cur, id_configuration, ID_STATUT_RESTAURER)
         connexion.commit()
         cache_invalidate_prefix("configurations:")
         return id_configuration

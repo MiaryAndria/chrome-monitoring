@@ -23,7 +23,8 @@ from backend.fonction.metier.repository.filiale import get_or_create_filiale
 from backend.fonction.metier.repository.cpu import get_or_create_cpu
 from backend.fonction.metier.repository.disk import get_or_create_disk
 from backend.fonction.metier.repository.disk.disk_device import insert_disk_device
-from backend.fonction.metier.repository.statut import get_or_create_statut, insert_device_statut
+from backend.fonction.metier.repository.statut import insert_device_statut
+from backend.fonction.metier.repository.statut.constants import STATUT_GOOGLE_VERS_ID
 from backend.fonction.metier.repository.rapport import (create_type_rapport,create_rapport_device,
     get_liste_type_rapport,insert_rapport_lot,
     init_default_types_rapport,
@@ -133,7 +134,7 @@ def insertion_device(cur, dvc_list):
                     get_or_create_filiale_utilisateur(cur, id_filiale, utilisateur_id)
                     _lier_reseau_device(cur, db_device_id, id_filiale, ip_adresse)
 
-                id_statut = get_or_create_statut(cur, status_google)
+                id_statut = STATUT_GOOGLE_VERS_ID.get(status_google)
                 if id_statut is not None:
                     insert_device_statut(cur, db_device_id, id_statut)
 
@@ -499,6 +500,8 @@ def synchroniser_tout(debut=None, fin=None, suivi=None):
         cache_invalidate_prefix("events:")
         cache_invalidate_prefix("imprimantes:")
         cache_invalidate_prefix("filiales:")
+        cache_invalidate_prefix("dashboard:")
+        cache_invalidate_prefix("utilisateurs:")
 
         print("\n Synchronisation complète terminée et validée en BDD !")
         return nb_dev + nb_tel + len(evenements)

@@ -13,22 +13,16 @@ from backend.fonction.metier.repository.user import (
     insert_user_statut,
     get_liste_utilisateur_recent
 )
-from backend.fonction.metier.repository.statut import get_or_create_statut
+from backend.fonction.metier.repository.statut.constants import (
+    ID_STATUT_CREER,
+    ID_STATUT_SUPPRIMER,
+    ID_STATUT_RESTAURER,
+    ID_STATUT_MODIFIER,
+)
 from backend.utils.password_hashage import verifier_password, hasher_password
 from backend.utils.pagination import build_page
 
 ID_ROLE_LECTURE = 2
-
-# Noms de statuts (t_statut.nom) : les ids sont résolus en base, jamais codés en dur
-NOM_STATUT_CREER = "CREER"
-NOM_STATUT_SUPPRIMER = "SUPPRIMER"
-NOM_STATUT_RESTAURER = "RESTAURER"
-NOM_STATUT_MODIFIER="MODIFIER"
-
-
-def _id_statut(cur, nom):
-    return get_or_create_statut(cur, nom)
-
 
 def _user_to_dict(row):
     return {
@@ -62,7 +56,7 @@ def login_user(email, mdp):
             cur.close()
             return None
 
-        id_statut_supprime = _id_statut(cur, NOM_STATUT_SUPPRIMER)
+        id_statut_supprime = ID_STATUT_SUPPRIMER
         archive = get_user_archived(cur, user[0], id_statut_supprime)
         cur.close()
 
@@ -96,7 +90,7 @@ def signin_user(nom, email, mdp):
         mdp_hache = hasher_password(mdp)
         user = create_user(cur, nom, email, mdp_hache, ID_ROLE_LECTURE)
         if user is not None:
-            insert_user_statut(cur, user[0], _id_statut(cur, NOM_STATUT_CREER))
+            insert_user_statut(cur, user[0], ID_STATUT_CREER)
         connexion.commit()
         cur.close()
         return user
@@ -165,7 +159,7 @@ def update_role(id_user, id_role):
             cur.close()
             raise ValueError("Utilisateur introuvable")
 
-        insert_user_statut(cur, user[0], _id_statut(cur, NOM_STATUT_MODIFIER))
+        insert_user_statut(cur, user[0], ID_STATUT_MODIFIER)
         connexion.commit()
         cur.close()
         return {"id": user[0], "nom": user[1], "email": user[2], "id_role": user[3]}
@@ -185,7 +179,7 @@ def getUsersPage(page=1, page_size=10):
         return build_page([], 0, page, page_size)
     try:
         cur = connexion.cursor()
-        id_statut_supprime = _id_statut(cur, NOM_STATUT_SUPPRIMER)
+        id_statut_supprime = ID_STATUT_SUPPRIMER
         rows = find_users_paginated(cur, id_statut_supprime, page, page_size)
         total = rows[0][6] if rows else 0
         items = [_user_to_dict(r) for r in rows]
@@ -201,7 +195,7 @@ def getUsersArchivePage(page=1, page_size=10):
         return build_page([], 0, page, page_size)
     try:
         cur = connexion.cursor()
-        id_statut_supprime = _id_statut(cur, NOM_STATUT_SUPPRIMER)
+        id_statut_supprime = ID_STATUT_SUPPRIMER
         rows = find_users_archived_paginated(cur, id_statut_supprime, page, page_size)
         total = rows[0][6] if rows else 0
         items = [_user_to_dict(r) for r in rows]
@@ -222,7 +216,7 @@ def archiver_user(id_user):
             cur.close()
             raise ValueError("Utilisateur introuvable")
 
-        id_statut = _id_statut(cur, NOM_STATUT_SUPPRIMER)
+        id_statut = ID_STATUT_SUPPRIMER
         insert_user_statut(cur, id_user, id_statut)
         connexion.commit()
         cur.close()
@@ -244,12 +238,12 @@ def restaurer_user(id_user):
 
     try:
         cur = connexion.cursor()
-        id_statut_supprime = _id_statut(cur, NOM_STATUT_SUPPRIMER)
+        id_statut_supprime = ID_STATUT_SUPPRIMER
         if get_user_archived(cur, id_user, id_statut_supprime) is None:
             cur.close()
             raise ValueError("Utilisateur introuvable")
 
-        id_statut = _id_statut(cur, NOM_STATUT_RESTAURER)
+        id_statut = ID_STATUT_RESTAURER
         insert_user_statut(cur, id_user, id_statut)
         connexion.commit()
         cur.close()

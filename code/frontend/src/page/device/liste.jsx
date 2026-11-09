@@ -57,7 +57,8 @@ function ListeDevice() {
         currentPage,
         pageSize,
         {
-            statut: statut || filterStatus || undefined,
+            id_statut: statut || (listeStatuts.find((s) => s.nom === filterStatus)?.id) || undefined,
+            statut: !statut && filterStatus ? filterStatus : undefined,
             filiale: filiale || undefined,
             type_appareil: filterType || undefined,
             modele: modele || undefined,
@@ -69,7 +70,7 @@ function ListeDevice() {
     const deviceColumns = [
         { header: "Modèle", accessor: "modele" },
         { header: "N° Série", render: (d) => <span className="font-mono text-zinc-300">{d.serial_number}</span> },
-        { header: "Statut", render: (d) => <span className={`badge badge-sm ${getBadgeClass(d.status || d.nom_statut || 'UNKNOWN')}`}>{d.status || d.nom_statut || 'UNKNOWN'}</span> },
+        { header: "Statut", render: (d) => <span className={`badge badge-sm ${getBadgeClass(d.id_status != null ? d.id_status : (d.status || d.nom_statut || 'UNKNOWN'))}`}>{d.status || d.nom_statut || 'UNKNOWN'}</span> },
         { header: "Adresse IP", render: (d) => <span className="font-mono text-zinc-400">{d.ip_adress || 'N/A'}</span> },
         { header: "OS", accessor: "chromeos_version" },
         { header: "Assigné à", accessor: "utilisateur_email" },
@@ -220,7 +221,7 @@ function ListeDevice() {
                                         <div className="p-2.5 bg-white/5 rounded-xl text-zinc-300">
                                             <Laptop className="w-5 h-5" />
                                         </div>
-                                        <div className={`badge badge-sm ${getBadgeClass(status)} font-medium tracking-wide`}>
+                                        <div className={`badge badge-sm ${getBadgeClass(d.id_status != null ? d.id_status : status)} font-medium tracking-wide`}>
                                             {status}
                                         </div>
                                     </div>

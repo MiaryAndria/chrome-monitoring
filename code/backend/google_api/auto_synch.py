@@ -7,7 +7,12 @@ from backend.utils.chrono import chrono
 from backend.utils.config_db import get_configuration, get_int_configuration
 
 from backend.fonction.conn.connexion import get_connection, close_connection
-from backend.fonction.metier.repository.statut import get_or_create_statut
+from backend.fonction.metier.repository.statut.constants import (
+    ID_STATUT_COMMENCER,
+    ID_STATUT_EN_COURS,
+    ID_STATUT_TERMINER,
+    ID_STATUT_ECHEC,
+)
 from backend.fonction.metier.service.import_service import synchroniser_tout
 from backend.fonction.metier.repository.synchronisation import (
     get_derniere_fenetre_fin_by_source,
@@ -40,8 +45,7 @@ def _tz_local():
     return timezone(timedelta(hours=get_int_configuration("TZ_OFFSET", TZ_OFFSET_DEFAUT)))
 
 
-def _changer_statut(conn, cur, id_sync, nom_statut):
-    id_statut = get_or_create_statut(cur, nom_statut)
+def _changer_statut(conn, cur, id_sync, id_statut):
     insert_synchronisation_statut(cur, id_statut, id_sync, datetime.now(timezone.utc))
     conn.commit()
 
@@ -100,8 +104,8 @@ def executer_synchronisation():
             id_sync = insert_synchronisation_historique(
                 cur, source, lancement, fenetre_debut, fenetre_fin
             )
-            _changer_statut(conn, cur, id_sync, "COMMENCER")
-            _changer_statut(conn, cur, id_sync, "EN_COURS")
+            _changer_statut(conn, cur, id_sync, ID_STATUT_COMMENCER)
+            _changer_statut(conn, cur, id_sync, ID_STATUT_EN_COURS)
         suivi["id_sync"] = id_sync
 
         logger.info("Fenêtre de données : %s -> %s", fenetre_debut, fenetre_fin)
@@ -113,7 +117,7 @@ def executer_synchronisation():
             update_synchronisation_resultat(
                 cur, id_sync, datetime.now(timezone.utc), nb_lignes, None
             )
-            _changer_statut(conn, cur, id_sync, "TERMINER")
+            _changer_statut(conn, cur, id_sync, ID_STATUT_TERMINER)
 
         suivi.update({"statut": "TERMINER", "nb_lignes": nb_lignes})
         logger.info("Synchronisation terminée (%s lignes)", nb_lignes)
@@ -137,7 +141,7 @@ def executer_synchronisation():
                     update_synchronisation_resultat(
                         cur, id_sync, datetime.now(timezone.utc), 0, str(e)
                     )
-                    _changer_statut(conn, cur, id_sync, "ECHEC")
+                    _changer_statut(conn, cur, id_sync, ID_STATUT_ECHEC)
                 except Exception:
                     conn.rollback()
                     logger.exception("Impossible d'enregistrer l'échec")

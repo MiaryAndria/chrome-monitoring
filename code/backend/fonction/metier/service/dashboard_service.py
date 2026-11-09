@@ -1,5 +1,9 @@
 from backend.fonction.conn.connexion import get_connection, close_connection
 from backend.fonction.metier.repository.dashboard import get_summary as get_summary_repository
+from backend.core.cache import cache_get, cache_set
+
+
+DASHBOARD_CACHE_KEY = "dashboard:summary"
 
 
 SUMMARY_VIDE = {
@@ -34,4 +38,9 @@ def _fetch_summary():
 
 
 def get_summary():
-    return _fetch_summary()
+    valeur = cache_get(DASHBOARD_CACHE_KEY)
+    if valeur is not None:
+        return valeur
+
+    resultat = _fetch_summary()
+    return cache_set(DASHBOARD_CACHE_KEY, resultat)

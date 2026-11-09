@@ -44,22 +44,12 @@ export default function usePaginatedData(fetcher, page, pageSize, params) {
                     setTotalPages(pagesTotal);
                     setError(null);
 
-                    // Ne precharge que les pages qui existent reellement.
+                    // Ne precharge que la page suivante si elle existe reellement.
                     const cleSuivante = buildKey(page + 1, pageSize, paramsKey);
-                    const cleApres = buildKey(page + 2, pageSize, paramsKey);
-
                     if (page + 1 <= pagesTotal && !prefetched.current.has(cleSuivante)) {
                         fetcher({ page: page + 1, page_size: pageSize, ...params })
                             .then((d) => {
                                 if (d) prefetched.current.set(cleSuivante, d);
-                            })
-                            .catch(() => {});
-                    }
-
-                    if (page + 2 <= pagesTotal && !prefetched.current.has(cleApres)) {
-                        fetcher({ page: page + 2, page_size: pageSize, ...params })
-                            .then((d) => {
-                                if (d) prefetched.current.set(cleApres, d);
                             })
                             .catch(() => {});
                     }

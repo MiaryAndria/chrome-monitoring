@@ -1,12 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
     Activity, Building2, Laptop, Printer, Bell, BarChart3,
-    Settings, ChevronDown, RotateCcw, RefreshCw, LogOut, Gauge, Copy, Check, Users, User, Download, X, FileSpreadsheet
+    Settings, ChevronDown, RotateCcw, LogOut, Gauge, Tags, Copy, Check, Users, User, Download, X, FileSpreadsheet
 } from 'lucide-react';
 import { resetData } from '../fonction/importResetFonction';
 import { Logout, GetMe } from "../fonction/userFonction";
-import { getNombreAlerteNouvelle,getNouvellesAlertes } from '../fonction/alerteFonction';
+import { getNombreAlerteNouvelle, getNouvellesAlertes } from '../fonction/alerteFonction';
 import { exporterAppareilsExcel, exporterFilialesExcel, exporterImprimantesExcel } from '../fonction/exportFonction';
 
 
@@ -18,6 +18,28 @@ export default function Navbar() {
     const [openMenu, setOpenMenu] = useState(null);
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState('');
+    const [progress, setProgress] = useState(0);
+    const [progressStep, setProgressStep] = useState('');
+    const progressTimer = useRef(null);
+
+    const demarrerProgression = () => {
+        clearInterval(progressTimer.current);
+        setProgress(0);
+        progressTimer.current = setInterval(() => {
+            setProgress((p) => {
+                if (p >= 92) return p;
+                const pas = p < 50 ? 3 : p < 75 ? 1.5 : 0.6;
+                return Math.min(92, p + pas);
+            });
+        }, 220);
+    };
+
+    const arreterProgression = () => {
+        clearInterval(progressTimer.current);
+        progressTimer.current = null;
+    };
+
+    useEffect(() => () => clearInterval(progressTimer.current), []);
     const [alerteCount, setAlerteCount] = useState(0);
     const [alertes, setAlertes] = useState([]);
     const [copiedSN, setCopiedSN] = useState(null);
@@ -60,29 +82,47 @@ export default function Navbar() {
     ];
 
 
-    const exporterEnExcel = async (id) => {
-        if (id === 1) {
-            await exporterAppareilsExcel();
-        } else if (id === 2) {
-            await exporterFilialesExcel();
-        } else if (id === 3) {
-            await exporterImprimantesExcel();
-        }
+    // Accepte un id unique OU un tableau d'ids (export multiple)
+    const exporterEnExcel = async (selection, onProgress) => {
+        const ids = Array.isArray(selection) ? selection : [selection];
+        const total = ids.length;
+        let done = 0;
+        onProgress?.(0, total);
+        await Promise.all(ids.map(async (id) => {
+            try {
+                if (id === 1) await exporterAppareilsExcel();
+                else if (id === 2) await exporterFilialesExcel();
+                else if (id === 3) await exporterImprimantesExcel();
+            } finally {
+                done += 1;
+                onProgress?.(done, total);
+            }
+        }));
     };
 
     const exporter = async (choix) => {
         setModalChoix(false);
         setIdsSelectionnes([]);
         setLoading(true);
+        setProgressStep("Préparation de l'export…");
         setMessage("Exportation en cours...");
+        demarrerProgression();
         try {
-            for (const c of choix) {
-                await exporterEnExcel(c);
-            }
+            await exporterEnExcel(choix, (done, total) => {
+                setProgress((p) => Math.max(p, Math.round((done / total) * 100)));
+                setProgressStep(`${done} / ${total} fichier${total > 1 ? "s" : ""} traité${done > 1 ? "s" : ""}`);
+            });
+            arreterProgression();
+            setProgress(100);
+            setProgressStep("Terminé");
+            await new Promise((r) => setTimeout(r, 450));
         } catch (e) {
             console.log(e);
         } finally {
+            arreterProgression();
             setLoading(false);
+            setProgress(0);
+            setProgressStep("");
             setMessage("");
         }
     };
@@ -151,12 +191,21 @@ export default function Navbar() {
         try {
             setLoading(true);
             setMessage("Réinitialisation des données en cours...");
+            setProgressStep("Suppression des données…");
+            demarrerProgression();
             await resetData();
+            arreterProgression();
+            setProgress(100);
+            setProgressStep("Terminé");
+            await new Promise((r) => setTimeout(r, 450));
             window.location.reload();
         } catch (e) {
             console.log(e);
         } finally {
+            arreterProgression();
             setLoading(false);
+            setProgress(0);
+            setProgressStep("");
             setMessage("");
         }
     };
@@ -177,8 +226,12 @@ export default function Navbar() {
     };
 
     const navItems = [
-        { path: '/filiale', label: 'Filiales', icon: Building2 },
         { path: '/liste/event', label: 'Événements', icon: Bell },
+    ];
+
+    const entrepriseItems = [
+        { path: '/filiale', label: 'Filiale', icon: Building2 },
+        { path: '/entreprise/utilisateurs', label: 'Utilisateur', icon: Users },
     ];
 
     const deviceItems = [
@@ -204,14 +257,21 @@ export default function Navbar() {
         { path: '/liste/seuil/archive', label: 'Archive seuil' },
     ]
 
+    const statusItems = [
+        { path: '/liste/statut', label: 'Liste des statuts' },
+    ]
+
     const configPaths = ['/liste/configuration', '/creer/configuration', '/liste/configuration/archive'];
     const comparePaths = ['/comparaison/liste', '/comparaison/single', '/comparaison/double'];
     const devicePaths = ['/liste/device', '/imprimantes'];
     const seuilPaths = ['/liste/seuil', '/creer/seuil', '/liste/seuil/archive'];
+    const statusPaths = ['/liste/statut', '/update/statut'];
     const compareActive = comparePaths.some((c) => location.pathname.startsWith(c))
     const configActive = configPaths.some((p) => location.pathname.startsWith(p));
+    const statusActive = statusPaths.some((sa) => location.pathname.startsWith(sa));
     const deviceActive = devicePaths.some((d) => location.pathname.startsWith(d));
     const seuilActive = seuilPaths.some((s) => location.pathname.startsWith(s));
+    const entrepriseActive = location.pathname.startsWith('/filiale') || location.pathname.startsWith('/entreprise');
 
     return (
         <>
@@ -237,6 +297,34 @@ export default function Navbar() {
                             </NavLink>
                         );
                     })}
+
+                    {/* Dropdown Entreprise */}
+                    <div className="relative nav-dropdown">
+                        <button
+                            onClick={() => toggleMenu('entreprise')}
+                            className={`topnav-link ${entrepriseActive ? 'topnav-link-active' : ''}`}
+                        >
+                            <Building2 className="w-4 h-4" />
+                            <span>Entreprise</span>
+                            <ChevronDown className="w-3 h-3" />
+                        </button>
+                        {openMenu === 'entreprise' && (
+                            <div className="config-dropdown">
+                                {entrepriseItems.map((item) => {
+                                    return (
+                                        <NavLink
+                                            key={item.path}
+                                            to={item.path}
+                                            onClick={() => setOpenMenu(null)}
+                                            className="config-dropdown-item"
+                                        >
+                                            {item.label}
+                                        </NavLink>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
 
                     {/* Dropdown Matériel */}
                     <div className="relative nav-dropdown">
@@ -309,6 +397,34 @@ export default function Navbar() {
                             {openMenu === 'seuil' && (
                                 <div className="config-dropdown">
                                     {seuilItems.map((item) => (
+                                        <NavLink
+                                            key={item.path}
+                                            to={item.path}
+                                            onClick={() => setOpenMenu(null)}
+                                            className="config-dropdown-item"
+                                        >
+                                            {item.label}
+                                        </NavLink>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Dropdown Statut (admin uniquement) */}
+                    {isAdmin && (
+                        <div className="relative nav-dropdown">
+                            <button
+                                onClick={() => toggleMenu('statut')}
+                                className={`topnav-link ${statusActive ? 'topnav-link-active' : ''}`}
+                            >
+                                <Tags className="w-4 h-4" />
+                                <span>Statut</span>
+                                <ChevronDown className="w-3 h-3" />
+                            </button>
+                            {openMenu === 'statut' && (
+                                <div className="config-dropdown">
+                                    {statusItems.map((item) => (
                                         <NavLink
                                             key={item.path}
                                             to={item.path}
@@ -439,7 +555,7 @@ export default function Navbar() {
                                             to="/liste/utilisateur"
                                             onClick={() => setOpenMenu(null)}
                                             className="config-dropdown-item"
-                                            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: '0.5rem', width: '100%', textAlign: 'left' }}
                                         >
                                             <Users className="w-4 h-4" />
                                             <span>Liste utilisateur</span>
@@ -460,7 +576,7 @@ export default function Navbar() {
                                             onClick={() => { setOpenMenu(null); toggleModal(); }}
                                             disabled={loading}
                                             className="config-dropdown-item"
-                                            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: '0.5rem', width: '100%', textAlign: 'left' }}
                                         >
                                             <FileSpreadsheet className="w-4 h-4" />
                                             <span>Exporter des données</span>
@@ -528,15 +644,20 @@ export default function Navbar() {
 
             {loading && (
                 <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex flex-col items-center justify-center z-50 animate-fadeIn">
-                    <div className="p-8 bg-zinc-900/90 border border-cyan-500/40 rounded-2xl shadow-[0_0_50px_rgba(6,182,212,0.3)] flex flex-col items-center max-w-sm text-center">
-                        <div className="relative mb-6">
-                            <div className="w-16 h-16 rounded-full border-4 border-cyan-500/20 border-t-cyan-400 animate-spin"></div>
-                            <RefreshCw className="w-6 h-6 text-cyan-400 absolute inset-0 m-auto animate-pulse" />
+                    <div className="p-8 bg-zinc-900/90 border border-cyan-500/40 rounded-2xl shadow-[0_0_50px_rgba(6,182,212,0.3)] flex flex-col items-center w-[22rem] max-w-[90vw] text-center">
+                        <h3 className="text-lg font-bold text-zinc-100 mb-1">{message}</h3>
+                        <p className="text-xs text-zinc-400 mb-5">{progressStep || "Veuillez patienter..."}</p>
+
+                        <div className="flex items-end justify-center gap-1.5 mb-3">
+                            <span className="text-4xl font-extrabold text-cyan-300 leading-none tabular-nums">{Math.round(progress)}</span>
+                            <span className="text-lg font-bold text-cyan-400/80 leading-none mb-0.5">%</span>
                         </div>
-                        <h3 className="text-lg font-bold text-zinc-100 mb-2">{message}</h3>
-                        <p className="text-xs text-zinc-400 mb-4">Veuillez patienter pendant le traitement...</p>
-                        <div className="w-full bg-zinc-800 rounded-full h-2.5 overflow-hidden border border-white/10 relative">
-                            <div className="progress-bar-animated"></div>
+
+                        <div className="w-full bg-zinc-800 rounded-full h-2.5 overflow-hidden border border-white/10">
+                            <div
+                                className="h-full rounded-full bg-gradient-to-r from-cyan-400 to-blue-500 shadow-[0_0_12px_rgba(6,182,212,0.6)] transition-all duration-300 ease-out"
+                                style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
+                            />
                         </div>
                     </div>
                 </div>

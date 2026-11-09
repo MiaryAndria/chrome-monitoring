@@ -40,10 +40,12 @@ function DeviceSelector({ maxSelection = 1, selection = [], onSelectionChange })
 
     const chargerFiltres = async () => {
         try {
-            const filiales = await getListeFiliale();
-            const statuts = await getListeStatut();
-            const modelesListe = await getModeles();
-            const utilisateurs = await getListeUtilisateurRecent();
+            const [filiales, statuts, modelesListe, utilisateurs] = await Promise.all([
+                getListeFiliale(),
+                getListeStatut(),
+                getModeles(),
+                getListeUtilisateurRecent(),
+            ]);
             setListeFiliales(filiales || []);
             setListeStatuts(statuts || []);
             setModeles(modelesListe || []);
@@ -63,7 +65,7 @@ function DeviceSelector({ maxSelection = 1, selection = [], onSelectionChange })
         pageSize,
         {
             filiale: filiale || undefined,
-            statut: statut || undefined,
+            id_statut: statut || undefined,
             modele: modele || undefined,
             utilisateur_recent: utilisateurRecent || undefined,
             recherche: debouncedSearch || undefined,
@@ -190,7 +192,7 @@ function DeviceSelector({ maxSelection = 1, selection = [], onSelectionChange })
                                     <td className="px-5 py-3 text-zinc-400">{d.filiale || "—"}</td>
                                     <td className="px-5 py-3 text-zinc-400">{d.chromeos_version || "—"}</td>
                                     <td className="px-5 py-3">
-                                        <span className={`badge badge-sm ${getBadgeClass(d.status || d.nom_statut || "UNKNOWN")}`}>
+                                        <span className={`badge badge-sm ${getBadgeClass(d.id_status != null ? d.id_status : (d.status || d.nom_statut || "UNKNOWN"))}`}>
                                             {d.status || d.nom_statut || "UNKNOWN"}
                                         </span>
                                     </td>
