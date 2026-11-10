@@ -2,6 +2,7 @@ google-auth
 google-auth-oauthlib
 google-auth-httplib2
 google-api-python-client
+google-genai
 fastapi
 uvicorn
 psycopg2-binary
@@ -14,4 +15,5 @@ pwdlib[argon2]
 passlib[bcrypt]
 openpyxl
 reportlab
+
 

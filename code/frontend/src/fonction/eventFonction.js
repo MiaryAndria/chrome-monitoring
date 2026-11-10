@@ -20,11 +20,11 @@ export const getDureeVieEvenement = async (eventId) => {
     }
 };
 
-export const getListeTypeEvenement = async()=>{
-    try{
+export const getListeTypeEvenement = async () => {
+    try {
         const response = await api_service.get('evenement/liste/type');
-        return response.data
-    }catch(e){
-        console.log(e)
+        return response.data;
+    } catch (e) {
+        console.log(e);
     }
 };

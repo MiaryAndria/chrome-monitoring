@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
 import { GetMe } from '../fonction/userFonction';
+import AIAssistantButton from './AIAssistantButton';
 
 export default function ProtectedRoute() {
     const [checking, setChecking] = useState(true);
@@ -27,5 +28,10 @@ export default function ProtectedRoute() {
         return <Navigate to="/login" replace />;
     }
 
-    return <Outlet />;
+    return (
+        <>
+            <Outlet />
+            <AIAssistantButton />
+        </>
+    );
 }

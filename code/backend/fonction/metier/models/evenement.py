@@ -35,3 +35,10 @@ class EvenementsPageResponse(BaseModel):
 class ResponseTypeEvenements(BaseModel):
     id:int
     type:str
+    
+class IAChatMessage(BaseModel):
+    role: str = "user"
+    content: str
+
+class IAChatRequest(BaseModel):
+    messages: List[IAChatMessage]

@@ -11,6 +11,7 @@ from backend.fonction.metier.controller.statut_controller import router as statu
 from backend.fonction.metier.controller.rapport_controller import router as rapport_router
 from backend.fonction.metier.controller.imprimante_controller import router as imprimante_router
 from backend.fonction.metier.controller.evenement_controller import router as evenement_router
+from backend.fonction.metier.controller.ia_controller import router as ia_router
 from backend.fonction.metier.controller.configuration_controller import router as configuration_router
 from backend.fonction.metier.controller.seuil_controller import router as seuil_router
 from backend.fonction.metier.controller.ram_controller import router as ram_router
@@ -47,6 +48,7 @@ app.include_router(statut_router,        prefix="/statut",        tags=["statut"
 app.include_router(rapport_router,       prefix="/rapport",       tags=["rapport"],       dependencies=protected)
 app.include_router(imprimante_router,    prefix="/imprimante",    tags=["imprimante"],    dependencies=protected)
 app.include_router(evenement_router,     prefix="/evenement",     tags=["evenement"],     dependencies=protected)
+app.include_router(ia_router,            prefix="/ia",            tags=["ia"],            dependencies=protected)
 app.include_router(configuration_router, prefix="/configuration", tags=["configuration"], dependencies=protected)
 app.include_router(seuil_router,         prefix="/seuil",         tags=["seuil"],         dependencies=protected)
 app.include_router(ram_router,           prefix="/ram",           tags=["ram"],           dependencies=protected)

@@ -3,18 +3,21 @@ from datetime import datetime
 from typing import List, Optional
 
 from fastapi import APIRouter, HTTPException, Query
+from fastapi.responses import StreamingResponse
 
 from backend.fonction.metier.models.evenement import (
     EvenementsPageResponse,
-    ReponseEvenements,
     ResponseTypeEvenements,
+    IAChatRequest,
 )
+
 from backend.fonction.metier.service.event_service import (
-    get_event,
     get_events_page,
     get_type_evenement,
     get_duree_vie_evenement,
+    ia_chat_stream,
 )
+
 from backend.utils.validation import is_valid_datetime_range
 
 router = APIRouter()
@@ -74,3 +77,10 @@ def getDureeVie(event_id: int):
     except Exception as e:
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/{event_id}/ia/chat/stream")
+def iaChatStream(event_id: int, payload: IAChatRequest):
+    generateur = ia_chat_stream(event_id, [m.model_dump() for m in payload.messages])
+    if generateur is None:
+        raise HTTPException(status_code=404, detail="Événement introuvable")
+    return StreamingResponse(generateur, media_type="text/plain; charset=utf-8")

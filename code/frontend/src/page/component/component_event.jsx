@@ -2,8 +2,10 @@ import {
     Calendar, Monitor, User,
     Zap, AlertTriangle, Cpu, Layers
 } from "lucide-react";
+import { useState } from "react";
 import { formatDateTime } from "../../fonction/utils/util";
 import EvenementDureeVie from "./EvenementDureeVie";
+import IAChatModal from "./IAChatModal";
 
 const CAUSE_LABELS = {
     "ARRET_ANORMAL": { 
@@ -82,6 +84,9 @@ function EventCard({ ev, isOpen, onToggle }) {
     const style = getStyle(ev.type_evenement, ev.cause_class);
     const causeInfo = CAUSE_LABELS[ev.cause_class] || null;
     const shortType = (ev.type_evenement || "INCONNU").replace("CRASH_TYPE_", "").replace(/_/g, " ");
+    const [iaOpen, setIaOpen] = useState(false);
+
+    const ev_date = formatDateTime(ev.date_evenement);
 
     return (
         <div
@@ -105,7 +110,7 @@ function EventCard({ ev, isOpen, onToggle }) {
                     </div>
                     <span className="text-[10px] text-zinc-500 whitespace-nowrap flex items-center gap-1">
                         <Calendar className="w-3 h-3" />
-                        {formatDateTime(ev.date_evenement)}
+                        {ev_date}
                     </span>
                 </div>
 
@@ -194,6 +199,14 @@ function EventCard({ ev, isOpen, onToggle }) {
                         </p>
                         <EvenementDureeVie eventId={ev.id} />
                     </div>
+                    <button
+                        onClick={() => setIaOpen(true)}
+                        className="w-full mt-3 px-4 py-2 rounded-xl bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 hover:bg-cyan-500/25 transition-colors text-xs font-semibold flex items-center justify-center gap-2 cursor-pointer"
+                    >
+                        Demander à l'IA
+                    </button>
+
+                    {iaOpen && <IAChatModal ev={ev} onClose={() => setIaOpen(false)} />}
                 </div>
             )}
         </div>

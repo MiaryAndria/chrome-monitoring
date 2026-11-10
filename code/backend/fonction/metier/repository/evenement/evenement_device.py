@@ -136,3 +136,36 @@ def delete_evenements_avant(cur, date_limite):
         "DELETE FROM t_evenement_device WHERE date_evenement < %s",
         (date_limite,),
     )
+    
+def get_evenement_detail_by_id(cur, event_id):
+    cur.execute(
+        """
+        SELECT
+            ed.id,
+            ed.date_evenement,
+            ed.details,
+            te.type        AS type_evenement,
+            d.id           AS id_device,
+            d.device_id,
+            d.serial_number,
+            d.modele,
+            f.org_unit_path AS filiale
+        FROM t_evenement_device ed
+        LEFT JOIN t_type_evenement te ON te.id = ed.id_type_evenement
+        LEFT JOIN t_device d          ON d.id  = ed.id_device
+        LEFT JOIN t_device_filiale df ON df.id_device = d.id
+        LEFT JOIN t_filiale f         ON f.id = df.id_filiale
+        WHERE ed.id = %s
+        LIMIT 1
+        """,
+        (event_id,),
+    )
+    row = cur.fetchone()
+    if row is None:
+        return None
+
+    colonnes = [
+        "id", "date_evenement", "details", "type_evenement",
+        "id_device", "device_id", "serial_number", "modele", "filiale",
+    ]
+    return dict(zip(colonnes, row))

@@ -8,13 +8,15 @@ from backend.fonction.metier.repository.evenement import (
     find_evenements_paginated,
     get_last_event_date,
     get_evenement_by_id,
-    delete_evenements_avant
+    delete_evenements_avant,
+    get_evenement_detail_by_id
 )
 from backend.fonction.metier.repository.rapport import get_latest_battery_by_device
 from backend.utils.pagination import build_page
 from backend.core.cache import cache_get, cache_invalidate_prefix, cache_set
 from backend.utils.datetime_tools import _to_utc, local_to_utc
 from backend.utils.config_db import get_int_configuration
+from backend.fonction.metier.service.ia_evenement_service import stream_chat_with_ia
 
 def get_event():
     connexion = get_connection()
@@ -265,12 +267,6 @@ def get_duree_vie_evenement(event_id):
         close_connection(connexion)
 
 
-__all__ = [
-    "get_events_page",
-    "get_duree_vie_evenement",
-    "compute_battery_remaining",
-]
-
 def delete_evenement(date_limite):
     connexion = get_connection()
     if connexion is None:
@@ -286,3 +282,31 @@ def delete_evenement(date_limite):
     finally:
         close_connection(connexion)
         
+        
+def get_evenement_ia_context(event_id):
+    connexion = get_connection()
+    if connexion is None:
+        return None
+    try:
+        cur = connexion.cursor()
+        evenement = get_evenement_detail_by_id(cur, event_id)
+        cur.close()
+        return evenement
+    finally:
+        close_connection(connexion)
+
+
+def ia_chat_stream(event_id, messages):
+    evenement = get_evenement_ia_context(event_id)
+    if evenement is None:
+        return None
+    return stream_chat_with_ia(evenement, messages)
+
+
+__all__ = [
+    "get_events_page",
+    "get_duree_vie_evenement",
+    "compute_battery_remaining",
+    "get_evenement_ia_context",
+    "ia_chat_stream",
+]
