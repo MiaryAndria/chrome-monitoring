@@ -1,4 +1,4 @@
-const API_BASE_URL = "http://localhost:8000";
+const API_BASE_URL = "/api";
 
 export const IAChatStreamEvenement = async (id_evenement, messages, onChunk, signal) => {
     const response = await fetch(`${API_BASE_URL}/evenement/${id_evenement}/ia/chat/stream`, {
