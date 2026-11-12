@@ -5,7 +5,6 @@ from fastapi import APIRouter, HTTPException, Query
 
 from backend.fonction.metier.models.device import DeviceResponses, DevicePageResponse
 from backend.fonction.metier.service.device_service import (
-    getListeDevice,
     getDeviceFiltered,
     getDeviceDetail,
     getDevicesPage,
