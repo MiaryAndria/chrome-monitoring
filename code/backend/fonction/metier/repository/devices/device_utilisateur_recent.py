@@ -28,23 +28,27 @@ def insert_device_utilisateur_recent(cur, id_device, id_utilisateur):
         """
         INSERT INTO t_device_utilisateur_recent (id_device, id_utilisateur)
         VALUES (%s, %s)
+        ON CONFLICT (id_device, id_utilisateur) DO NOTHING
         """, (id_device, id_utilisateur)
     )
 
 def _get_recent_users(cur, device_id):
     """
     Retourne la liste des emails des utilisateurs récents observés sur ce device.
-    Attendu par le modèle Pydantic (list[str]).
+    Une seule requête agrégée au lieu d'un SELECT par ligne d'historique.
     """
-    utilisateurs_recents = []
-    historique = get_historique_utilisateurs_device(cur, device_id) or []
-    for ur in historique:
-        if not ur or not ur[2]:
-            continue
-        ur_u = get_utilisateur_by_id(cur, ur[2])
-        if ur_u and ur_u[1] and ur_u[1] not in utilisateurs_recents:
-            utilisateurs_recents.append(ur_u[1])
-    return utilisateurs_recents
+    cur.execute(
+        """
+        SELECT DISTINCT u.email
+        FROM t_device_utilisateur_recent dur
+        JOIN t_utilisateur u ON u.id = dur.id_utilisateur
+        WHERE dur.id_device = %s
+          AND u.email IS NOT NULL
+        ORDER BY u.email
+        """,
+        (device_id,),
+    )
+    return [row[0] for row in cur.fetchall()]
 
 
 def get_utilisateur_recent_by_device(cur, device_id):

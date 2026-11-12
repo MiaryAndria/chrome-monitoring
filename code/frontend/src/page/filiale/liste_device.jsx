@@ -1,8 +1,6 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Laptop, Network, User, Users, X, Copy, Check, ChevronLeft, Building2, Server, Search } from 'lucide-react';
 import { useParams, useNavigate } from 'react-router-dom';
-import Navbar from "../../components/Navbar";
-import MouseSpotlight from "../../components/MouseSpotlight";
 import Pagination from "../../components/Pagination";
 import DeviceListSkeleton from "../../components/skeletons/DeviceListSkeleton";
 import usePaginatedData from "../../hooks/usePaginatedData";
@@ -42,7 +40,7 @@ function ListeDeviceFiliale() {
         [id_filiale]
     );
 
-    const { items: devices, total, totalPages, loading } = usePaginatedData(
+    const { items: devices, total, totalPages, loading, firstLoadDone } = usePaginatedData(
         fetchDevices,
         currentPage,
         pageSize,
@@ -73,11 +71,14 @@ function ListeDeviceFiliale() {
         }
     };
 
+    const filtresCharges = useRef(false);
     useEffect(() => {
+        if (!firstLoadDone || filtresCharges.current) return;
+        filtresCharges.current = true;
         getStatut();
         getModeles().then(setModeles);
         getUtilisateurRecent();
-    }, []);
+    }, [firstLoadDone]);
 
     const filtresActifs = statut !== "" || search !== "" || modele !== ""|| utilisateurRecent!="";;
 
@@ -125,16 +126,8 @@ function ListeDeviceFiliale() {
     const otherCount = filialeTotal - activeCount;
 
     return (
-        <div className="device-layout" data-theme="dark">
-            <MouseSpotlight />
-
-            <div className="flex-1 flex flex-col h-screen overflow-hidden relative z-10">
-                <div className="bg-glow-cyan"></div>
-                <div className="bg-glow-purple"></div>
-
-                <Navbar />
-
-                <div className="flex-1 overflow-y-auto p-6 lg:p-8 space-y-8 z-10">
+        <>
+        <div className="space-y-8">
 
                     {/* Breadcrumb */}
                     <div className="breadcrumb-container">
@@ -328,7 +321,6 @@ function ListeDeviceFiliale() {
                         }}
                     />
                 </div>
-            </div>
 
             {selectedDevice && (
                 <div className="modal-overlay" onClick={() => setSelectedDevice(null)}>
@@ -400,8 +392,7 @@ function ListeDeviceFiliale() {
                     </div>
                 </div>
             )}
-
-        </div>
+        </>
     );
 }
 

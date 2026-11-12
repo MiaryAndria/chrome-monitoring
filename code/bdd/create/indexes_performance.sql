@@ -53,4 +53,20 @@ CREATE INDEX IF NOT EXISTS idx_t_configuration_statut_config_date
 CREATE INDEX IF NOT EXISTS idx_t_seuil_statut_seuil_date
     ON t_seuil_statut (id_seuil, date DESC, id DESC);
 
+-- ------------------------------------------------------------
+-- t_device_utilisateur_recent : page /utilisateur/recent/page
+-- Colonnes : (id_utilisateur, id_device, date_observation DESC)
+-- Role : le COUNT(DISTINCT id_device) par utilisateur doit trier
+--        ~6,8 M de lignes avec l'index simple (id_utilisateur),
+--        ce qui deborde sur disque (~4 Go) et prend ~9 s.
+--        Cet index fournit directement l'ordre (utilisateur, device)
+--        et permet un index-only scan sans tri.
+-- Sans lui : ~9 s. Avec lui : ~1,2 s (mesure sur 6,8 M lignes).
+-- ------------------------------------------------------------
+CREATE INDEX IF NOT EXISTS idx_t_device_utilisateur_recent_user_device
+    ON t_device_utilisateur_recent (id_utilisateur, id_device, date_observation DESC);
+
 COMMIT;
+
+CREATE INDEX IF NOT EXISTS idx_t_device_utilisateur_recent_user_device
+ON t_device_utilisateur_recent (id_utilisateur, id_device, date_observation DESC);

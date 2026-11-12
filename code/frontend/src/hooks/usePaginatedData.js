@@ -12,6 +12,7 @@ export default function usePaginatedData(fetcher, page, pageSize, params) {
     const [totalPages, setTotalPages] = useState(0);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
+    const [firstLoadDone, setFirstLoadDone] = useState(false);
 
     const paramsKey = JSON.stringify(params);
 
@@ -33,6 +34,7 @@ export default function usePaginatedData(fetcher, page, pageSize, params) {
             setTotalPages(dejaPrecharge.total_pages || 0);
             setLoading(false);
             setError(null);
+            setFirstLoadDone(true);
         } else {
             setLoading(true);
             fetcher({ page, page_size: pageSize, ...params })
@@ -43,10 +45,12 @@ export default function usePaginatedData(fetcher, page, pageSize, params) {
                     setTotal(data?.total || 0);
                     setTotalPages(pagesTotal);
                     setError(null);
+                    setFirstLoadDone(true);
 
-                    // Ne precharge que la page suivante si elle existe reellement.
+                    // Ne precharge la page suivante qu'apres la premiere page :
+                    // evite un second scan complet a l'ouverture.
                     const cleSuivante = buildKey(page + 1, pageSize, paramsKey);
-                    if (page + 1 <= pagesTotal && !prefetched.current.has(cleSuivante)) {
+                    if (page > 1 && page + 1 <= pagesTotal && !prefetched.current.has(cleSuivante)) {
                         fetcher({ page: page + 1, page_size: pageSize, ...params })
                             .then((d) => {
                                 if (d) prefetched.current.set(cleSuivante, d);
@@ -69,5 +73,5 @@ export default function usePaginatedData(fetcher, page, pageSize, params) {
         };
     }, [fetcher, page, pageSize, paramsKey]);
 
-    return { items, total, totalPages, loading, error };
+    return { items, total, totalPages, loading, error, firstLoadDone };
 }

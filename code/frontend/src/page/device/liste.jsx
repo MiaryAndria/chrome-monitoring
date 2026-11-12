@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { Laptop, Network, User, Users, X, Copy, Check, Search } from 'lucide-react';
+import { Laptop, Network, User, Users, X, Copy, Check, Search, Server } from 'lucide-react';
 import GenericTable from "../../components/GenericTable";
 import PageLayout from "../../components/PageLayout";
 import EmptyState from "../../components/EmptyState";
@@ -15,7 +15,7 @@ import ResetFiltreButton from "../component/ResetFiltreButton";
 import ViewModeToggle from "../component/ViewModeToggle";
 import '../../css/liste.css';
 import '../../css/filiale.css';
-import { getListeDevice, getBadgeClass, getListeStatut, getModeles } from "../../fonction/deviceFonction";
+import { getListeDevice, getBadgeClass, getListeStatut, getModeles, getDeviceStats } from "../../fonction/deviceFonction";
 import { getListeFiliale } from "../../fonction/filialeFonction";
 import { getListeUtilisateurRecent } from "../../fonction/userFonction";
 import UtilisateurDropDown from "../component/UtilisateurDropDown";
@@ -51,8 +51,9 @@ function ListeDevice() {
     // Filtre modèle
     const [modeles, setModeles] = useState([]);
     const [modele, setModele] = useState("");
+    const [stats, setStats] = useState({ total: 0, actifs: 0 });
 
-    const { items: device, total, totalPages, loading } = usePaginatedData(
+    const { items: device, total, totalPages, loading, firstLoadDone } = usePaginatedData(
         getListeDevice,
         currentPage,
         pageSize,
@@ -113,11 +114,18 @@ function ListeDevice() {
     };
 
     useEffect(() => {
+        getDeviceStats().then(setStats);
+    }, []);
+
+    const filtresCharges = useRef(false);
+    useEffect(() => {
+        if (!firstLoadDone || filtresCharges.current) return;
+        filtresCharges.current = true;
         getFiliale();
         getStatut();
         getModeles().then(setModeles);
         getUtilisateurRecent();
-    }, []);
+    }, [firstLoadDone]);
 
     // Revenir à la page 1 quand un filtre change
     useEffect(() => {
@@ -151,6 +159,27 @@ function ListeDevice() {
             contentClassName="space-y-6"
             headerRight={<ViewModeToggle viewMode={viewMode} setViewMode={setViewMode} />}
         >
+            {/* Indicateurs du parc */}
+            <div className="stats stats-container glass-panel">
+                <div className="stat place-items-center">
+                    <div className="stat-title text-zinc-400">Total Devices</div>
+                    <div className="stat-value neon-text-cyan text-4xl">{stats.total}</div>
+                    <div className="stat-desc text-zinc-500 flex items-center gap-1 mt-1">
+                        <Server className="w-3 h-3 text-emerald-500" /> Parc complet
+                    </div>
+                </div>
+                <div className="stat place-items-center border-t md:border-t-0 md:border-l border-white/5">
+                    <div className="stat-title text-zinc-400">Actifs</div>
+                    <div className="stat-value text-emerald-400 text-4xl">{stats.actifs}</div>
+                    <div className="stat-desc text-zinc-500">État ACTIVE</div>
+                </div>
+                <div className="stat place-items-center border-t md:border-t-0 md:border-l border-white/5">
+                    <div className="stat-title text-zinc-400">Autres états</div>
+                    <div className="stat-value text-purple-400 text-4xl">{stats.total - stats.actifs}</div>
+                    <div className="stat-desc text-zinc-500">Inactifs / Autres</div>
+                </div>
+            </div>
+
             {/* Filtres : filiale + statut */}
             <div className="glass-panel rounded-2xl p-5 relative z-50">
                 <div className="relative max-w-md mb-4">

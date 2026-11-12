@@ -282,7 +282,7 @@ CREATE TABLE t_role (
 
 CREATE TABLE t_statut(
     id SERIAL PRIMARY KEY ,
-    nom VARCHAR(255) UNIQUE NOT NULL
+    nom VARCHAR(100) UNIQUE NOT NULL
 );
 
 CREATE TABLE t_categorie_type_seuil(
@@ -308,7 +308,8 @@ CREATE TABLE t_type_seuil(
     sens VARCHAR(1) NOT NULL DEFAULT '>',
     type_alerte VARCHAR(100),
     metrique VARCHAR(50),
-    message TEXT
+    message TEXT,
+    limite INT
 );
 
 CREATE TABLE t_user (
@@ -363,7 +364,7 @@ CREATE TABLE t_filiale_utilisateur (
     id SERIAL PRIMARY KEY,
     id_filiale INT NOT NULL REFERENCES t_filiale(id),
     id_utilisateur INT NOT NULL REFERENCES t_utilisateur(id),
-    date TIMESTAMPTZ DEFAULT NOT NULL NOW(),
+    date TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     UNIQUE (id_filiale, id_utilisateur)
 );
 
@@ -430,7 +431,7 @@ CREATE TABLE t_device_filiale (
     id SERIAL PRIMARY KEY,
     id_device INT NOT NULL REFERENCES t_device(id),
     id_filiale INT NOT NULL REFERENCES t_filiale(id),
-    date TIMESTAMPTZ DEFAULT NOT NULL NOW(),
+    date TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     UNIQUE (id_device, id_filiale)
 );
 
@@ -438,7 +439,8 @@ CREATE TABLE t_device_utilisateur_recent (
     id SERIAL PRIMARY KEY,
     id_device INT NOT NULL REFERENCES t_device(id),
     id_utilisateur INT NOT NULL REFERENCES t_utilisateur(id),
-    date_observation TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    date_observation TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE (id_device, id_utilisateur)
 );
 
 CREATE TABLE t_type_rapport (
@@ -534,8 +536,9 @@ CREATE TABLE t_device_alerte_statut(
 
 CREATE TABLE t_seuil(
     id SERIAL PRIMARY KEY ,
-    id_type_seuil INT NOT NULL UNIQUE REFERENCES t_type_seuil(id),
-    valeur INT NOT NULL
+    id_type_seuil INT NOT NULL REFERENCES t_type_seuil(id),
+    valeur INT NOT NULL,
+    UNIQUE(id_type_seuil)
 );
 
 CREATE TABLE t_device_version (
@@ -548,8 +551,9 @@ CREATE TABLE t_device_version (
 
 CREATE TABLE t_configuration (
     id SERIAL PRIMARY KEY,
-    id_type_configuration INT NOT NULL UNIQUE REFERENCES t_type_configuration(id),
-    valeur VARCHAR(255) NOT NULL
+    id_type_configuration INT NOT NULL REFERENCES t_type_configuration(id),
+    valeur VARCHAR(255) NOT NULL,
+    UNIQUE (id_type_configuration)
 );
 
 CREATE TABLE t_configuration_statut (

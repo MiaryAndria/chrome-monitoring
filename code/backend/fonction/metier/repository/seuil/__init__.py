@@ -13,6 +13,7 @@ from .seuil import (
     hard_delete_seuil,
     verifier_seuil_type_existe,
     get_type_seuil_by_categorie,
+    get_type_seuil_info,
     get_categorie_seuil,
     get_regles_seuil,
     update_sens_seuil,

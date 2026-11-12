@@ -81,3 +81,9 @@ CREATE INDEX IF NOT EXISTS idx_device_alerte_statut_device
 
 CREATE INDEX IF NOT EXISTS idx_t_device_version_device_date
 ON t_device_version (id_device, date DESC, id DESC);
+
+CREATE INDEX IF NOT EXISTS idx_t_device_utilisateur_recent_user
+ON t_device_utilisateur_recent (id_utilisateur);
+
+CREATE INDEX IF NOT EXISTS idx_t_rapport_device_device_type_time
+ON t_rapport_device (id_device, id_type_rapport, report_time DESC);

@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import ProtectedRoute from './components/ProtectedRoute'
 import PublicRoute from './components/PublicRoute'
 import AdminRoute from './components/AdminRoute'
+import PrivateLayout from './components/PrivateLayout'
 import Connexion from './page/login'
 import Inscription from './page/register'
 import Dashboard from './page/dashboard'
@@ -43,36 +44,38 @@ function App() {
 
         {/* Routes privées : redirigent vers /login si non connecté */}
         <Route element={<ProtectedRoute />}>
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/filiale" element={<ListeFiliale />} />
-          <Route path="/filiale/:id_filiale/devices" element={<ListeDeviceFiliale />} />
-          <Route path="/entreprise/utilisateurs" element={<ListeUtilisateursEntreprise />} />
-          <Route path="/liste/device" element={<ListeDevice />} />
-          <Route path="/device/:id" element={<DetailDevice />} />
-          <Route path="/liste/event" element={<ListeEvent />} />
-          <Route path="/imprimantes" element={<ListeImprimante />} />
-          <Route path="/imprimante/:id" element={<DetailImprimante />} />
-          <Route path="/comparaison/liste" element={<Comparaison/>} />
-          <Route path="/comparaison/single" element={<ComparaisonSingle />} />
-          <Route path="/comparaison/double" element={<ComparaisonDouble />} />
-          <Route path="/comparaison/detail/:id" element={<ComparaisonDetail />} />
-          <Route path="/alerte/device" element={<ListeDeviceAlerte />} />
-          <Route path="/alerte/device/resolue" element={<ListeDeviceAlerteResolue />} />
+          <Route element={<PrivateLayout />}>
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/filiale" element={<ListeFiliale />} />
+            <Route path="/filiale/:id_filiale/devices" element={<ListeDeviceFiliale />} />
+            <Route path="/entreprise/utilisateurs" element={<ListeUtilisateursEntreprise />} />
+            <Route path="/liste/device" element={<ListeDevice />} />
+            <Route path="/device/:id" element={<DetailDevice />} />
+            <Route path="/liste/event" element={<ListeEvent />} />
+            <Route path="/imprimantes" element={<ListeImprimante />} />
+            <Route path="/imprimante/:id" element={<DetailImprimante />} />
+            <Route path="/comparaison/liste" element={<Comparaison/>} />
+            <Route path="/comparaison/single" element={<ComparaisonSingle />} />
+            <Route path="/comparaison/double" element={<ComparaisonDouble />} />
+            <Route path="/comparaison/detail/:id" element={<ComparaisonDetail />} />
+            <Route path="/alerte/device" element={<ListeDeviceAlerte />} />
+            <Route path="/alerte/device/resolue" element={<ListeDeviceAlerteResolue />} />
 
-          {/* Réservé aux administrateurs : configuration & seuil */}
-          <Route element={<AdminRoute />}>
-            <Route path="/creer/configuration" element={<ConfigurationCreate />} />
-            <Route path="/liste/configuration" element={<ConfigurationListe />} />
-            <Route path="/liste/configuration/archive" element={<ArchivedConfiguration />} />
-            <Route path="/update/configuration/:id" element={<ConfigurationUpdate />} />
-            <Route path="/creer/seuil" element={<SeuilCreate />} />
-            <Route path="/liste/seuil" element={<SeuilListe />} />
-            <Route path="/liste/seuil/archive" element={<ArchivedSeuil />} />
-            <Route path="/update/seuil/:id" element={<SeuilUpdate />} />
-            <Route path="/liste/statut" element={<StatutListe />} />
-            <Route path="/update/statut/:id" element={<StatutUpdate />} />
-            <Route path="/liste/utilisateur" element={<ListeUtilisateur />} />
-            <Route path="/liste/utilisateur/archive" element={<ArchivedUtilisateur />} />
+            {/* Réservé aux administrateurs : configuration & seuil */}
+            <Route element={<AdminRoute />}>
+              <Route path="/creer/configuration" element={<ConfigurationCreate />} />
+              <Route path="/liste/configuration" element={<ConfigurationListe />} />
+              <Route path="/liste/configuration/archive" element={<ArchivedConfiguration />} />
+              <Route path="/update/configuration/:id" element={<ConfigurationUpdate />} />
+              <Route path="/creer/seuil" element={<SeuilCreate />} />
+              <Route path="/liste/seuil" element={<SeuilListe />} />
+              <Route path="/liste/seuil/archive" element={<ArchivedSeuil />} />
+              <Route path="/update/seuil/:id" element={<SeuilUpdate />} />
+              <Route path="/liste/statut" element={<StatutListe />} />
+              <Route path="/update/statut/:id" element={<StatutUpdate />} />
+              <Route path="/liste/utilisateur" element={<ListeUtilisateur />} />
+              <Route path="/liste/utilisateur/archive" element={<ArchivedUtilisateur />} />
+            </Route>
           </Route>
         </Route>
         

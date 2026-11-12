@@ -4,8 +4,6 @@ import {
     Laptop, Network, Copy, Check, ArrowLeft, Cpu, HardDrive,
     Monitor, Activity, Zap, Plug, Layers
 } from 'lucide-react';
-import Navbar from "../../components/Navbar";
-import MouseSpotlight from "../../components/MouseSpotlight";
 import Skeleton from "../../components/Skeleton";
 import CpuRamChartSkeleton from "../../components/skeletons/CpuRamChartSkeleton";
 import {
@@ -235,15 +233,7 @@ function DetailDevice() {
     };
 
     return (
-        <div className="device-layout" data-theme="dark">
-            <MouseSpotlight />
-
-            <div className="flex-1 flex flex-col h-screen overflow-hidden relative z-10">
-                <div className="bg-glow-cyan"></div>
-                <div className="bg-glow-purple"></div>
-                <Navbar />
-
-                <div className="flex-1 overflow-y-auto p-6 lg:p-8 space-y-6 z-10">
+        <div className="space-y-6">
                     <div className="flex items-center justify-between">
                         <button onClick={() => navigate(-1)} className="back-btn">
                             <ArrowLeft className="w-4 h-4" />
@@ -339,8 +329,6 @@ function DetailDevice() {
                             {renderTabContent()}
                         </div>
                     )}
-                </div>
-            </div>
         </div>
     );
 }

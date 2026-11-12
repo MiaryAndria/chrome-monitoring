@@ -47,6 +47,24 @@ def get_status_actuel_device(cur, id_device):
     return result[0] if result else "UNKNOWN"
 
 
+def get_status_actuel_device_with_id(cur, id_device):
+    cur.execute(
+        """
+        SELECT s.nom, ds.id_statut
+        FROM t_device_statut ds
+        JOIN t_statut s ON ds.id_statut = s.id
+        WHERE ds.id_device = %s
+        ORDER BY ds.date DESC, ds.id DESC
+        LIMIT 1
+        """,
+        (id_device,)
+    )
+    result = cur.fetchone()
+    if not result:
+        return "UNKNOWN", None
+    return result[0], result[1]
+
+
 def get_id_status_actuel_device(cur, id_device):
     cur.execute(
         """

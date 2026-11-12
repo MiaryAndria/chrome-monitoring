@@ -16,6 +16,7 @@ class SeuilResponse(BaseModel):
     valeur: int
     date: datetime | None = None
     sens: str | None = None
+    limite: int | None = None
 
 
 class SeuilPageResponse(BaseModel):
@@ -33,4 +34,5 @@ class SeuilCategorieResponse(BaseModel):
 class SeuilTypeResponse(BaseModel):
     id:int
     type:str
+    limite: int | None = None
 

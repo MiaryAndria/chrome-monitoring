@@ -4,7 +4,7 @@ from datetime import datetime
 # Une seule lecture du dernier statut par seuil (LEFT JOIN LATERAL) au lieu de
 # deux sous-requetes correlees.
 SEUIL_COLONNES = """
-SELECT s.id, s.id_type_seuil, t.type, c.categorie, s.valeur, ds.date, t.sens
+SELECT s.id, s.id_type_seuil, t.type, c.categorie, s.valeur, ds.date, t.sens, t.limite
 """
 
 SEUIL_FROM = """
@@ -207,13 +207,25 @@ def hard_delete_seuil(cur, id_seuil):
 def get_type_seuil_by_categorie(cur, id_categorie):
     cur.execute(
         """
-        SELECT id, type FROM t_type_seuil
+        SELECT id, type, limite FROM t_type_seuil
         WHERE id_categorie = %s
         ORDER BY type ASC
         """,
         (id_categorie,),
     )
     return cur.fetchall()
+
+
+def get_type_seuil_info(cur, id_type_seuil):
+    cur.execute(
+        """
+        SELECT type, metrique, limite, sens
+        FROM t_type_seuil
+        WHERE id = %s
+        """,
+        (id_type_seuil,),
+    )
+    return cur.fetchone()
 
 
 def get_categorie_seuil(cur):

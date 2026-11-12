@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional, List
 
 
@@ -36,9 +36,15 @@ class ResponseTypeEvenements(BaseModel):
     id:int
     type:str
     
+class IAChatPieceJointe(BaseModel):
+    name: str
+    mime_type: Optional[str] = None
+    data: str
+
 class IAChatMessage(BaseModel):
     role: str = "user"
-    content: str
+    content: str = ""
+    attachments: List[IAChatPieceJointe] = Field(default_factory=list)
 
 class IAChatRequest(BaseModel):
     messages: List[IAChatMessage]

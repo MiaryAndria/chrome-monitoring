@@ -21,6 +21,7 @@ export default function Navbar() {
     const [progress, setProgress] = useState(0);
     const [progressStep, setProgressStep] = useState('');
     const progressTimer = useRef(null);
+    const copyTimer = useRef(null);
 
     const demarrerProgression = () => {
         clearInterval(progressTimer.current);
@@ -136,14 +137,24 @@ export default function Navbar() {
     };
 
     // Fermer le menu au clic extérieur (hors des zones .nav-dropdown)
+    // useEffect(() => {
+    //     const handleClickOutside = (e) => {
+    //         if (!e.target.closest('.nav-dropdown')) {
+    //             setOpenMenu(null);
+    //         }
+    //     };
+    //     document.addEventListener('click', handleClickOutside);
+    //     return () => document.removeEventListener('click', handleClickOutside);
+    // }, []);
+
     useEffect(() => {
         const handleClickOutside = (e) => {
             if (!e.target.closest('.nav-dropdown')) {
                 setOpenMenu(null);
             }
         };
-        document.addEventListener('click', handleClickOutside);
-        return () => document.removeEventListener('click', handleClickOutside);
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
     useEffect(() => {
@@ -218,12 +229,25 @@ export default function Navbar() {
         }
     };
 
-    const handleCopySN = (serialNumber) => {
+    const handleCopySN = async (serialNumber) => {
         if (!serialNumber) return;
-        navigator.clipboard.writeText(serialNumber);
+        try {
+            await navigator.clipboard.writeText(serialNumber);
+        } catch {
+            // Fallback si clipboard indisponible (ex: http://IP sans HTTPS)
+            const ta = document.createElement('textarea');
+            ta.value = serialNumber;
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+        }
         setCopiedSN(serialNumber);
-        setTimeout(() => setCopiedSN(null), 2000);
+        clearTimeout(copyTimer.current);
+        copyTimer.current = setTimeout(() => setCopiedSN(null), 2000);
     };
+
+    useEffect(() => () => clearTimeout(copyTimer.current), []);
 
     const navItems = [
         { path: '/liste/event', label: 'Événements', icon: Bell },

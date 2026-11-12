@@ -64,9 +64,23 @@ def get_filiale_device_stats(cur, id_filiale):
     cur.execute(
         """
         SELECT COUNT(*) AS total,
-               COUNT(*) FILTER (WHERE id_status = 1) AS actifs
-        FROM v_appareils_filtres
-        WHERE id_filiale = %s
+               COUNT(*) FILTER (WHERE st.id_statut = 1) AS actifs
+        FROM t_device d
+        JOIN LATERAL (
+            SELECT df.id_filiale
+            FROM t_device_filiale df
+            WHERE df.id_device = d.id
+            ORDER BY df.id ASC
+            LIMIT 1
+        ) fi ON TRUE
+        LEFT JOIN LATERAL (
+            SELECT ds.id_statut
+            FROM t_device_statut ds
+            WHERE ds.id_device = d.id
+            ORDER BY ds.date DESC, ds.id DESC
+            LIMIT 1
+        ) st ON TRUE
+        WHERE fi.id_filiale = %s
         """,
         (id_filiale,)
     )

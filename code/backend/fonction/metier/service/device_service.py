@@ -4,6 +4,7 @@ from backend.fonction.metier.repository.devices import (
     get_device_by_device_id,
     get_liste_device,
     get_liste_modele,
+    get_all_device_stats,
     recherche_multicritere,
     find_devices_paginated,
 )
@@ -120,7 +121,35 @@ def getDevicesPage(page=1, page_size=10, id_filiale=None, filiale=None,
     return cache_set(cle, resultat)
 
 
+MODELES_CACHE_KEY = "devices:modeles"
+MODELES_CACHE_TTL = 300
+
+DEVICE_STATS_CACHE_KEY = "devices:stats:all"
+DEVICE_STATS_CACHE_TTL = 60
+
+
+def get_device_stats():
+    valeur = cache_get(DEVICE_STATS_CACHE_KEY)
+    if valeur is not None:
+        return valeur
+
+    connexion = get_connection()
+    if connexion is None:
+        return {"total": 0, "actifs": 0}
+    try:
+        cur = connexion.cursor()
+        resultat = get_all_device_stats(cur)
+        cur.close()
+        return cache_set(DEVICE_STATS_CACHE_KEY, resultat, DEVICE_STATS_CACHE_TTL)
+    finally:
+        close_connection(connexion)
+
+
 def get_modeles():
+    valeur = cache_get(MODELES_CACHE_KEY)
+    if valeur is not None:
+        return valeur
+
     connexion = get_connection()
     if connexion is None:
         return []
@@ -128,7 +157,7 @@ def get_modeles():
         cur = connexion.cursor()
         rows = get_liste_modele(cur)
         cur.close()
-        return rows
+        return cache_set(MODELES_CACHE_KEY, rows, MODELES_CACHE_TTL)
     finally:
         close_connection(connexion)
 

@@ -25,11 +25,11 @@ function GeneralTab({ generalData, device, onSelectTab, deviceId }) {
     const [latestDisk, setLatestDisk] = useState(null);
 
     useEffect(() => {
-        if (!deviceId) return;
+        if (!deviceId || !generalData) return;
         getCpuLatest(deviceId).then(setLatestCpu);
         getRamLatest(deviceId).then(setLatestRam);
         getDiskLatest(deviceId).then(setLatestDisk);
-    }, [deviceId]);
+    }, [deviceId, generalData]);
 
     const handleExport = async (format) => {
         try {

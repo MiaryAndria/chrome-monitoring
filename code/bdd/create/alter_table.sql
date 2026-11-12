@@ -157,3 +157,27 @@ ADD CONSTRAINT uq_device_ram_device_date UNIQUE (id_device, date);
 
 ALTER TABLE t_device_cpu
 ADD CONSTRAINT uq_device_cpu_device_date UNIQUE (id_device, date);
+
+BEGIN;
+
+ALTER TABLE t_comparaison ALTER COLUMN date_comparaison SET NOT NULL;
+ALTER TABLE t_cpu ALTER COLUMN cpu_model SET NOT NULL;
+ALTER TABLE t_device ALTER COLUMN date_creation SET NOT NULL;
+ALTER TABLE t_device ALTER COLUMN id_type_appareil SET NOT NULL;
+ALTER TABLE t_device_alerte_statut ALTER COLUMN date SET NOT NULL;
+ALTER TABLE t_device_reseau ALTER COLUMN date SET NOT NULL;
+ALTER TABLE t_device_statut ALTER COLUMN date SET NOT NULL;
+ALTER TABLE t_device_utilisateur_recent ALTER COLUMN date_observation SET NOT NULL;
+ALTER TABLE t_disk ALTER COLUMN model SET NOT NULL;
+ALTER TABLE t_disk ALTER COLUMN type SET NOT NULL;
+ALTER TABLE t_disk_device ALTER COLUMN date SET NOT NULL;
+ALTER TABLE t_imprimante_device ALTER COLUMN date SET NOT NULL;
+ALTER TABLE t_imprimante_user ALTER COLUMN date SET NOT NULL;
+ALTER TABLE t_synchronisation_historique ALTER COLUMN date_debut SET NOT NULL;
+ALTER TABLE t_type_rapport ALTER COLUMN cle_api SET NOT NULL;
+
+ALTER TABLE t_statut_comparaison ALTER COLUMN date SET DEFAULT NOW();
+
+COMMIT;
+
+ALTER TABLE t_type_seuil ADD COLUMN limite INT;

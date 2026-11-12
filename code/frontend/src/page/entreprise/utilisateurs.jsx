@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { Users, Search, Laptop, X, Building2, ChevronRight } from "lucide-react";
@@ -34,7 +34,7 @@ function ListeUtilisateursEntreprise() {
     const [devicesByUser, setDevicesByUser] = useState({});
     const [loadingDevices, setLoadingDevices] = useState(false);
 
-    const { items: utilisateurs, total, totalPages, loading, error } = usePaginatedData(
+    const { items: utilisateurs, total, totalPages, loading, error, firstLoadDone } = usePaginatedData(
         getUtilisateursRecentPage,
         currentPage,
         pageSize,
@@ -44,9 +44,12 @@ function ListeUtilisateursEntreprise() {
         }
     );
 
+    const filtresCharges = useRef(false);
     useEffect(() => {
+        if (!firstLoadDone || filtresCharges.current) return;
+        filtresCharges.current = true;
         getListeFiliale().then((data) => setListeFiliales(data || []));
-    }, []);
+    }, [firstLoadDone]);
 
     const filtresActifs = filiale !== "" || search !== "";
 

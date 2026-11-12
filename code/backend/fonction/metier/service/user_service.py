@@ -21,6 +21,7 @@ from backend.fonction.metier.repository.statut.constants import (
 )
 from backend.utils.password_hashage import verifier_password, hasher_password
 from backend.utils.pagination import build_page
+from backend.core.cache import cache_get, cache_set
 
 ID_ROLE_LECTURE = 2
 
@@ -118,7 +119,15 @@ def get_users():
     finally:
         close_connection(connexion)
 
+UTILISATEURS_RECENTS_CACHE_KEY = "users:recent:all"
+UTILISATEURS_RECENTS_CACHE_TTL = 60
+
+
 def get_utilisateur_recent ():
+    valeur = cache_get(UTILISATEURS_RECENTS_CACHE_KEY)
+    if valeur is not None:
+        return valeur
+
     connexion = get_connection()
     if connexion is None :
         return []
@@ -126,7 +135,11 @@ def get_utilisateur_recent ():
         cur = connexion.cursor()
         rows = get_liste_utilisateur_recent(cur)
         cur.close()
-        return [{"id": r[0], "email": r[1]} for r in rows]
+        return cache_set(
+            UTILISATEURS_RECENTS_CACHE_KEY,
+            [{"id": r[0], "email": r[1]} for r in rows],
+            UTILISATEURS_RECENTS_CACHE_TTL,
+        )
     finally:
         close_connection(connexion)
 

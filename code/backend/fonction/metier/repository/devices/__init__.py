@@ -18,6 +18,7 @@ from .devices import (
     _get_device_cpu_info,
     get_map_devices,
     get_liste_modele,
+    get_all_device_stats,
     find_devices_paginated,
     get_version_intervalle,
     get_liste_version_by_device,

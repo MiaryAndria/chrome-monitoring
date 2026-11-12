@@ -1,8 +1,6 @@
 import { useEffect, useState } from "react";
 import { Building2, Laptop, ChevronRight, Server, Activity, LayoutGrid, List, Search } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import Navbar from "../../components/Navbar";
-import MouseSpotlight from "../../components/MouseSpotlight";
 import GenericTable from "../../components/GenericTable";
 import Pagination from "../../components/Pagination";
 import CardGridSkeleton from "../../components/skeletons/CardGridSkeleton";
@@ -57,16 +55,7 @@ function ListeFiliale() {
     ];
 
     return (
-        <div className="device-layout" data-theme="dark">
-            <MouseSpotlight />
-
-            <div className="flex-1 flex flex-col h-screen overflow-hidden relative z-10">
-                <div className="bg-glow-cyan"></div>
-                <div className="bg-glow-purple"></div>
-
-                <Navbar />
-
-                <div className="flex-1 overflow-y-auto p-6 lg:p-8 space-y-8 z-10">
+        <div className="space-y-8">
                     <div className="glass-panel rounded-2xl p-5">
                         <div className="relative max-w-md">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
@@ -174,8 +163,6 @@ function ListeFiliale() {
                             }}
                         />
                     </div>
-                </div>
-            </div>
         </div>
     );
 }

@@ -10,6 +10,7 @@ import '../../css/configuration.css';
 function SeuilUpdate() {
     const [valeur, setValeur] = useState('');
     const [sens, setSens] = useState('');
+    const [limite, setLimite] = useState(null);
     const [existedCle, setExistedCle] = useState('');
     const [existedIdType, setExistedIdType] = useState('');
     const [existedValeur, setExistedValeur] = useState('');
@@ -23,18 +24,28 @@ function SeuilUpdate() {
             setExistedIdType(d.id_type);
             setExistedValeur(d.valeur);
             setSens(d.sens || '>');
+            setLimite(d.limite ?? null);
         } catch (e) {
             console.log(e);
         }
     };
 
     const updSeuil = async () => {
+        const nouvelleValeur = valeur === '' ? existedValeur : Number(valeur);
+        if (!Number.isInteger(nouvelleValeur) || nouvelleValeur < 0) {
+            window.alert("La valeur doit être un nombre entier positif.");
+            return;
+        }
+        if (limite !== null && limite !== undefined && nouvelleValeur > limite) {
+            window.alert(`La valeur ne peut pas dépasser ${limite} pour ce type de seuil.`);
+            return;
+        }
         try {
-            const nouvelleValeur = valeur === '' ? existedValeur : Number(valeur);
             await updateSeuil(id, existedIdType, nouvelleValeur, sens || undefined);
             navigate('/liste/seuil');
         } catch (e) {
-            console.log(e);
+            const msg = e?.response?.data?.detail || "Erreur lors de la mise à jour du seuil.";
+            window.alert(msg);
         }
     };
 
@@ -75,7 +86,14 @@ function SeuilUpdate() {
                             value={valeur}
                             onChange={(e) => setValeur(e.target.value)}
                             placeholder={existedValeur}
+                            min={0}
+                            max={limite ?? undefined}
                         />
+                        {limite !== null && limite !== undefined && (
+                            <p className="text-xs text-zinc-500 mt-1">
+                                Valeur maximale pour ce type : {limite}
+                            </p>
+                        )}
                     </div>
 
                     <div className="config-form-group">

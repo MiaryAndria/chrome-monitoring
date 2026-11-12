@@ -1,8 +1,6 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Server, Laptop, Bell, BellRing, Printer, Zap, Cpu, Monitor, CheckCircle2, X } from 'lucide-react';
-import Navbar from "../components/Navbar";
-import MouseSpotlight from "../components/MouseSpotlight";
 import { getDashboardSummary, getStatusStyle } from "../fonction/deviceFonction";
 import DashboardSkeleton from "../components/skeletons/DashboardSkeleton";
 import '../css/liste.css';
@@ -63,15 +61,7 @@ function Dashboard() {
 
 
     return (
-        <div className="device-layout" data-theme="dark">
-            <MouseSpotlight />
-
-            <div className="flex-1 flex flex-col h-screen overflow-hidden relative z-10">
-                <div className="bg-glow-cyan"></div>
-                <div className="bg-glow-purple"></div>
-                <Navbar />
-
-                <div className="flex-1 overflow-y-auto p-6 lg:p-8 space-y-8 z-10">
+        <div className="space-y-8">
                     <div className="flex justify-between items-end">
                         <div>
                             <h1 className="text-3xl font-bold tracking-tight text-zinc-100 flex items-center gap-3">
@@ -315,8 +305,6 @@ function Dashboard() {
 
                         </div>
                     )}
-                </div>
-            </div>
         </div>
     );
 }

@@ -55,16 +55,11 @@ export const getDetailSeuil = async (id) => {
 };
 
 export const updateSeuil = async (id, idType, valeur, sens) => {
-    try {
-        return await api_service.put(`seuil/${id}/update`, {
-            id_type: idType,
-            valeur: valeur,
-            sens: sens
-        });
-    } catch (e) {
-        console.log(e);
-        return null;
-    }
+    return await api_service.put(`seuil/${id}/update`, {
+        id_type: idType,
+        valeur: valeur,
+        sens: sens
+    });
 };
 
 export const deleteSeuil = async (id) => {

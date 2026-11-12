@@ -45,17 +45,20 @@ def get_latest_battery_by_device(cur, id_device):
         "donnees": row[3],
     }
 
-def get_rapport_by_device_and_type(cur, id_device, id_type_rapport):
-    cur.execute(
-        """
+def get_rapport_by_device_and_type(cur, id_device, id_type_rapport, limit=None):
+    requete = """
         SELECT id, id_device, id_type_rapport, report_time, donnees
         FROM t_rapport_device
         WHERE id_device = %s
         AND id_type_rapport = %s
         ORDER BY report_time DESC
-        """,
-        (id_device, id_type_rapport,)
-    )
+    """
+    params = [id_device, id_type_rapport]
+    if limit is not None:
+        requete += " LIMIT %s"
+        params.append(limit)
+
+    cur.execute(requete, tuple(params))
 
     result = cur.fetchall()
 

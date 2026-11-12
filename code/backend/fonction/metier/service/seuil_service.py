@@ -14,6 +14,7 @@ from backend.fonction.metier.repository.seuil import (
     hard_delete_seuil,
     verifier_seuil_type_existe,
     get_type_seuil_by_categorie,
+    get_type_seuil_info,
     get_categorie_seuil,
     update_sens_seuil,
 )
@@ -35,7 +36,26 @@ def _row_to_dict(row):
         "valeur": row[4],
         "date": row[5],
         "sens": row[6],
+        "limite": row[7],
     }
+
+
+def _valider_valeur_seuil(valeur, limite):
+    """Valide la valeur d'un seuil : entier, >= 0, <= limite du type."""
+    try:
+        v = int(valeur)
+    except (TypeError, ValueError):
+        raise ValueError("La valeur du seuil doit être un nombre entier.")
+
+    if v < 0:
+        raise ValueError("La valeur du seuil ne peut pas être négative.")
+
+    if limite is not None and v > limite:
+        raise ValueError(
+            f"La valeur du seuil ne peut pas dépasser {limite} pour ce type de seuil."
+        )
+
+    return v
 
 
 def getListeSeuil():
@@ -57,7 +77,7 @@ def _fetch_seuils_page(page=1, page_size=10, categorie=None):
     try:
         cur = connexion.cursor()
         rows = find_seuils_paginated(cur, page, page_size, categorie)
-        total = rows[0][7] if rows else 0
+        total = rows[0][8] if rows else 0
         items = [_row_to_dict(r) for r in rows]
         cur.close()
         return build_page(items, total, page, page_size)
@@ -82,7 +102,7 @@ def _fetch_seuils_archive_page(page=1, page_size=10):
     try:
         cur = connexion.cursor()
         rows = find_seuils_archived_paginated(cur, page, page_size)
-        total = rows[0][7] if rows else 0
+        total = rows[0][8] if rows else 0
         items = [_row_to_dict(r) for r in rows]
         cur.close()
         return build_page(items, total, page, page_size)
@@ -132,6 +152,11 @@ def InsertSeuil(id_type, valeur):
         return None
     try:
         cur = connexion.cursor()
+        info = get_type_seuil_info(cur, id_type)
+        if info is None:
+            raise ValueError("Type de seuil introuvable.")
+        valeur = _valider_valeur_seuil(valeur, info[2])
+
         existant = verifier_seuil_type_existe(cur, id_type)
         if existant is not None:
             raise ValueError(
@@ -156,6 +181,17 @@ def UpdateSeuil(id_seuil, valeur, sens=None):
         return False
     try:
         cur = connexion.cursor()
+        seuil_actuel = get_seuil_by_id(cur, id_seuil)
+        if seuil_actuel is None:
+            raise ValueError("Seuil introuvable.")
+
+        info = get_type_seuil_info(cur, seuil_actuel[1])
+        limite = info[2] if info else None
+        valeur = _valider_valeur_seuil(valeur, limite)
+
+        if sens is not None and sens not in (">", "<"):
+            raise ValueError("Le sens doit être '>' ou '<'.")
+
         updated_id = update_seuil(cur, id_seuil, valeur)
         if updated_id is not None:
             insert_seuil_statut(cur, updated_id, ID_STATUT_MODIFIER)
@@ -237,6 +273,7 @@ def get_liste_type_seuil_by_categorie(id_categorie):
             result.append({
                 "id": r[0],
                 "type": r[1],
+                "limite": r[2],
             })
         return result
     finally:

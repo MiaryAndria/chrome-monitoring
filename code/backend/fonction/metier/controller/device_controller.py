@@ -10,6 +10,7 @@ from backend.fonction.metier.service.device_service import (
     getDeviceDetail,
     getDevicesPage,
     get_modeles,
+    get_device_stats,
 )
 from backend.utils.validation import is_valid_datetime_range
 import traceback
@@ -69,6 +70,14 @@ def getListeFiltrer(recherche: str = Query(...)):
     try:
         liste = getDeviceFiltered(recherche)
         return liste
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/stats")
+def getStats():
+    try:
+        return get_device_stats()
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

@@ -339,7 +339,7 @@ def get_liste_modele(cur):
     cur.execute(
         """
         SELECT DISTINCT modele
-        FROM v_appareils_filtres
+        FROM t_device
         WHERE modele IS NOT NULL AND modele <> ''
         ORDER BY modele ASC
         """
@@ -347,45 +347,169 @@ def get_liste_modele(cur):
     return [r[0] for r in cur.fetchall()]
 
 
+def get_all_device_stats(cur):
+    cur.execute(
+        """
+        SELECT COUNT(*) AS total,
+               COUNT(*) FILTER (WHERE st.id_statut = 1) AS actifs
+        FROM t_device d
+        LEFT JOIN LATERAL (
+            SELECT ds.id_statut
+            FROM t_device_statut ds
+            WHERE ds.id_device = d.id
+            ORDER BY ds.date DESC, ds.id DESC
+            LIMIT 1
+        ) st ON TRUE
+        """
+    )
+    row = cur.fetchone()
+    return {
+        "total": row[0] if row else 0,
+        "actifs": row[1] if row else 0,
+    }
+
+
 def _rows_to_dicts(cur):
     colonnes = [desc[0] for desc in cur.description]
     return [dict(zip(colonnes, row)) for row in cur.fetchall()]
 
 
+_DEVICE_FILTER_JOINS = """
+LEFT JOIN t_type_appareil ta ON ta.id = d.id_type_appareil
+LEFT JOIN LATERAL (
+    SELECT df.id_filiale
+    FROM t_device_filiale df
+    WHERE df.id_device = d.id
+    ORDER BY df.id ASC
+    LIMIT 1
+) fi ON TRUE
+LEFT JOIN t_filiale f ON f.id = fi.id_filiale
+LEFT JOIN LATERAL (
+    SELECT ds.id_statut, s.nom
+    FROM t_device_statut ds
+    JOIN t_statut s ON s.id = ds.id_statut
+    WHERE ds.id_device = d.id
+    ORDER BY ds.date DESC, ds.id DESC
+    LIMIT 1
+) st ON TRUE
+"""
+
+_DEVICE_DETAIL_QUERY = """
+SELECT
+    d.id, d.device_id, d.serial_number, d.modele, d.id_type_appareil,
+    ta.nom AS type_appareil, v.chromeos_version, v.chromeos_version AS chrome_version,
+    d.mac_adress, d.ip_adress, d.date_creation AS date, d.ram_total,
+    du.id_utilisateur, du.email AS utilisateur_email,
+    st.nom AS status, st.id_statut AS id_status,
+    fi.id_filiale, fi.org_unit_path AS filiale,
+    ru.emails AS utilisateurs_recents,
+    cp.cpu_model, cp.freq_max_proc AS cpu_freq_max, cp.cpu_architecture,
+    di.total_reel AS disk_total, di.disponible AS disk_free, di.total_utiliser AS disk_used,
+    di.model AS disk_model, di.type AS disk_type
+FROM t_device d
+LEFT JOIN t_type_appareil ta ON ta.id = d.id_type_appareil
+LEFT JOIN LATERAL (
+    SELECT du.id_utilisateur, u.email
+    FROM t_device_utilisateur du
+    JOIN t_utilisateur u ON u.id = du.id_utilisateur
+    WHERE du.id_device = d.id
+    ORDER BY du.id ASC
+    LIMIT 1
+) du ON TRUE
+LEFT JOIN LATERAL (
+    SELECT ds.id_statut, s.nom
+    FROM t_device_statut ds
+    JOIN t_statut s ON s.id = ds.id_statut
+    WHERE ds.id_device = d.id
+    ORDER BY ds.date DESC, ds.id DESC
+    LIMIT 1
+) st ON TRUE
+LEFT JOIN LATERAL (
+    SELECT df.id_filiale, f.org_unit_path
+    FROM t_device_filiale df
+    JOIN t_filiale f ON f.id = df.id_filiale
+    WHERE df.id_device = d.id
+    ORDER BY df.id ASC
+    LIMIT 1
+) fi ON TRUE
+LEFT JOIN LATERAL (
+    SELECT array_agg(DISTINCT u2.email) AS emails
+    FROM t_device_utilisateur_recent dur
+    JOIN t_utilisateur u2 ON u2.id = dur.id_utilisateur
+    WHERE dur.id_device = d.id
+) ru ON TRUE
+LEFT JOIN LATERAL (
+    SELECT c.cpu_model, c.freq_max_proc, c.cpu_architecture
+    FROM t_device_cpu dc
+    JOIN t_cpu c ON c.id = dc.id_cpu
+    WHERE dc.id_device = d.id
+    ORDER BY dc.date DESC, dc.id DESC
+    LIMIT 1
+) cp ON TRUE
+LEFT JOIN LATERAL (
+    SELECT dd.total_reel, dd.disponible, dd.total_utiliser, dk.model, dk.type
+    FROM t_disk_device dd
+    JOIN t_disk dk ON dk.id = dd.id_disk
+    WHERE dd.id_device = d.id
+    ORDER BY dd.date DESC, dd.id DESC
+    LIMIT 1
+) di ON TRUE
+LEFT JOIN LATERAL (
+    SELECT dv.chromeos_version
+    FROM t_device_version dv
+    WHERE dv.id_device = d.id
+    ORDER BY dv.date DESC, dv.id DESC
+    LIMIT 1
+) v ON TRUE
+WHERE d.id = ANY(%s)
+ORDER BY d.id ASC
+"""
+
+
 def _build_device_filter_clause(id_filiale=None, filiale=None, id_statut=None,
                                 statut=None, type_appareil=None, recherche=None,
-                                datetime_from=None, datetime_to=None,modele=None,utilisateur_recent=None):
+                                datetime_from=None, datetime_to=None, modele=None,
+                                utilisateur_recent=None):
     clauses = []
     params = []
     if modele:
-        clauses.append("modele = %s")
+        clauses.append("d.modele = %s")
         params.append(modele)
     if id_filiale is not None:
-        clauses.append("id_filiale = %s")
+        clauses.append("fi.id_filiale = %s")
         params.append(id_filiale)
     if filiale:
-        clauses.append("filiale = %s")
+        clauses.append("f.org_unit_path = %s")
         params.append(filiale)
     if id_statut is not None:
-        clauses.append("id_status = %s")
+        clauses.append("st.id_statut = %s")
         params.append(id_statut)
     elif statut:
-        clauses.append("UPPER(status) = UPPER(%s)")
+        clauses.append("UPPER(st.nom) = UPPER(%s)")
         params.append(statut)
     if utilisateur_recent:
-        clauses.append("%s = ANY(utilisateurs_recents)")
+        clauses.append(
+            """
+            EXISTS (
+                SELECT 1
+                FROM t_device_utilisateur_recent dur
+                JOIN t_utilisateur ur ON ur.id = dur.id_utilisateur
+                WHERE dur.id_device = d.id AND ur.email = %s
+            )
+            """
+        )
         params.append(utilisateur_recent)
     if type_appareil:
-        clauses.append("UPPER(type_appareil) = UPPER(%s)")
+        clauses.append("UPPER(ta.nom) = UPPER(%s)")
         params.append(type_appareil)
     if recherche:
-        clauses.append("serial_number ILIKE %s")
+        clauses.append("d.serial_number ILIKE %s")
         params.append(f"%{recherche}%")
     if datetime_from is not None:
-        clauses.append("date >= %s")
+        clauses.append("d.date_creation >= %s")
         params.append(datetime_from)
     if datetime_to is not None:
-        clauses.append("date <= %s")
+        clauses.append("d.date_creation <= %s")
         params.append(datetime_to)
 
     return clauses, params
@@ -394,7 +518,8 @@ def _build_device_filter_clause(id_filiale=None, filiale=None, id_statut=None,
 def find_devices_paginated(cur, page=1, page_size=10, id_filiale=None,
                            filiale=None, id_statut=None, statut=None,
                            type_appareil=None, recherche=None,
-                           datetime_from=None, datetime_to=None,modele=None,utilisateur_recent=None):
+                           datetime_from=None, datetime_to=None, modele=None,
+                           utilisateur_recent=None):
     clauses, params = _build_device_filter_clause(
         id_filiale=id_filiale, filiale=filiale, id_statut=id_statut,
         statut=statut, type_appareil=type_appareil, recherche=recherche,
@@ -406,22 +531,27 @@ def find_devices_paginated(cur, page=1, page_size=10, id_filiale=None,
 
     cur.execute(
         f"""
-        SELECT
-            id, device_id, serial_number, modele, id_type_appareil,
-            type_appareil, chromeos_version, chrome_version, mac_adress,
-            ip_adress, date, ram_total, id_utilisateur, utilisateur_email,
-            status, id_status, id_filiale, filiale, utilisateurs_recents, cpu_model,
-            cpu_freq_max, cpu_architecture, disk_total, disk_free, disk_used,
-            disk_model, disk_type,
-            COUNT(*) OVER() AS total
-        FROM v_appareils_filtres
+        SELECT d.id, COUNT(*) OVER() AS total
+        FROM t_device d
+        {_DEVICE_FILTER_JOINS}
         {where}
-        ORDER BY id ASC
+        ORDER BY d.id ASC
         LIMIT %s OFFSET %s
         """,
         tuple(params + [page_size, offset])
     )
-    return _rows_to_dicts(cur)
+    id_rows = cur.fetchall()
+    if not id_rows:
+        return []
+
+    total = id_rows[0][1]
+    ids = [row[0] for row in id_rows]
+
+    cur.execute(_DEVICE_DETAIL_QUERY, (ids,))
+    rows = _rows_to_dicts(cur)
+    for row in rows:
+        row["total"] = total
+    return rows
 
 def get_liste_version_by_device(cur, id_device):
     """Toutes les versions d'un appareil (source de la liste déroulante)."""

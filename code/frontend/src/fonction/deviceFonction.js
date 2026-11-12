@@ -49,6 +49,16 @@ export const getModeles = async () => {
     }
 };
 
+export const getDeviceStats = async () => {
+    try {
+        const response = await api_service.get('/device/stats');
+        return response.data;
+    } catch (e) {
+        console.log(e);
+        return { total: 0, actifs: 0 };
+    }
+};
+
 export const getDeviceDetail = async (id) => {
     try {
         const response = await api_service.get(`/device/${id}`)

@@ -15,6 +15,9 @@ function SeuilCreate() {
     const [valeur, setValeur] = useState('');
     const navigate = useNavigate();
 
+    const typeSelectionne = types.find((t) => String(t.id) === String(idType));
+    const limite = typeSelectionne?.limite;
+
     const chargerCategories = async () => {
         const data = await getListeCategorieSeuil();
         setCategories(data || []);
@@ -37,8 +40,17 @@ function SeuilCreate() {
     };
 
     const creerSeuil = async () => {
+        const valeurNum = Number(valeur);
+        if (valeur === '' || !Number.isInteger(valeurNum) || valeurNum < 0) {
+            window.alert("La valeur doit être un nombre entier positif.");
+            return;
+        }
+        if (limite !== null && limite !== undefined && valeurNum > limite) {
+            window.alert(`La valeur ne peut pas dépasser ${limite} pour ce type de seuil.`);
+            return;
+        }
         try {
-            await createSeuil(Number(idType), Number(valeur));
+            await createSeuil(Number(idType), valeurNum);
             navigate('/liste/seuil');
         } catch (e) {
             const msg = e?.response?.data?.detail || "Erreur lors de la création du seuil.";
@@ -97,7 +109,14 @@ function SeuilCreate() {
                             value={valeur}
                             onChange={(e) => setValeur(e.target.value)}
                             placeholder="Entrer valeur"
+                            min={0}
+                            max={limite ?? undefined}
                         />
+                        {limite !== null && limite !== undefined && (
+                            <p className="text-xs text-zinc-500 mt-1">
+                                Valeur maximale pour ce type : {limite}
+                            </p>
+                        )}
                     </div>
 
                     <div className="config-form-actions">

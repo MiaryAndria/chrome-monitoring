@@ -16,11 +16,14 @@ def serialize_rapport_rows(rows):
             r["report_time"] = str(r["report_time"])
     return rows
 
-def _get_rapport_by_type(cur, device_id, type_name):
+GENERAL_REPORT_LIMIT = 300
+
+
+def _get_rapport_by_type(cur, device_id, type_name, limit=None):
     type_id = get_id_by_type_name(cur, type_name)
     if not type_id:
         return []
-    rows = get_rapport_by_device_and_type(cur, device_id, type_id)
+    rows = get_rapport_by_device_and_type(cur, device_id, type_id, limit=limit)
     return serialize_rapport_rows(rows)
 
 def getDeviceCpuRaport(cur, id):
@@ -109,12 +112,12 @@ def getDeviceRaportGeneral(id: int):
         return None
     cur = connexion.cursor()
     try:
-        cpu = getDeviceCpuRaport(cur, id)
-        ram = getRamRaport(cur, id)
-        stockage = getStockageRaport(cur, id)
-        batterie = getBatterieRaport(cur, id)
-        reseau = getReseauRaport(cur, id)
-        peripheriques = getConnectedPerRaport(cur, id)
+        cpu = _get_rapport_by_type(cur, id, "CPU_STATUS", GENERAL_REPORT_LIMIT)
+        ram = _get_rapport_by_type(cur, id, "MEMORY_STATUS", GENERAL_REPORT_LIMIT)
+        stockage = _get_rapport_by_type(cur, id, "STORAGE_STATUS", GENERAL_REPORT_LIMIT)
+        batterie = _get_rapport_by_type(cur, id, "BATTERY_STATUS", GENERAL_REPORT_LIMIT)
+        reseau = _get_rapport_by_type(cur, id, "NETWORK_STATUS", GENERAL_REPORT_LIMIT)
+        peripheriques = _get_rapport_by_type(cur, id, "PERIPHERALS_REPORT", GENERAL_REPORT_LIMIT)
 
         result = {
             "cpu": cpu,
