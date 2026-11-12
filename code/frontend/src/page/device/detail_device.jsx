@@ -220,13 +220,13 @@ function DetailDevice() {
             case 'ram':
                 return <RamTab reports={tabData.ram} device={device} deviceId={Number(id)} datetimeFrom={filtreDebut} datetimeTo={filtreFin} />;
             case 'stockage':
-                return <StorageTab reports={tabData.stockage} device={device} deviceId={Number(id)} />;
+                return <StorageTab reports={tabData.stockage} device={device} deviceId={Number(id)} datetimeFrom={filtreDebut} datetimeTo={filtreFin} />;
             case 'batterie':
-                return <BatteryTab reports={tabData.batterie} deviceId={Number(id)} />;
+                return <BatteryTab reports={tabData.batterie} deviceId={Number(id)} datetimeFrom={filtreDebut} datetimeTo={filtreFin} />;
             case 'reseau':
-                return <NetworkTab reports={tabData.reseau} deviceId={Number(id)} />;
+                return <NetworkTab reports={tabData.reseau} deviceId={Number(id)} datetimeFrom={filtreDebut} datetimeTo={filtreFin} />;
             case 'peripheriques':
-                return <PeripheriquesTab reports={tabData.peripheriques} deviceId={Number(id)} />;
+                return <PeripheriquesTab reports={tabData.peripheriques} deviceId={Number(id)} datetimeFrom={filtreDebut} datetimeTo={filtreFin} />;
             default:
                 return null;
         }

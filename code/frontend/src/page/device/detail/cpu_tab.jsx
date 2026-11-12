@@ -55,7 +55,12 @@ function CpuTab({ reports, deviceId, datetimeFrom, datetimeTo }) {
     const handleExport = async (format) => {
         try {
             const exportFn = format === 'pdf' ? exportPdf : exportExcel;
-            await exportFn({ onglet: 'cpu', id: deviceId });
+            await exportFn({
+                onglet: 'cpu',
+                id: deviceId,
+                date_debut: datetimeFrom || undefined,
+                date_fin: datetimeTo || undefined,
+            });
         } catch (e) {
             console.error(e);
         }

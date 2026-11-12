@@ -9,7 +9,7 @@ import { getUtilBarColor, getUtilColor, formatBytes, formatDate, usagePercent, e
 import ExportModal from '../../../components/ExportModal';
 import NoData from './NoData';
 
-function StorageTab({ reports, device, deviceId }) {
+function StorageTab({ reports, device, deviceId, datetimeFrom, datetimeTo }) {
     const [modal, setModal] = useState(false);
     const [latest, setLatest] = useState(null);
 
@@ -21,7 +21,12 @@ function StorageTab({ reports, device, deviceId }) {
     const handleExport = async (format) => {
         try {
             const exportFn = format === 'pdf' ? exportPdf : exportExcel;
-            await exportFn({ onglet: 'stockage', id: deviceId });
+            await exportFn({
+                onglet: 'stockage',
+                id: deviceId,
+                date_debut: datetimeFrom || undefined,
+                date_fin: datetimeTo || undefined,
+            });
         } catch (e) {
             console.error(e);
         }

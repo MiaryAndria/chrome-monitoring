@@ -5,12 +5,17 @@ import { formatDate, exportPdf, exportExcel } from '../../../fonction/utils/util
 import ExportModal from '../../../components/ExportModal';
 import NoData from './NoData';
 
-function NetworkTab({ reports, deviceId }) {
+function NetworkTab({ reports, deviceId, datetimeFrom, datetimeTo }) {
     const [modal, setModal] = useState(false);
     const handleExport = async (format) => {
         try {
             const exportFn = format === 'pdf' ? exportPdf : exportExcel;
-            await exportFn({ onglet: 'reseau', id: deviceId });
+            await exportFn({
+                onglet: 'reseau',
+                id: deviceId,
+                date_debut: datetimeFrom || undefined,
+                date_fin: datetimeTo || undefined,
+            });
         } catch (e) {
             console.error(e);
         }

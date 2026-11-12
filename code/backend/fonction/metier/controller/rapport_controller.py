@@ -168,8 +168,8 @@ def exportImprimantePdf(id: int):
 def exportRapportExcel(
     onglet: str,
     id: int,
-    date_debut: Optional[date] = None,
-    date_fin: Optional[date] = None,
+    date_debut: Optional[datetime] = None,
+    date_fin: Optional[datetime] = None,
 ):
     if onglet not in ONGLETS_VALIDES:
         raise HTTPException(status_code=404, detail="Onglet inconnu")
@@ -200,8 +200,8 @@ def exportRapportExcel(
 def exportPdf(
     onglet: str,
     id: int,
-    date_debut: Optional[date] = None,
-    date_fin: Optional[date] = None,
+    date_debut: Optional[datetime] = None,
+    date_fin: Optional[datetime] = None,
 ):
     if onglet not in ONGLETS_VALIDES:
         raise HTTPException(status_code=404, detail="Onglet inconnu")

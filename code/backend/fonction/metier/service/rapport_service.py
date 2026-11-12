@@ -189,7 +189,9 @@ def getReportsForExport(onglet, id_device, date_debut=None, date_fin=None):
             if not type_id:
                 return []
             if date_debut and date_fin:
-                return get_rapport_by_device_type_and_period(cur, id_device, type_id, date_debut, date_fin)
+                return get_rapport_by_device_type_and_datetime(
+                    cur, id_device, type_id, date_debut, date_fin
+                )
             return get_rapport_by_device_and_type(cur, id_device, type_id)
 
         if onglet == "general":

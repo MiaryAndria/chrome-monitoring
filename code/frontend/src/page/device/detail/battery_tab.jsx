@@ -5,7 +5,7 @@ import { formatDate, exportPdf, exportExcel } from '../../../fonction/utils/util
 import ExportModal from '../../../components/ExportModal';
 import NoData from './NoData';
 
-function BatteryTab({ reports, deviceId }) {
+function BatteryTab({ reports, deviceId, datetimeFrom, datetimeTo }) {
     const [modal, setModal] = useState(false);
     const summary = extractBatterySummary(reports);
     if (!summary) return <NoData title="Batterie" />;
@@ -21,7 +21,12 @@ function BatteryTab({ reports, deviceId }) {
     const handleExport = async (format) => {
         try {
             const exportFn = format === 'pdf' ? exportPdf : exportExcel;
-            await exportFn({ onglet: 'batterie', id: deviceId });
+            await exportFn({
+                onglet: 'batterie',
+                id: deviceId,
+                date_debut: datetimeFrom || undefined,
+                date_fin: datetimeTo || undefined,
+            });
         } catch (e) {
             console.error(e);
         }

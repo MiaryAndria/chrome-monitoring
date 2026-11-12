@@ -5,12 +5,17 @@ import { exportExcel, exportPdf } from '../../../fonction/utils/util';
 import ExportModal from '../../../components/ExportModal';
 import NoData from './NoData';
 
-function PeripheriquesTab({ reports, deviceId }) {
+function PeripheriquesTab({ reports, deviceId, datetimeFrom, datetimeTo }) {
     const [modal, setModal] = useState(false);
     const handleExport = async (format) => {
         try {
             const exportFn = format === 'pdf' ? exportPdf : exportExcel;
-            await exportFn({ onglet: 'peripheriques', id: deviceId });
+            await exportFn({
+                onglet: 'peripheriques',
+                id: deviceId,
+                date_debut: datetimeFrom || undefined,
+                date_fin: datetimeTo || undefined,
+            });
         } catch (e) {
             console.error(e);
         }
