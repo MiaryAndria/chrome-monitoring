@@ -12,17 +12,6 @@ def get_dernier_utilisateur_device(cur,id_device):
     result = cur.fetchone()
     return result
 
-def get_historique_utilisateurs_device(cur,id_device):
-    cur.execute(
-        """
-        SELECT * FROM t_device_utilisateur_recent
-        WHERE id_device = %s
-        ORDER BY date_observation DESC
-        """,(id_device,)
-    )
-    result = cur.fetchall()
-    return result
-
 def insert_device_utilisateur_recent(cur, id_device, id_utilisateur):
     cur.execute(
         """

@@ -1,12 +1,3 @@
-def get_type_appareil_by_id(cur,id):
-    cur.execute(
-    """
-    SELECT * FROM t_type_appareil WHERE id = %s 
-    """,(id,)
-    )
-    result = cur.fetchone()
-    return result 
-
 def get_type_appareil_by_name(cur,name):
     cur.execute(
     """

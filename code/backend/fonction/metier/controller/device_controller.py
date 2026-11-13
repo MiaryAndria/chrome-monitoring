@@ -5,7 +5,6 @@ from fastapi import APIRouter, HTTPException, Query
 
 from backend.fonction.metier.models.device import DeviceResponses, DevicePageResponse
 from backend.fonction.metier.service.device_service import (
-    getDeviceFiltered,
     getDeviceDetail,
     getDevicesPage,
     get_modeles,
@@ -64,15 +63,6 @@ def getModeles():
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/search", response_model=List[DeviceResponses])
-def getListeFiltrer(recherche: str = Query(...)):
-    try:
-        liste = getDeviceFiltered(recherche)
-        return liste
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
 @router.get("/stats")
 def getStats():
     try:
@@ -82,7 +72,7 @@ def getStats():
 
 
 @router.get("/{id}", response_model=DeviceResponses)
-def getDetailDevice(id):
+def getDetailDevice(id: int):
     try:
         device = getDeviceDetail(id)
 

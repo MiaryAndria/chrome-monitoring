@@ -1,72 +1,29 @@
-from backend.fonction.conn.connexion import get_connection, close_connection
+from backend.fonction.conn.transaction import lecture
 from backend.fonction.metier.repository.devices import (
-    get_device_by_id,
-    get_device_by_device_id,
-    get_liste_device,
+    get_device_detail,
     get_liste_modele,
     get_all_device_stats,
-    recherche_multicritere,
     find_devices_paginated,
 )
-from backend.utils.builder import _build_device_response, _serialize_device_row
-from backend.utils.format_valeur import format_bytes, format_frequency
+from backend.utils.builder import _serialize_device_row
 from backend.utils.pagination import build_page
 from backend.core.cache import cache_get, cache_set
 
-def getListeDevice():
-    connexion = get_connection()
-    if connexion is None:
-        print("Connexion BDD impossible")
-        return []
-    cur = connexion.cursor()
-    try:
-        devices = get_liste_device(cur)
-        return [payload for d in devices if (payload := _build_device_response(cur, d)) is not None]
-    finally:
-        close_connection(connexion)
-
 def getDeviceDetail(id):
-    connexion = get_connection()
-    if connexion is None:
-        print("Connexion BDD IMPOSSIBLE")
-        return None
-    try:
-        cur = connexion.cursor()
-        d = get_device_by_id(cur, id)
-        return _build_device_response(cur, d)
-    finally:
-        close_connection(connexion)
-
-
-def getDeviceFiltered(recherche):
-    connexion = get_connection()
-    if connexion is None:
-        print("Connexion BDD IMPOSSIBLE")
-        return []
-    try:
-        cur = connexion.cursor()
-        devices = recherche_multicritere(cur, recherche)
-        if not devices:
-            return []
-
-        result = []
-        for d in devices:
-            payload = _build_device_response(cur, get_device_by_id(cur, d[0]))
-            if payload:
-                result.append(payload)
-        return result
-    finally:
-        close_connection(connexion)
+    with lecture() as cur:
+        if cur is None:
+            print("Connexion BDD IMPOSSIBLE")
+            return None
+        row = get_device_detail(cur, id)
+        return _serialize_device_row(row) if row else None
 
 
 def _fetch_devices_page(page=1, page_size=10, id_filiale=None, filiale=None,
                         id_statut=None, statut=None, type_appareil=None, recherche=None,
                         datetime_from=None, datetime_to=None,modele=None,utilisateur_recent=None):
-    connexion = get_connection()
-    if connexion is None:
-        return build_page([], 0, page, page_size)
-    try:
-        cur = connexion.cursor()
+    with lecture() as cur:
+        if cur is None:
+            return build_page([], 0, page, page_size)
         rows = find_devices_paginated(
             cur, page, page_size,
             id_filiale=id_filiale, filiale=filiale, id_statut=id_statut, statut=statut,
@@ -89,10 +46,7 @@ def _fetch_devices_page(page=1, page_size=10, id_filiale=None, filiale=None,
         items = []
         for row in rows:
             items.append(_serialize_device_row(row))
-        cur.close()
         return build_page(items, total, page, page_size)
-    finally:
-        close_connection(connexion)
 
 
 def _devices_cache_key(page, page_size, id_filiale, filiale, id_statut, statut,
@@ -133,16 +87,11 @@ def get_device_stats():
     if valeur is not None:
         return valeur
 
-    connexion = get_connection()
-    if connexion is None:
-        return {"total": 0, "actifs": 0}
-    try:
-        cur = connexion.cursor()
+    with lecture() as cur:
+        if cur is None:
+            return {"total": 0, "actifs": 0}
         resultat = get_all_device_stats(cur)
-        cur.close()
         return cache_set(DEVICE_STATS_CACHE_KEY, resultat, DEVICE_STATS_CACHE_TTL)
-    finally:
-        close_connection(connexion)
 
 
 def get_modeles():
@@ -150,22 +99,9 @@ def get_modeles():
     if valeur is not None:
         return valeur
 
-    connexion = get_connection()
-    if connexion is None:
-        return []
-    try:
-        cur = connexion.cursor()
+    with lecture() as cur:
+        if cur is None:
+            return []
         rows = get_liste_modele(cur)
-        cur.close()
         return cache_set(MODELES_CACHE_KEY, rows, MODELES_CACHE_TTL)
-    finally:
-        close_connection(connexion)
 
-
-        
-# if __name__ == "__main__":
-#     connexion = get_connection()
-#     cur = connexion.cursor()
-#     # device = recherche_multicritere(cur,'digital.salamander@taloumis.mg')
-#     # device = getDeviceDetail(2)
-#     print(device)

@@ -1,4 +1,4 @@
-from backend.fonction.conn.connexion import get_connection, close_connection
+from backend.fonction.conn.transaction import lecture
 from backend.fonction.metier.repository.utilisateur_google import (
     find_utilisateurs_recent_paginated,
     get_devices_by_utilisateur_recent,
@@ -30,18 +30,13 @@ def _device_to_dict(row):
 
 
 def _fetch_utilisateurs_recent_page(page, page_size, filiale, recherche):
-    connexion = get_connection()
-    if connexion is None:
-        return build_page([], 0, page, page_size)
-    try:
-        cur = connexion.cursor()
+    with lecture() as cur:
+        if cur is None:
+            return build_page([], 0, page, page_size)
         rows = find_utilisateurs_recent_paginated(cur, page, page_size, filiale, recherche)
         total = rows[0][5] if rows else 0
         items = [_utilisateur_to_dict(r) for r in rows]
-        cur.close()
         return build_page(items, total, page, page_size)
-    finally:
-        close_connection(connexion)
 
 
 def get_utilisateurs_recent_page(page=1, page_size=10, filiale=None, recherche=None):
@@ -60,14 +55,9 @@ def get_utilisateur_recent_devices(id_utilisateur, limit=MAX_DEVICES_PAR_UTILISA
     if valeur is not None:
         return valeur
 
-    connexion = get_connection()
-    if connexion is None:
-        return []
-    try:
-        cur = connexion.cursor()
+    with lecture() as cur:
+        if cur is None:
+            return []
         rows = get_devices_by_utilisateur_recent(cur, id_utilisateur, limit)
-        cur.close()
         items = [_device_to_dict(r) for r in rows]
         return cache_set(cle, items)
-    finally:
-        close_connection(connexion)

@@ -143,21 +143,16 @@ def sanitize_export_name(value):
 
 def resolve_device_export_name(device_id):
     try:
-        from backend.fonction.conn.connexion import get_connection, close_connection
+        from backend.fonction.conn.transaction import lecture
         from backend.fonction.metier.repository.devices import get_device_by_id
 
-        connexion = get_connection()
-        if connexion is None:
-            return f"appareil_{device_id}"
-
-        try:
-            cur = connexion.cursor()
+        with lecture() as cur:
+            if cur is None:
+                return f"appareil_{device_id}"
             device = get_device_by_id(cur, device_id)
             if not device:
                 return f"appareil_{device_id}"
             return sanitize_export_name(device[3] or device[1] or f"appareil_{device_id}")
-        finally:
-            close_connection(connexion)
     except Exception:
         return f"appareil_{device_id}"
 

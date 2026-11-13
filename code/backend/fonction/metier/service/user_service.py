@@ -1,4 +1,4 @@
-from backend.fonction.conn.connexion import get_connection, close_connection
+from backend.fonction.conn.transaction import lecture, transaction
 from backend.fonction.metier.repository.user import (
     get_user_by_email,
     create_user,
@@ -40,33 +40,24 @@ def login_user(email, mdp):
     if not email or not mdp:
         return None
 
-    connexion = get_connection()
-    if connexion is None:
-        return None
-
-    try:
-        cur = connexion.cursor()
+    with lecture() as cur:
+        if cur is None:
+            return None
         user = get_user_by_email(cur, email)
 
         if user is None:
-            cur.close()
             return None
 
         mot_de_passe_hache = user[3]
         if not verifier_password(mdp, mot_de_passe_hache):
-            cur.close()
             return None
 
-        id_statut_supprime = ID_STATUT_SUPPRIMER
-        archive = get_user_archived(cur, user[0], id_statut_supprime)
-        cur.close()
+        archive = get_user_archived(cur, user[0], ID_STATUT_SUPPRIMER)
 
         if archive is not None:
             raise ValueError("Ce compte a été supprimé")
 
         return user
-    finally:
-        close_connection(connexion)
 
 def signin_user(nom, email, mdp):
     nom = (nom or "").strip()
@@ -78,46 +69,32 @@ def signin_user(nom, email, mdp):
     if len(mdp) < 6:
         raise ValueError("Le mot de passe doit contenir au moins 6 caractères")
 
-    connexion = get_connection()
-    if connexion is None:
-        raise ValueError("Erreur de connexion à la base de données")
-
     try:
-        cur = connexion.cursor()
-        if get_user_by_email(cur, email) is not None:
-            cur.close()
-            raise ValueError("Cet email est déjà utilisé")
+        with transaction() as cur:
+            if cur is None:
+                raise ValueError("Erreur de connexion à la base de données")
+            if get_user_by_email(cur, email) is not None:
+                raise ValueError("Cet email est déjà utilisé")
 
-        mdp_hache = hasher_password(mdp)
-        user = create_user(cur, nom, email, mdp_hache, ID_ROLE_LECTURE)
-        if user is not None:
-            insert_user_statut(cur, user[0], ID_STATUT_CREER)
-        connexion.commit()
-        cur.close()
-        return user
+            mdp_hache = hasher_password(mdp)
+            user = create_user(cur, nom, email, mdp_hache, ID_ROLE_LECTURE)
+            if user is not None:
+                insert_user_statut(cur, user[0], ID_STATUT_CREER)
+            return user
     except ValueError:
-        connexion.rollback()
         raise
     except Exception:
-        connexion.rollback()
         raise ValueError("Impossible de créer le compte")
-    finally:
-        close_connection(connexion)
 
 def get_users():
-    connexion = get_connection()
-    if connexion is None:
-        return []
-    try:
-        cur = connexion.cursor()
+    with lecture() as cur:
+        if cur is None:
+            return []
         rows = list_users(cur)
-        cur.close()
         return [
             {"id": r[0], "nom": r[1], "email": r[2], "id_role": r[3], "role": r[4]}
             for r in rows
         ]
-    finally:
-        close_connection(connexion)
 
 UTILISATEURS_RECENTS_CACHE_KEY = "users:recent:all"
 UTILISATEURS_RECENTS_CACHE_TTL = 60
@@ -128,144 +105,91 @@ def get_utilisateur_recent ():
     if valeur is not None:
         return valeur
 
-    connexion = get_connection()
-    if connexion is None :
-        return []
-    try:
-        cur = connexion.cursor()
+    with lecture() as cur:
+        if cur is None:
+            return []
         rows = get_liste_utilisateur_recent(cur)
-        cur.close()
         return cache_set(
             UTILISATEURS_RECENTS_CACHE_KEY,
             [{"id": r[0], "email": r[1]} for r in rows],
             UTILISATEURS_RECENTS_CACHE_TTL,
         )
-    finally:
-        close_connection(connexion)
 
 def get_role():
-    connexion = get_connection()
-    if connexion is None:
-        return []
-    try:
-        cur = connexion.cursor()
+    with lecture() as cur:
+        if cur is None:
+            return []
         rows = get_roles_repo(cur)
-        cur.close()
         return [{"id": r[0], "role": r[1]} for r in rows]
-    finally:
-        close_connection(connexion)
 
 
 def update_role(id_user, id_role):
-    connexion = get_connection()
-    if connexion is None:
-        raise ValueError("Erreur de connexion à la base de données")
-
     try:
-        cur = connexion.cursor()
-        if not role_exists(cur, id_role):
-            cur.close()
-            raise ValueError("Rôle inconnu")
+        with transaction() as cur:
+            if cur is None:
+                raise ValueError("Erreur de connexion à la base de données")
+            if not role_exists(cur, id_role):
+                raise ValueError("Rôle inconnu")
 
-        user = set_user_role(cur, id_user, id_role)
-        if user is None:
-            cur.close()
-            raise ValueError("Utilisateur introuvable")
+            user = set_user_role(cur, id_user, id_role)
+            if user is None:
+                raise ValueError("Utilisateur introuvable")
 
-        insert_user_statut(cur, user[0], ID_STATUT_MODIFIER)
-        connexion.commit()
-        cur.close()
-        return {"id": user[0], "nom": user[1], "email": user[2], "id_role": user[3]}
+            insert_user_statut(cur, user[0], ID_STATUT_MODIFIER)
+            return {"id": user[0], "nom": user[1], "email": user[2], "id_role": user[3]}
     except ValueError:
-        connexion.rollback()
         raise
     except Exception:
-        connexion.rollback()
         raise ValueError("Impossible de mettre à jour le rôle")
-    finally:
-        close_connection(connexion)
 
 
 def getUsersPage(page=1, page_size=10):
-    connexion = get_connection()
-    if connexion is None:
-        return build_page([], 0, page, page_size)
-    try:
-        cur = connexion.cursor()
-        id_statut_supprime = ID_STATUT_SUPPRIMER
-        rows = find_users_paginated(cur, id_statut_supprime, page, page_size)
+    with lecture() as cur:
+        if cur is None:
+            return build_page([], 0, page, page_size)
+        rows = find_users_paginated(cur, ID_STATUT_SUPPRIMER, page, page_size)
         total = rows[0][6] if rows else 0
         items = [_user_to_dict(r) for r in rows]
-        cur.close()
         return build_page(items, total, page, page_size)
-    finally:
-        close_connection(connexion)
 
 
 def getUsersArchivePage(page=1, page_size=10):
-    connexion = get_connection()
-    if connexion is None:
-        return build_page([], 0, page, page_size)
-    try:
-        cur = connexion.cursor()
-        id_statut_supprime = ID_STATUT_SUPPRIMER
-        rows = find_users_archived_paginated(cur, id_statut_supprime, page, page_size)
+    with lecture() as cur:
+        if cur is None:
+            return build_page([], 0, page, page_size)
+        rows = find_users_archived_paginated(cur, ID_STATUT_SUPPRIMER, page, page_size)
         total = rows[0][6] if rows else 0
         items = [_user_to_dict(r) for r in rows]
-        cur.close()
         return build_page(items, total, page, page_size)
-    finally:
-        close_connection(connexion)
 
 
 def archiver_user(id_user):
-    connexion = get_connection()
-    if connexion is None:
-        raise ValueError("Erreur de connexion à la base de données")
-
     try:
-        cur = connexion.cursor()
-        if get_user_by_id(cur, id_user) is None:
-            cur.close()
-            raise ValueError("Utilisateur introuvable")
+        with transaction() as cur:
+            if cur is None:
+                raise ValueError("Erreur de connexion à la base de données")
+            if get_user_by_id(cur, id_user) is None:
+                raise ValueError("Utilisateur introuvable")
 
-        id_statut = ID_STATUT_SUPPRIMER
-        insert_user_statut(cur, id_user, id_statut)
-        connexion.commit()
-        cur.close()
-        return True
+            insert_user_statut(cur, id_user, ID_STATUT_SUPPRIMER)
+            return True
     except ValueError:
-        connexion.rollback()
         raise
     except Exception:
-        connexion.rollback()
         raise ValueError("Impossible de supprimer l'utilisateur")
-    finally:
-        close_connection(connexion)
 
 
 def restaurer_user(id_user):
-    connexion = get_connection()
-    if connexion is None:
-        raise ValueError("Erreur de connexion à la base de données")
-
     try:
-        cur = connexion.cursor()
-        id_statut_supprime = ID_STATUT_SUPPRIMER
-        if get_user_archived(cur, id_user, id_statut_supprime) is None:
-            cur.close()
-            raise ValueError("Utilisateur introuvable")
+        with transaction() as cur:
+            if cur is None:
+                raise ValueError("Erreur de connexion à la base de données")
+            if get_user_archived(cur, id_user, ID_STATUT_SUPPRIMER) is None:
+                raise ValueError("Utilisateur introuvable")
 
-        id_statut = ID_STATUT_RESTAURER
-        insert_user_statut(cur, id_user, id_statut)
-        connexion.commit()
-        cur.close()
-        return True
+            insert_user_statut(cur, id_user, ID_STATUT_RESTAURER)
+            return True
     except ValueError:
-        connexion.rollback()
         raise
     except Exception:
-        connexion.rollback()
         raise ValueError("Impossible de restaurer l'utilisateur")
-    finally:
-        close_connection(connexion)

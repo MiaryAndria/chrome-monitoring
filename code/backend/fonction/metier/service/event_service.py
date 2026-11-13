@@ -1,7 +1,7 @@
 import json
 from datetime import datetime, timezone
 
-from backend.fonction.conn.connexion import get_connection, close_connection
+from backend.fonction.conn.transaction import lecture, transaction
 from backend.fonction.metier.repository.evenement import (
     get_liste_evenement_avec_details,
     get_liste_type_evenement,
@@ -19,13 +19,10 @@ from backend.utils.config_db import get_int_configuration
 from backend.fonction.metier.service.ia_evenement_service import stream_chat_with_ia
 
 def get_event():
-    connexion = get_connection()
-    if connexion is None:
-        return []
-    try:
-        cur = connexion.cursor()
+    with lecture() as cur:
+        if cur is None:
+            return []
         rows = get_liste_evenement_avec_details(cur)
-        cur.close()
 
         result = []
         for r in rows:
@@ -54,26 +51,19 @@ def get_event():
                 "minutes_since_boot": details.get("minutes_since_boot"),
             })
         return result
-    finally:
-        close_connection(connexion)
-        
+
 def get_type_evenement():
-    connexion = None
-    try:
-        connexion = get_connection()
-        cur = connexion.cursor()
+    with lecture() as cur:
+        if cur is None:
+            return []
         rows = get_liste_type_evenement(cur)
-        cur.close()
         result = []
         for r in rows:
             result.append({
-                "id":   r[0],   
-                "type": r[1]   
+                "id":   r[0],
+                "type": r[1]
             })
-        return result           
-    finally:
-        if connexion:          
-            close_connection(connexion)
+        return result
 
 
 def _date_evenement_utc(value):
@@ -117,11 +107,9 @@ def _serialize_evenement_row(row):
 def _fetch_events_page(page=1, page_size=10, type_evenement=None, id_filiale=None,
                        filiale=None, recherche=None, datetime_from=None,
                        datetime_to=None):
-    connexion = get_connection()
-    if connexion is None:
-        return build_page([], 0, page, page_size)
-    try:
-        cur = connexion.cursor()
+    with lecture() as cur:
+        if cur is None:
+            return build_page([], 0, page, page_size)
         rows = find_evenements_paginated(
             cur, page, page_size, type_evenement, id_filiale, filiale,
             recherche, datetime_from, datetime_to
@@ -137,10 +125,7 @@ def _fetch_events_page(page=1, page_size=10, type_evenement=None, id_filiale=Non
         items = []
         for row in rows:
             items.append(_serialize_evenement_row(row))
-        cur.close()
         return build_page(items, total, page, page_size)
-    finally:
-        close_connection(connexion)
 
 
 def _events_cache_key(page, page_size, type_evenement, id_filiale, filiale,
@@ -250,50 +235,30 @@ def _build_duree_vie(cur, id_device):
 
 
 def get_duree_vie_evenement(event_id):
-    connexion = get_connection()
-    if connexion is None:
-        return None
-    try:
-        cur = connexion.cursor()
+    with lecture() as cur:
+        if cur is None:
+            return None
         evenement = get_evenement_by_id(cur, event_id)
         if evenement is None:
             return None
 
         id_device = evenement[1]
-        resultat = _build_duree_vie(cur, id_device)
-        cur.close()
-        return resultat
-    finally:
-        close_connection(connexion)
+        return _build_duree_vie(cur, id_device)
 
 
 def delete_evenement(date_limite):
-    connexion = get_connection()
-    if connexion is None:
-        return 0
-    try:
-        cur = connexion.cursor()
+    with transaction() as cur:
+        if cur is None:
+            return 0
         delete_evenements_avant(cur, date_limite)
-        connexion.commit()
-        cache_invalidate_prefix("events:")
-    except Exception:
-        connexion.rollback()
-        raise
-    finally:
-        close_connection(connexion)
-        
-        
+    cache_invalidate_prefix("events:")
+
+
 def get_evenement_ia_context(event_id):
-    connexion = get_connection()
-    if connexion is None:
-        return None
-    try:
-        cur = connexion.cursor()
-        evenement = get_evenement_detail_by_id(cur, event_id)
-        cur.close()
-        return evenement
-    finally:
-        close_connection(connexion)
+    with lecture() as cur:
+        if cur is None:
+            return None
+        return get_evenement_detail_by_id(cur, event_id)
 
 
 def ia_chat_stream(event_id, messages):

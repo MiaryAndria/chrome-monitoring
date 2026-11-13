@@ -1,4 +1,4 @@
-from backend.fonction.conn.connexion import get_connection, close_connection
+from backend.fonction.conn.transaction import lecture, transaction
 from backend.fonction.metier.repository.seuil import (
     get_liste_seuil,
     find_seuils_paginated,
@@ -59,30 +59,20 @@ def _valider_valeur_seuil(valeur, limite):
 
 
 def getListeSeuil():
-    connexion = get_connection()
-    if connexion is None:
-        return []
-    try:
-        cur = connexion.cursor()
-        rows = get_liste_seuil(cur)
-        return [_row_to_dict(r) for r in rows]
-    finally:
-        close_connection(connexion)
+    with lecture() as cur:
+        if cur is None:
+            return []
+        return [_row_to_dict(r) for r in get_liste_seuil(cur)]
 
 
 def _fetch_seuils_page(page=1, page_size=10, categorie=None):
-    connexion = get_connection()
-    if connexion is None:
-        return build_page([], 0, page, page_size)
-    try:
-        cur = connexion.cursor()
+    with lecture() as cur:
+        if cur is None:
+            return build_page([], 0, page, page_size)
         rows = find_seuils_paginated(cur, page, page_size, categorie)
         total = rows[0][8] if rows else 0
         items = [_row_to_dict(r) for r in rows]
-        cur.close()
         return build_page(items, total, page, page_size)
-    finally:
-        close_connection(connexion)
 
 
 def getSeuilsPage(page=1, page_size=10, categorie=None):
@@ -96,18 +86,13 @@ def getSeuilsPage(page=1, page_size=10, categorie=None):
 
 
 def _fetch_seuils_archive_page(page=1, page_size=10):
-    connexion = get_connection()
-    if connexion is None:
-        return build_page([], 0, page, page_size)
-    try:
-        cur = connexion.cursor()
+    with lecture() as cur:
+        if cur is None:
+            return build_page([], 0, page, page_size)
         rows = find_seuils_archived_paginated(cur, page, page_size)
         total = rows[0][8] if rows else 0
         items = [_row_to_dict(r) for r in rows]
-        cur.close()
         return build_page(items, total, page, page_size)
-    finally:
-        close_connection(connexion)
 
 
 def getSeuilsArchivePage(page=1, page_size=10):
@@ -121,66 +106,57 @@ def getSeuilsArchivePage(page=1, page_size=10):
 
 
 def getListeArchiveSeuil():
-    connexion = get_connection()
-    if connexion is None:
-        return []
-    try:
-        cur = connexion.cursor()
-        rows = get_liste_archiver(cur)
-        return [_row_to_dict(r) for r in rows]
-    finally:
-        close_connection(connexion)
+    with lecture() as cur:
+        if cur is None:
+            return []
+        return [_row_to_dict(r) for r in get_liste_archiver(cur)]
 
 
 def getDetailSeuil(id_seuil):
-    connexion = get_connection()
-    if connexion is None:
-        return None
-    try:
-        cur = connexion.cursor()
+    with lecture() as cur:
+        if cur is None:
+            return None
         row = get_seuil_by_id(cur, id_seuil)
         if row is None:
             return None
-        return _row_to_dict(row)
-    finally:
-        close_connection(connexion)
+        result = []
+        result.append({
+            "id": row[0],
+            "id_type": row[1],
+            "cle": row[2],
+            "categorie": row[3],
+            "valeur": row[4],
+            "date": row[5],
+            "sens": row[6],
+            "limite": row[7], 
+        })
+        return result 
 
 
 def InsertSeuil(id_type, valeur):
-    connexion = get_connection()
-    if connexion is None:
-        return None
-    try:
-        cur = connexion.cursor()
+    with transaction() as cur:
+        if cur is None:
+            return None
         info = get_type_seuil_info(cur, id_type)
         if info is None:
             raise ValueError("Type de seuil introuvable.")
         valeur = _valider_valeur_seuil(valeur, info[2])
 
-        existant = verifier_seuil_type_existe(cur, id_type)
-        if existant is not None:
+        if verifier_seuil_type_existe(cur, id_type) is not None:
             raise ValueError(
                 "Ce seuil existe déjà. Modifiez-le si vous voulez changer la valeur."
             )
         id_seuil = insert_seuil(cur, id_type, valeur)
         if id_seuil is not None:
             insert_seuil_statut(cur, id_seuil, ID_STATUT_CREER)
-        connexion.commit()
-        cache_invalidate_prefix("seuils:")
-        return id_seuil
-    except Exception:
-        connexion.rollback()
-        raise
-    finally:
-        close_connection(connexion)
+    cache_invalidate_prefix("seuils:")
+    return id_seuil
 
 
 def UpdateSeuil(id_seuil, valeur, sens=None):
-    connexion = get_connection()
-    if connexion is None:
-        return False
-    try:
-        cur = connexion.cursor()
+    with transaction() as cur:
+        if cur is None:
+            return False
         seuil_actuel = get_seuil_by_id(cur, id_seuil)
         if seuil_actuel is None:
             raise ValueError("Seuil introuvable.")
@@ -197,102 +173,63 @@ def UpdateSeuil(id_seuil, valeur, sens=None):
             insert_seuil_statut(cur, updated_id, ID_STATUT_MODIFIER)
         if sens:
             update_sens_seuil(cur, id_seuil, sens)
-        connexion.commit()
-        cache_invalidate_prefix("seuils:")
-        return True
-    except Exception:
-        connexion.rollback()
-        raise
-    finally:
-        close_connection(connexion)
+    cache_invalidate_prefix("seuils:")
+    return True
 
 
 def deleteSeuil(id_seuil):
-    connexion = get_connection()
-    if connexion is None:
-        return False
-    try:
-        cur = connexion.cursor()
+    with transaction() as cur:
+        if cur is None:
+            return False
         delete_seuil(cur, id_seuil, ID_STATUT_SUPPRIMER)
-        connexion.commit()
-        cache_invalidate_prefix("seuils:")
-        return True
-    except Exception:
-        connexion.rollback()
-        raise
-    finally:
-        close_connection(connexion)
+    cache_invalidate_prefix("seuils:")
+    return True
 
 
 def hardDeleteSeuil(id_seuil):
-    connexion = get_connection()
-    if connexion is None:
-        return False
-    try:
-        cur = connexion.cursor()
+    with transaction() as cur:
+        if cur is None:
+            return False
         supprime = hard_delete_seuil(cur, id_seuil)
-        connexion.commit()
-        cache_invalidate_prefix("seuils:")
-        return supprime
-    except Exception:
-        connexion.rollback()
-        raise
-    finally:
-        close_connection(connexion)
+    cache_invalidate_prefix("seuils:")
+    return supprime
 
 
 def reStaurer(id_seuil):
-    connexion = get_connection()
-    if connexion is None:
-        return False
-    try:
-        cur = connexion.cursor()
-        parametre = get_by_id_liste_archiver(cur, id_seuil)
-        if parametre is None:
+    with transaction() as cur:
+        if cur is None:
             return False
+        if get_by_id_liste_archiver(cur, id_seuil) is None:
+            return False
+        restore_seuil(cur, id_seuil, ID_STATUT_RESTAURER)
+    cache_invalidate_prefix("seuils:")
+    return id_seuil
 
-        restore_seuil(cur, id_seuil,ID_STATUT_RESTAURER)
-        connexion.commit()
-        cache_invalidate_prefix("seuils:")
-        return id_seuil
-    except Exception:
-        connexion.rollback()
-        raise
-    finally:
-        close_connection(connexion)
 
 def get_liste_type_seuil_by_categorie(id_categorie):
-    connexion = get_connection()
-    if connexion is None:
-        return []
-    try:
-        cur = connexion.cursor()
+    with lecture() as cur:
+        if cur is None:
+            return []
         rows = get_type_seuil_by_categorie(cur, id_categorie)
-        result = []
-        for r in rows:
-            result.append({
+        return [
+            {
                 "id": r[0],
                 "type": r[1],
                 "limite": r[2],
-            })
-        return result
-    finally:
-        close_connection(connexion)
+            }
+            for r in rows
+        ]
 
 
 def get_liste_categorie_seuil():
-    connexion = get_connection()
-    if connexion is None:
-        return []
-    try:
-        cur = connexion.cursor()
+    with lecture() as cur:
+        if cur is None:
+            return []
         rows = get_categorie_seuil(cur)
-        result = []
-        for r in rows:
-            result.append({
+        return [
+            {
                 "id": r[0],
                 "categorie": r[1],
-            })
-        return result
-    finally:
-        close_connection(connexion)
+            }
+            for r in rows
+        ]

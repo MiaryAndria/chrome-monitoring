@@ -92,69 +92,6 @@ def get_device_by_serial_number(cur,serial_number):
     return result
 
 
-def get_filiale_by_device(cur, id_device):
-    cur.execute(
-        """
-        SELECT f.id, f.org_unit_path
-        FROM t_filiale f
-        JOIN t_device_filiale df ON f.id = df.id_filiale
-        WHERE df.id_device = %s
-        LIMIT 1
-        """, (id_device,)
-    )
-    result = cur.fetchone()
-    return result
-
-
-STATUTS_AUTORISES = ('ACTIVE', 'DELINQUENT', 'DISABLED', 'DEPROVISIONED')
-
-
-def recherche_multicritere(cur, recherche):
-    terme = f"%{recherche}%"
-    cur.execute(
-        """
-        SELECT DISTINCT d.id, d.device_id, d.serial_number, d.modele, d.id_type_appareil,
-               v.chromeos_version, v.chromeos_version AS chrome_version, d.mac_adress, d.ip_adress,
-               d.date_creation, ta.nom AS type_appareil, s.nom AS statut,
-               f.org_unit_path AS filiale
-        FROM t_device d
-        LEFT JOIN t_device_utilisateur du ON d.id = du.id_device
-        LEFT JOIN t_utilisateur u ON du.id_utilisateur = u.id
-        LEFT JOIN t_device_utilisateur_recent dur ON d.id = dur.id_device
-        LEFT JOIN t_utilisateur ur ON dur.id_utilisateur = ur.id
-        LEFT JOIN t_type_appareil ta ON d.id_type_appareil = ta.id
-        LEFT JOIN t_device_statut ds ON d.id = ds.id_device
-            AND ds.date = (
-                SELECT MAX(ds2.date)
-                FROM t_device_statut ds2
-                WHERE ds2.id_device = d.id
-            )
-        LEFT JOIN t_statut s ON ds.id_statut = s.id
-        LEFT JOIN t_device_filiale df ON d.id = df.id_device
-        LEFT JOIN t_filiale f ON df.id_filiale = f.id
-        LEFT JOIN LATERAL (
-            SELECT dv.chromeos_version
-            FROM t_device_version dv
-            WHERE dv.id_device = d.id
-            ORDER BY dv.date DESC, dv.id DESC
-            LIMIT 1
-        ) v ON TRUE
-        WHERE d.device_id ILIKE %s
-           OR d.serial_number ILIKE %s
-           OR d.modele ILIKE %s
-           OR u.email ILIKE %s
-           OR ur.email ILIKE %s
-           OR ta.nom ILIKE %s
-           OR s.nom ILIKE %s
-           OR f.org_unit_path ILIKE %s
-        ORDER BY d.id ASC
-        """, (terme, terme, terme, terme, terme, terme, terme, terme)
-    )
-
-    result = cur.fetchall()
-    return result
-
-
 def insert_device(cur, device_id, serial_number, modele, id_type_appareil,
     date_creation, ip_adress, mac_adress, ram_total=None):
     cur.execute(
@@ -299,22 +236,6 @@ def delete_all(cur):
     """,
     )
     
-
-def _get_last_disk_info(cur, device_id):
-    cur.execute(
-        """
-        SELECT dd.total_reel, dd.total_formater, dd.disponible, dd.total_utiliser,
-               d.model, d.type
-        FROM t_disk_device dd
-        JOIN t_disk d ON d.id = dd.id_disk
-        WHERE dd.id_device = %s
-        ORDER BY dd.date DESC, dd.id DESC
-        LIMIT 1
-        """,
-        (device_id,),
-    )
-    return cur.fetchone()
-
 
 def _get_device_cpu_info(cur, device_id):
     cur.execute(
@@ -552,6 +473,13 @@ def find_devices_paginated(cur, page=1, page_size=10, id_filiale=None,
     for row in rows:
         row["total"] = total
     return rows
+
+
+def get_device_detail(cur, id_device):
+    cur.execute(_DEVICE_DETAIL_QUERY, ([int(id_device)],))
+    rows = _rows_to_dicts(cur)
+    return rows[0] if rows else None
+
 
 def get_liste_version_by_device(cur, id_device):
     """Toutes les versions d'un appareil (source de la liste déroulante)."""

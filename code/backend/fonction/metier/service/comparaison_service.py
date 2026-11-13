@@ -1,7 +1,7 @@
 import json
 from datetime import datetime, timezone
 
-from backend.fonction.conn.connexion import get_connection, close_connection
+from backend.fonction.conn.transaction import lecture, transaction
 from backend.fonction.metier.repository.devices import (
     get_device_by_id,
     _get_device_cpu_info,
@@ -47,11 +47,9 @@ STATUT_TERMINER = ID_STATUT_TERMINER
 STATUT_ECHEC = ID_STATUT_ECHEC
 
 def getListeComparaison():
-    connexion = get_connection()
-    if connexion is None:
-        return []
-    try:
-        cur = connexion.cursor()
+    with lecture() as cur:
+        if cur is None:
+            return []
         rows = get_liste_comparaison(cur)
         resultat = []
         for r in rows:
@@ -74,8 +72,6 @@ def getListeComparaison():
                 "resultat": r[7],
             })
         return resultat
-    finally:
-        close_connection(connexion)
 
 
 
@@ -97,18 +93,13 @@ def _comparaison_row_to_dict(r):
 
 
 def _fetch_comparaisons_page(page=1, page_size=10, datetime_from=None, datetime_to=None):
-    connexion = get_connection()
-    if connexion is None:
-        return build_page([], 0, page, page_size)
-    try:
-        cur = connexion.cursor()
+    with lecture() as cur:
+        if cur is None:
+            return build_page([], 0, page, page_size)
         rows = find_comparaisons_paginated(cur, page, page_size, datetime_from, datetime_to)
         total = rows[0][12] if rows else 0
         items = [_comparaison_row_to_dict(r) for r in rows]
-        cur.close()
         return build_page(items, total, page, page_size)
-    finally:
-        close_connection(connexion)
 
 
 def getComparaisonsPage(page=1, page_size=10, datetime_from=None, datetime_to=None):
@@ -128,17 +119,13 @@ def getComparaisonsPage(page=1, page_size=10, datetime_from=None, datetime_to=No
 
 
 def get_comparaison_detail(id):
-    connexion = get_connection()
-    if connexion is None:
-        return None
-    try:
-        cur = connexion.cursor()
+    with lecture() as cur:
+        if cur is None:
+            return None
         row = get_comparaison_by_id(cur, id)
         if row is None:
             return None
         return _comparaison_row_to_dict(row)
-    finally:
-        close_connection(connexion)
 
 
 def _extraire_specs(device, cpu_info):
@@ -151,22 +138,17 @@ def _extraire_specs(device, cpu_info):
     }
 
 def get_liste_version_device(id_device):
-    connexion = get_connection()
-    if connexion is None :
-        return []
-    try:
-        cur = connexion.cursor()
-        liste = get_liste_version_by_device(cur,id_device)
-        result = []
-        for l in liste:
-            result.append({
+    with lecture() as cur:
+        if cur is None:
+            return []
+        return [
+            {
                 "id": l[0],
                 "chromeos_version": l[1],
                 "date": l[2],
-            })
-        return result 
-    finally:
-        close_connection(connexion)
+            }
+            for l in get_liste_version_by_device(cur, id_device)
+        ]
              
 def get_data_device(cur, id_device, chromeos_version):
     """Données comparables d'un appareil sur l'intervalle d'une version."""
@@ -316,55 +298,49 @@ def compare(detail_a, detail_b):
     }
 
 
-def _marquer_echec(connexion, id_comparaison):
+def _marquer_echec(id_comparaison):
     if id_comparaison is None:
         return
     try:
-        cur = connexion.cursor()
-        insert_comparaison_statut(cur, id_comparaison, STATUT_ECHEC)
-        connexion.commit()
+        with transaction() as cur:
+            insert_comparaison_statut(cur, id_comparaison, STATUT_ECHEC)
     except Exception:
-        connexion.rollback()
+        pass
 
 
 def _executer_comparaison(id_device_a, id_device_b, version_a, version_b, id_type_comparaison):
-    connexion = get_connection()
-    if connexion is None:
-        return None
     id_comparaison = None
     try:
-        cur = connexion.cursor()
+        with transaction() as cur:
+            if cur is None:
+                return None
+            detail_a = get_data_device(cur, id_device_a, version_a)
+            detail_b = get_data_device(cur, id_device_b, version_b)
+            if detail_a is None or detail_b is None:
+                raise ValueError("Appareil ou version introuvable")
 
-        detail_a = get_data_device(cur, id_device_a, version_a)
-        detail_b = get_data_device(cur, id_device_b, version_b)
-        if detail_a is None or detail_b is None:
-            raise ValueError("Appareil ou version introuvable")
+            id_comparaison = insert_comparaison(
+                cur, id_device_a, id_device_b,
+                detail_a["date_reference"], detail_b["date_reference"],
+                id_type_comparaison,
+                version_a, version_b,
+            )
+            insert_comparaison_statut(cur, id_comparaison, STATUT_COMMENCER)
 
-        id_comparaison = insert_comparaison(
-            cur, id_device_a, id_device_b,
-            detail_a["date_reference"], detail_b["date_reference"],
-            id_type_comparaison,
-            version_a, version_b,
-        )
-        insert_comparaison_statut(cur, id_comparaison, STATUT_COMMENCER)
-        connexion.commit()
-
-        insert_comparaison_statut(cur, id_comparaison, STATUT_EN_COURS)
-        connexion.commit()
+        with transaction() as cur:
+            insert_comparaison_statut(cur, id_comparaison, STATUT_EN_COURS)
 
         resultat = compare(detail_a, detail_b)
-        update_comparaison_resultat(cur, id_comparaison, json.dumps(resultat, default=str))
 
-        insert_comparaison_statut(cur, id_comparaison, STATUT_TERMINER)
-        connexion.commit()
+        with transaction() as cur:
+            update_comparaison_resultat(cur, id_comparaison, json.dumps(resultat, default=str))
+            insert_comparaison_statut(cur, id_comparaison, STATUT_TERMINER)
+
         cache_invalidate_prefix("comparaisons:")
         return {"id_comparaison": id_comparaison, "resultat": resultat}
     except Exception:
-        connexion.rollback()
-        _marquer_echec(connexion, id_comparaison)
+        _marquer_echec(id_comparaison)
         raise
-    finally:
-        close_connection(connexion)
 
 
 def comparaisonSimple(id_device, version_a, version_b):

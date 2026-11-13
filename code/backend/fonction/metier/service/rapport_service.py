@@ -1,4 +1,4 @@
-from backend.fonction.conn.connexion import get_connection, close_connection
+from backend.fonction.conn.transaction import lecture
 from backend.fonction.metier.repository.rapport import (
     get_id_by_type_name,
     get_rapport_by_device_and_type,
@@ -46,72 +46,46 @@ def getConnectedPerRaport(cur, id):
 
 
 def getCpuRaportById(id: int):
-    connexion = get_connection()
-    if connexion is None:
-        return []
-    try:
-        cur = connexion.cursor()
+    with lecture() as cur:
+        if cur is None:
+            return []
         return getDeviceCpuRaport(cur, id)
-    finally:
-        close_connection(connexion)
 
 def getRamRaportById(id: int):
-    connexion = get_connection()
-    if connexion is None:
-        return []
-    try:
-        cur = connexion.cursor()
+    with lecture() as cur:
+        if cur is None:
+            return []
         return getRamRaport(cur, id)
-    finally:
-        close_connection(connexion)
 
 def getStockageRaportById(id: int):
-    connexion = get_connection()
-    if connexion is None:
-        return []
-    try:
-        cur = connexion.cursor()
+    with lecture() as cur:
+        if cur is None:
+            return []
         return getStockageRaport(cur, id)
-    finally:
-        close_connection(connexion)
 
 def getBatterieRaportById(id: int):
-    connexion = get_connection()
-    if connexion is None:
-        return []
-    try:
-        cur = connexion.cursor()
+    with lecture() as cur:
+        if cur is None:
+            return []
         return getBatterieRaport(cur, id)
-    finally:
-        close_connection(connexion)
 
 def getReseauRaportById(id: int):
-    connexion = get_connection()
-    if connexion is None:
-        return []
-    try:
-        cur = connexion.cursor()
+    with lecture() as cur:
+        if cur is None:
+            return []
         return getReseauRaport(cur, id)
-    finally:
-        close_connection(connexion)
 
 def getConnectedPerRaportById(id: int):
-    connexion = get_connection()
-    if connexion is None:
-        return []
-    try:
-        cur = connexion.cursor()
+    with lecture() as cur:
+        if cur is None:
+            return []
         return getConnectedPerRaport(cur, id)
-    finally:
-        close_connection(connexion)
 
 def getDeviceRaportGeneral(id: int):
-    connexion = get_connection()
-    if connexion is None:
-        print("Connexion BDD impossible")
-        return None
-    cur = connexion.cursor()
-    try:
+    with lecture() as cur:
+        if cur is None:
+            print("Connexion BDD impossible")
+            return None
         cpu = _get_rapport_by_type(cur, id, "CPU_STATUS", GENERAL_REPORT_LIMIT)
         ram = _get_rapport_by_type(cur, id, "MEMORY_STATUS", GENERAL_REPORT_LIMIT)
         stockage = _get_rapport_by_type(cur, id, "STORAGE_STATUS", GENERAL_REPORT_LIMIT)
@@ -119,7 +93,7 @@ def getDeviceRaportGeneral(id: int):
         reseau = _get_rapport_by_type(cur, id, "NETWORK_STATUS", GENERAL_REPORT_LIMIT)
         peripheriques = _get_rapport_by_type(cur, id, "PERIPHERALS_REPORT", GENERAL_REPORT_LIMIT)
 
-        result = {
+        return {
             "cpu": cpu,
             "ram": ram,
             "stockage": stockage,
@@ -127,57 +101,35 @@ def getDeviceRaportGeneral(id: int):
             "reseau": reseau,
             "peripheriques": peripheriques
         }
-        return result
-    finally:
-        close_connection(connexion)
-        
+
 def filterRapportDeviceByDate(id_device, id_type_rapport, date_debut, date_fin):
-    connexion = get_connection()
-    if connexion is None:
-        return []
-    try:
-        cur = connexion.cursor()
-        rows = get_rapport_by_device_type_and_period(
+    with lecture() as cur:
+        if cur is None:
+            return []
+        return get_rapport_by_device_type_and_period(
             cur, id_device, id_type_rapport, date_debut, date_fin
         )
-        return rows
-    finally:
-        close_connection(connexion)
 
 
 def filterRapportDeviceByDatetime(id_device, id_type_rapport, datetime_from,
                                   datetime_to):
-    connexion = get_connection()
-    if connexion is None:
-        return []
-    try:
-        cur = connexion.cursor()
-        rows = get_rapport_by_device_type_and_datetime(
+    with lecture() as cur:
+        if cur is None:
+            return []
+        return get_rapport_by_device_type_and_datetime(
             cur, id_device, id_type_rapport, datetime_from, datetime_to
         )
-        return rows
-    finally:
-        close_connection(connexion)
-        
+
 def idByName(id_rapport):
-    connexion = get_connection()
-    if connexion is None : 
-        return []
-    try:
-        cur = connexion.cursor ()
-        return get_id_by_type_name(cur,id_rapport)
-    finally:
-        close_connection(connexion)
-# if __name__ == "__main__":
-#     id_device = 1
-#     result = getDeviceRaportGeneral(id_device)
-#     print(result)
+    with lecture() as cur:
+        if cur is None:
+            return []
+        return get_id_by_type_name(cur, id_rapport)
+
 def getReportsForExport(onglet, id_device, date_debut=None, date_fin=None):
-    connexion = get_connection()
-    if connexion is None:
-        return {} if onglet == "general" else []
-    try:
-        cur = connexion.cursor()
+    with lecture() as cur:
+        if cur is None:
+            return {} if onglet == "general" else []
         types = {
             "cpu": "CPU_STATUS", "ram": "MEMORY_STATUS", "stockage": "STORAGE_STATUS",
             "batterie": "BATTERY_STATUS", "reseau": "NETWORK_STATUS",
@@ -197,14 +149,12 @@ def getReportsForExport(onglet, id_device, date_debut=None, date_fin=None):
         if onglet == "general":
             return {key: fetch(name) for key, name in types.items()}
         return fetch(types[onglet])
-    finally:
-        close_connection(connexion)
-        
+
 def getListeReport():
-    connexion = get_connection()
-    cur = connexion.cursor()
-    rows = get_liste_rapport_device(cur)
-    return rows
+    with lecture() as cur:
+        if cur is None:
+            return []
+        return get_liste_rapport_device(cur)
 
 
 def build_imprimante_sections(detail: dict):

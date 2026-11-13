@@ -1,6 +1,6 @@
 import logging
 
-from backend.fonction.conn.connexion import get_connection, close_connection
+from backend.fonction.conn.transaction import lecture, transaction
 from backend.fonction.metier.repository.alerte import (
     get_alerte_by_type,
     insert_alerte,
@@ -63,88 +63,59 @@ def _get_or_create_alerte(cur, type_):
     return id_alerte
 
 def getNombreAlerte():
-    connexion = get_connection()
-    if connexion is None:
-        return 0
-    try:
-        cur = connexion.cursor()
+    with lecture() as cur:
+        if cur is None:
+            return 0
         return get_nombre_alerte_active(cur)
-    finally:
-        close_connection(connexion)
 
 def getNombreAlerteResolue():
-    connexion = get_connection()
-    if connexion is None :
-        return 0
-    try:
-        cur = connexion.cursor()
+    with lecture() as cur:
+        if cur is None:
+            return 0
         return get_nombre_alerte_resolue(cur)
-    finally:
-        close_connection(connexion)
-        
+
 def getTypeAlerte():
-    connexion = get_connection()
-    if connexion is None :
-        return []
-    try:
-        result = []
-        cur=connexion.cursor()
-        t = get_type_alerte(cur)
-        for type in t:
-            result.append({
-                "id":type[0],
-                "type":type[1],
-            })
-        return result 
-    finally:
-        close_connection(connexion)
+    with lecture() as cur:
+        if cur is None:
+            return []
+        return [
+            {
+                "id": t[0],
+                "type": t[1],
+            }
+            for t in get_type_alerte(cur)
+        ]
 
 def getDernieresAlertes(limit):
-    connexion = get_connection()
-    if connexion is None:
-        return []
-    try:
-        cur = connexion.cursor()
+    with lecture() as cur:
+        if cur is None:
+            return []
         rows = get_dernieres_alertes(cur, limit)
         return [_serialize_alerte_resume(r) for r in rows]
-    finally:
-        close_connection(connexion)
 
 
 def getListeDeviceAlerteDate(date_debut=None, date_fin=None):
-    connexion = get_connection()
-    if connexion is None:
-        return []
-    try:
-        cur = connexion.cursor()
+    with lecture() as cur:
+        if cur is None:
+            return []
         rows = get_liste_device_alerte_by_date(cur, date_debut, date_fin)
         return [_serialize_alerte_resume(r) for r in rows]
-    finally:
-        close_connection(connexion)
 
 def getListeDeviceAlerteDateResolue(date_debut=None, date_fin=None):
-    connexion = get_connection()
-    if connexion is None:
-        return []
-    try:
-        cur = connexion.cursor()
+    with lecture() as cur:
+        if cur is None:
+            return []
         rows = get_liste_device_alerte_by_date_resolue(cur, date_debut, date_fin)
         return [_serialize_alerte_resume(r) for r in rows]
-    finally:
-        close_connection(connexion)
-        
+
 def _fetch_device_alertes_page(page, page_size, date_debut, date_fin,type,search):
-    connexion = get_connection()
-    if connexion is None:
-        return build_page([], 0, page, page_size)
-    try:
-        cur = connexion.cursor()
+    with lecture() as cur:
+        if cur is None:
+            return build_page([], 0, page, page_size)
         rows = find_device_alertes_paginated(cur, page, page_size, date_debut, date_fin,type,search)
         total = rows[0][7] if rows else 0
         items = [_serialize_alerte_resume(r) for r in rows]
         return build_page(items, total, page, page_size)
-    finally:
-        close_connection(connexion)
 
 def getDeviceAlertesPage(page=1, page_size=10, date_debut=None, date_fin=None,type=None,search=None):
     cle = f"alertes:device:{page}:{page_size}:{date_debut}:{date_fin}:{type}:{search}"
@@ -155,17 +126,13 @@ def getDeviceAlertesPage(page=1, page_size=10, date_debut=None, date_fin=None,ty
 
 
 def _fetch_device_alertes_resolues_page(page, page_size, date_debut, date_fin,type,search):
-    connexion = get_connection()
-    if connexion is None:
-        return build_page([], 0, page, page_size)
-    try:
-        cur = connexion.cursor()
+    with lecture() as cur:
+        if cur is None:
+            return build_page([], 0, page, page_size)
         rows = find_device_alertes_resolues_paginated(cur, page, page_size, date_debut, date_fin,type,search)
         total = rows[0][7] if rows else 0
         items = [_serialize_alerte_resume(r) for r in rows]
         return build_page(items, total, page, page_size)
-    finally:
-        close_connection(connexion)
 
 
 def getDeviceAlertesResoluesPage(page=1, page_size=10, date_debut=None, date_fin=None,type=None,search=None):
@@ -310,54 +277,34 @@ def insertAlerte(cur):
 
 
 def getNombreAlerteParType(type_alerte, id_statut=ID_STATUT_ACTIVE, date_debut=None, date_fin=None):
-    connexion = get_connection()
-    if connexion is None:
-        return 0
-    try:
-        cur = connexion.cursor()
+    with lecture() as cur:
+        if cur is None:
+            return 0
         return _compter_alertes(cur, type_alerte, id_statut, date_debut, date_fin)
-    finally:
-        close_connection(connexion)
 
 def delete_alerte(date_limite):
-    connexion = get_connection()
-    if connexion is None:
-        return 0
-    try:
-        cur = connexion.cursor()
+    with transaction() as cur:
+        if cur is None:
+            return 0
         delete_alertes_avant(cur, date_limite)
-        connexion.commit()
-        cache_invalidate_prefix("alertes:")
-        cache_invalidate_prefix("dashboard:")
-    except Exception:
-        connexion.rollback()
-        raise
-    finally:
-        close_connection(connexion)
-        
+    cache_invalidate_prefix("alertes:")
+    cache_invalidate_prefix("dashboard:")
+
 def getNouvellesAlertes(limit):
-    connexion = get_connection()
-    if connexion is None:
-        return []
-    try:
-        cur = connexion.cursor()
+    with lecture() as cur:
+        if cur is None:
+            return []
         date_depuis = get_date_derniere_synchronisation(cur)
         if date_depuis is None:
             return []
         rows = get_alertes_nouvelles(cur, date_depuis, limit)
         return [_serialize_alerte_resume(r) for r in rows]
-    finally:
-        close_connection(connexion)
-        
+
 def getNombreAlerteNouvelle():
-    connexion = get_connection()
-    if connexion is None:
-        return 0
-    try:
-        cur = connexion.cursor()
+    with lecture() as cur:
+        if cur is None:
+            return 0
         date_depuis = get_date_derniere_synchronisation(cur)
         if date_depuis is None:
             return 0
         return get_nombre_alerte_nouvelle(cur, date_depuis)
-    finally:
-        close_connection(connexion)

@@ -1,4 +1,4 @@
-from backend.fonction.conn.connexion import get_connection, close_connection
+from backend.fonction.conn.transaction import lecture
 from backend.fonction.metier.repository.dashboard import get_summary as get_summary_repository
 from backend.core.cache import cache_get, cache_set
 
@@ -25,16 +25,11 @@ SUMMARY_VIDE = {
 
 
 def _fetch_summary():
-    connexion = get_connection()
-    if connexion is None:
-        return dict(SUMMARY_VIDE)
-    try:
-        cur = connexion.cursor()
+    with lecture() as cur:
+        if cur is None:
+            return dict(SUMMARY_VIDE)
         resume = get_summary_repository(cur)
-        cur.close()
         return resume if resume is not None else dict(SUMMARY_VIDE)
-    finally:
-        close_connection(connexion)
 
 
 def get_summary():

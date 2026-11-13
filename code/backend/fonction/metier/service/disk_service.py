@@ -1,4 +1,4 @@
-from backend.fonction.conn.connexion import get_connection, close_connection
+from backend.fonction.conn.transaction import lecture
 from backend.fonction.metier.repository.disk import (
     get_latest_by_device as get_latest_by_device_repository,
 )
@@ -27,16 +27,11 @@ def _serialize_latest_disk(row):
 
 
 def get_latest_disk(id_device):
-    connexion = get_connection()
-    if connexion is None:
-        return None
-    try:
-        cur = connexion.cursor()
+    with lecture() as cur:
+        if cur is None:
+            return None
         row = get_latest_by_device_repository(cur, id_device)
-        cur.close()
         return _serialize_latest_disk(row)
-    finally:
-        close_connection(connexion)
 
 
 __all__ = ["get_latest_disk"]

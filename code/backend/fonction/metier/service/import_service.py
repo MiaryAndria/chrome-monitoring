@@ -10,7 +10,7 @@ def _appel_chrono(etapes, label, callback, *args):
     with chrono(label, etapes):
         return callback(*args)
 
-from backend.fonction.conn.connexion import get_connection, close_connection
+from backend.fonction.conn.transaction import transaction
 from backend.google_api.devices import get_credential, get_devices, get_telemetry_devices
 from backend.google_api.print import extract_printers_from_telemetry
 from backend.google_api.event import fetch_crash_sources, build_crash_incidents
@@ -463,17 +463,14 @@ def synchroniser_tout(debut=None, fin=None, suivi=None):
     with chrono("google_credential", etapes):
         credential = get_credential()
 
-    connexion = get_connection()
-    if connexion is None:
-        raise RuntimeError("Connexion BDD impossible")
+    with transaction() as cur:
+        if cur is None:
+            raise RuntimeError("Connexion BDD impossible")
 
-    try:
         dvc_list, telemetry_devices_list, events, ctx = _recuperer_donnees_google(credential, debut, etapes)
 
         with chrono("enrichissement_crashs", etapes):
             crashes_data = build_crash_incidents(events, ctx, dvc_list, telemetry_devices_list, debut)
-
-        cur = connexion.cursor()
 
         nb_dev = len(dvc_list) if isinstance(dvc_list, list) else 0
         nb_tel = len(telemetry_devices_list) if isinstance(telemetry_devices_list, list) else 0
@@ -493,23 +490,15 @@ def synchroniser_tout(debut=None, fin=None, suivi=None):
         #     nb_backfill = backfill_all_devices_history(cur)
         #     print(f"  Backfill terminé : {nb_backfill} lignes insérées (CPU + RAM + DISK)")
 
-        with chrono("db_commit", etapes):
-            connexion.commit()
+    cache_invalidate_prefix("devices:")
+    cache_invalidate_prefix("events:")
+    cache_invalidate_prefix("imprimantes:")
+    cache_invalidate_prefix("filiales:")
+    cache_invalidate_prefix("dashboard:")
+    cache_invalidate_prefix("utilisateurs:")
 
-        cache_invalidate_prefix("devices:")
-        cache_invalidate_prefix("events:")
-        cache_invalidate_prefix("imprimantes:")
-        cache_invalidate_prefix("filiales:")
-        cache_invalidate_prefix("dashboard:")
-        cache_invalidate_prefix("utilisateurs:")
-
-        print("\n Synchronisation complète terminée et validée en BDD !")
-        return nb_dev + nb_tel + len(evenements)
-    except Exception:
-        connexion.rollback()
-        raise
-    finally:
-        close_connection(connexion)
+    print("\n Synchronisation complète terminée et validée en BDD !")
+    return nb_dev + nb_tel + len(evenements)
 
 # def main():
 #     try:
