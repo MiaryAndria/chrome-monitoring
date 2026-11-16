@@ -18,7 +18,7 @@ from backend.fonction.metier.controller.ram_controller import router as ram_rout
 from backend.fonction.metier.controller.cpu_controller import router as cpu_router
 from backend.fonction.metier.controller.disk_controller import router as disk_router
 from backend.fonction.metier.controller.comparaison_controller import router as comparaison_router
-from backend.fonction.metier.controller.alerteController import router as alerte_router
+from backend.fonction.metier.controller.alerte_controller import router as alerte_router
 # from backend.fonction.metier.service.import_service import synchroniser_tout
 from backend.fonction.metier.controller.export_controller import router as export_router
 from backend.fonction.metier.controller.utilisateur_controller import router as utilisateur_router
