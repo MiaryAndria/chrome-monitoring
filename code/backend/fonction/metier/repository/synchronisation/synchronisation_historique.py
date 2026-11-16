@@ -1,4 +1,4 @@
-from backend.fonction.metier.repository.statut.constants import ID_STATUT_TERMINER
+from backend.fonction.metier.repository.statut import ID_STATUT_TERMINER
 
 
 def insert_synchronisation_historique(cur, source, lancement, fenetre_debut, fenetre_fin):

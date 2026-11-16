@@ -1,4 +1,4 @@
-from backend.fonction.metier.repository.utilisateur_google.utilisateur import get_utilisateur_by_id
+from backend.fonction.metier.repository.utilisateur_google import get_utilisateur_by_id
 
 def get_dernier_utilisateur_device(cur,id_device):
     cur.execute(

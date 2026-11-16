@@ -9,3 +9,5 @@ from .statut import (
     get_id_status_actuel_device,
     update_statut,
 )
+
+from .constants import *

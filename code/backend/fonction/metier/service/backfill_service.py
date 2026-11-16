@@ -1,13 +1,14 @@
 import json
 from datetime import datetime, timezone
 
-from backend.fonction.metier.repository.cpu.cpu import get_or_create_cpu
-from backend.fonction.metier.repository.cpu.device_cpu import insert_cpu_device
-from backend.fonction.metier.repository.rapport import get_rapport_by_device, get_rapport_by_device_and_type
-from backend.fonction.metier.repository.rapport.type_rapport import get_id_by_type_name
-from backend.fonction.metier.repository.ram.ram import insert_into_device_ram
-from backend.fonction.metier.repository.disk.disk import get_or_create_disk
-from backend.fonction.metier.repository.disk.disk_device import insert_disk_device
+from backend.fonction.metier.repository.cpu import get_or_create_cpu, insert_cpu_device
+from backend.fonction.metier.repository.rapport import (
+    get_rapport_by_device,
+    get_rapport_by_device_and_type,
+    get_id_by_type_name,
+)
+from backend.fonction.metier.repository.ram import insert_into_device_ram
+from backend.fonction.metier.repository.disk import get_or_create_disk, insert_disk_device
 from backend.fonction.metier.repository.evenement import create_evenement_device
 from backend.utils.format_valeur import _to_int, format_bytes
 from backend.utils.format_date import parse_date_safe
@@ -307,7 +308,10 @@ def backfill_device_history_from_rapport(cur, id_device):
 def backfill_all_devices_history(cur, device_ids=None):
     if device_ids is None:
         cur.execute("SELECT id FROM t_device ORDER BY id ASC")
-        device_ids = [row[0] for row in cur.fetchall()]
+        rows = cur.fetchall()
+        device_ids = []
+        for row in rows:
+            device_ids.append(row[0])
 
     total = 0
     for device_id in device_ids:

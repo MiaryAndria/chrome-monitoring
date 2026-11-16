@@ -44,11 +44,12 @@ def find_filiales_paginated(cur, page=1, page_size=10, recherche=None):
     where = "WHERE " + " AND ".join(clauses) if clauses else ""
     offset = (page - 1) * page_size
 
+    cur.execute(f"SELECT COUNT(*) FROM t_filiale {where}", tuple(params))
+    total = cur.fetchone()[0]
+
     cur.execute(
         f"""
-        SELECT
-            id, org_unit_path,
-            COUNT(*) OVER() AS total
+        SELECT id, org_unit_path
         FROM t_filiale
         {where}
         ORDER BY id ASC
@@ -56,31 +57,30 @@ def find_filiales_paginated(cur, page=1, page_size=10, recherche=None):
         """,
         tuple(params + [page_size, offset])
     )
-    return _rows_to_dicts(cur)
+    return _rows_to_dicts(cur), total
 
 
 def get_filiale_device_stats(cur, id_filiale):
-    """Total et nombre d'appareils actifs d'une filiale en une seule requête."""
     cur.execute(
         """
         SELECT COUNT(*) AS total,
-               COUNT(*) FILTER (WHERE st.id_statut = 1) AS actifs
+               COUNT(*) FILTER (
+                   WHERE (
+                       SELECT ds.id_statut
+                       FROM t_device_statut ds
+                       WHERE ds.id_device = d.id
+                       ORDER BY ds.date DESC, ds.id DESC
+                       LIMIT 1
+                   ) = 1
+               ) AS actifs
         FROM t_device d
-        JOIN LATERAL (
+        WHERE (
             SELECT df.id_filiale
             FROM t_device_filiale df
             WHERE df.id_device = d.id
             ORDER BY df.id ASC
             LIMIT 1
-        ) fi ON TRUE
-        LEFT JOIN LATERAL (
-            SELECT ds.id_statut
-            FROM t_device_statut ds
-            WHERE ds.id_device = d.id
-            ORDER BY ds.date DESC, ds.id DESC
-            LIMIT 1
-        ) st ON TRUE
-        WHERE fi.id_filiale = %s
+        ) = %s
         """,
         (id_filiale,)
     )

@@ -9,11 +9,23 @@ export default function ProtectedRoute() {
 
     useEffect(() => {
         let actif = true;
-        GetMe()
-            .then(() => { if (actif) setAuthenticated(true); })
-            .catch(() => { if (actif) setAuthenticated(false); })
-            .finally(() => { if (actif) setChecking(false); });
-        return () => { actif = false; };
+
+        const verifier = async () => {
+            try {
+                await GetMe();
+                if (actif) setAuthenticated(true);
+            } catch (e) {
+                if (actif) setAuthenticated(false);
+            } finally {
+                if (actif) setChecking(false);
+            }
+        };
+
+        verifier();
+
+        return () => {
+            actif = false;
+        };
     }, []);
 
     if (checking) {

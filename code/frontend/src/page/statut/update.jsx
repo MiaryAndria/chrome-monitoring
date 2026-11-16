@@ -21,14 +21,15 @@ function StatutUpdate() {
         }
     };
 
+    const [error, setError] = useState(null);
     const updStatut = async () => {
+        setError(null);
+        const nouveauNom = nom === '' ? existedNom : nom;
         try {
-            const nouveauNom = nom === '' ? existedNom : nom;
             await updateStatut(id, nouveauNom);
             navigate('/liste/statut');
         } catch (e) {
-            const msg = e?.response?.data?.detail || "Erreur lors de la mise à jour du statut.";
-            window.alert(msg);
+            setError(e?.response?.data?.error || e?.response?.data?.detail || "Erreur lors de la mise à jour du statut.");
         }
     };
 
@@ -61,6 +62,12 @@ function StatutUpdate() {
                             placeholder={existedNom}
                         />
                     </div>
+
+                    {error && (
+                        <p className="text-xs text-red-400 bg-red-500/10 border border-red-500/30 p-2.5 rounded-lg">
+                            {error}
+                        </p>
+                    )}
 
                     <div className="config-form-actions">
                         <button onClick={() => navigate('/liste/statut')} className="config-btn config-btn-ghost">

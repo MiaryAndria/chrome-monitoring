@@ -7,7 +7,7 @@ from backend.utils.chrono import chrono
 from backend.utils.config_db import get_configuration, get_int_configuration
 
 from backend.fonction.conn.connexion import get_connection, close_connection
-from backend.fonction.metier.repository.statut.constants import (
+from backend.fonction.metier.repository.statut import (
     ID_STATUT_COMMENCER,
     ID_STATUT_EN_COURS,
     ID_STATUT_TERMINER,

@@ -8,63 +8,57 @@ def get_liste_comparaison(cur):
         ORDER BY date_comparaison DESC
         """
     )
-    result = cur.fetchall()
-    return result
+    return cur.fetchall()
 
 
 def find_comparaisons_paginated(cur, page=1, page_size=10, datetime_from=None, datetime_to=None):
     offset = (page - 1) * page_size
-    query = """
-        SELECT c.id, c.id_device_a, c.id_device_b, c.id_type_comparaison,
-               c.date_reference_a, c.date_reference_b, c.date_comparaison, c.resultat,
-               c.version_a, c.version_b,
-               da.serial_number AS device_a,
-               db.serial_number AS device_b,
-               COUNT(*) OVER() AS total
-        FROM t_comparaison c
-        LEFT JOIN t_device da ON da.id = c.id_device_a
-        LEFT JOIN t_device db ON db.id = c.id_device_b
-    """
-    clauses = []
+    where = ""
     params = []
     if datetime_from is not None:
-        clauses.append("c.date_comparaison >= %s")
+        where += " WHERE date_comparaison >= %s"
         params.append(datetime_from)
-    if datetime_to is not None:
-        clauses.append("c.date_comparaison <= %s")
+        if datetime_to is not None:
+            where += " AND date_comparaison <= %s"
+            params.append(datetime_to)
+    elif datetime_to is not None:
+        where += " WHERE date_comparaison <= %s"
         params.append(datetime_to)
-    if clauses:
-        query += " WHERE " + " AND ".join(clauses)
-    query += " ORDER BY c.date_comparaison DESC, c.id DESC LIMIT %s OFFSET %s"
-    params.extend([page_size, offset])
-    cur.execute(query, tuple(params))
-    return cur.fetchall()
+
+    cur.execute(f"SELECT COUNT(*) FROM v_comparaison{where}", tuple(params))
+    total = cur.fetchone()[0]
+
+    cur.execute(
+        f"""
+        SELECT id, id_device_a, id_device_b, id_type_comparaison,
+               date_reference_a, date_reference_b, date_comparaison, resultat,
+               version_a, version_b, device_a, device_b
+        FROM v_comparaison
+        {where}
+        ORDER BY date_comparaison DESC, id DESC
+        LIMIT %s OFFSET %s
+        """,
+        tuple(params + [page_size, offset]),
+    )
+    return cur.fetchall(), total
 
 
 def get_comparaison_by_id(cur, id):
     cur.execute(
         """
-        SELECT c.id, c.id_device_a, c.id_device_b, c.id_type_comparaison,
-               c.date_reference_a, c.date_reference_b, c.date_comparaison, c.resultat,
-               c.version_a, c.version_b,
-               da.serial_number AS device_a,
-               db.serial_number AS device_b
-        FROM t_comparaison c
-        LEFT JOIN t_device da ON da.id = c.id_device_a
-        LEFT JOIN t_device db ON db.id = c.id_device_b
-        WHERE c.id = %s
+        SELECT id, id_device_a, id_device_b, id_type_comparaison,
+               date_reference_a, date_reference_b, date_comparaison, resultat,
+               version_a, version_b, device_a, device_b
+        FROM v_comparaison
+        WHERE id = %s
         """,
-        (id,)
+        (id,),
     )
     return cur.fetchone()
 
 
 def insert_comparaison(cur, id_device_a, id_device_b, date_reference_a, date_reference_b,
                        id_type_comparaison, version_a, version_b, resultat=None):
-    """
-    Insère une comparaison (resultat NULL au départ) et retourne son id.
-    La colonne PK réelle de t_comparaison est `id` (pas `id_comparaison`).
-    """
     cur.execute(
         """
         INSERT INTO t_comparaison

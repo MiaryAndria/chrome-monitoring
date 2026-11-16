@@ -8,14 +8,6 @@ from backend.fonction.metier.repository.rapport import (
 )
 from backend.utils.format_date import format_date
 
-def serialize_rapport_rows(rows):
-    if not rows:
-        return []
-    for r in rows:
-        if r.get("report_time") is not None:
-            r["report_time"] = str(r["report_time"])
-    return rows
-
 GENERAL_REPORT_LIMIT = 300
 
 
@@ -24,7 +16,10 @@ def _get_rapport_by_type(cur, device_id, type_name, limit=None):
     if not type_id:
         return []
     rows = get_rapport_by_device_and_type(cur, device_id, type_id, limit=limit)
-    return serialize_rapport_rows(rows)
+    for r in rows:
+        if r.get("report_time") is not None:
+            r["report_time"] = str(r["report_time"])
+    return rows
 
 def getDeviceCpuRaport(cur, id):
     return _get_rapport_by_type(cur, id, "CPU_STATUS")
@@ -147,7 +142,10 @@ def getReportsForExport(onglet, id_device, date_debut=None, date_fin=None):
             return get_rapport_by_device_and_type(cur, id_device, type_id)
 
         if onglet == "general":
-            return {key: fetch(name) for key, name in types.items()}
+            resultat = {}
+            for key, name in types.items():
+                resultat[key] = fetch(name)
+            return resultat
         return fetch(types[onglet])
 
 def getListeReport():
@@ -158,39 +156,43 @@ def getListeReport():
 
 
 def build_imprimante_sections(detail: dict):
+    info_lignes = [[
+        detail.get("vendor") or "-",
+        detail.get("nom") or "-",
+        detail.get("vid") if detail.get("vid") is not None else "-",
+        detail.get("pid") if detail.get("pid") is not None else "-",
+    ]]
+
+    device_lignes = []
+    for d in detail.get("device", []):
+        device_lignes.append([
+            d.get("modele") or "-",
+            d.get("serial_number") or "-",
+            d.get("ip_adress") or "-",
+            d.get("mac_adress") or "-",
+            d.get("chromeos_version") or "-",
+            format_date(d.get("derniere_detection")),
+        ])
+
+    user_lignes = []
+    for u in detail.get("user", []):
+        user_lignes.append([u.get("email") or "-", format_date(u.get("derniere_utilisation"))])
+
     return [
         (
             "Informations générales",
             ["Fabricant", "Modèle / Nom", "VID", "PID"],
-            [[
-                detail.get("vendor") or "-",
-                detail.get("nom") or "-",
-                detail.get("vid") if detail.get("vid") is not None else "-",
-                detail.get("pid") if detail.get("pid") is not None else "-",
-            ]],
+            info_lignes,
         ),
         (
             "Devices",
             ["Modèle", "N° de série", "IP", "MAC", "ChromeOS", "Dernière détection"],
-            [
-                [
-                    d.get("modele") or "-",
-                    d.get("serial_number") or "-",
-                    d.get("ip_adress") or "-",
-                    d.get("mac_adress") or "-",
-                    d.get("chromeos_version") or "-",
-                    format_date(d.get("derniere_detection")),
-                ]
-                for d in detail.get("device", [])
-            ],
+            device_lignes,
         ),
         (
             "Utilisateurs",
             ["Email", "Dernière utilisation"],
-            [
-                [u.get("email") or "-", format_date(u.get("derniere_utilisation"))]
-                for u in detail.get("user", [])
-            ],
+            user_lignes,
         ),
     ]
     

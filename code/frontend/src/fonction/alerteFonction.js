@@ -12,16 +12,6 @@ export const ALERTE_META = {
     ALERTE_EVENEMENTS:     { label: 'Événements',     color: '#fb7185', text: 'text-rose-400',    Icon: Bell },
 };
 
-export const getNombreAlerte = async () => {
-    try {
-        const response = await api_service.get('/alerte/nombre');
-        return response.data;            
-    } catch (e) {
-        console.log(e);
-        return { nombre: 0 };
-    }
-};
-
 export const getNombreAlerteType = async (type, idStatut = 1, date_debut, date_fin) => {
     try {
         const response = await api_service.get(`/alerte/stats/${type}`, {
@@ -31,16 +21,6 @@ export const getNombreAlerteType = async (type, idStatut = 1, date_debut, date_f
     } catch (e) {
         console.log(e);
         return 0;
-    }
-};
-
-export const getDixPremierAlerte = async () => {
-    try {
-        const response = await api_service.get('/alerte/tenAlerte');
-        return response.data;
-    } catch (e) {
-        console.log(e);
-        return [];
     }
 };
 

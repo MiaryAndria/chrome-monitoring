@@ -158,22 +158,27 @@ export default function Navbar() {
     }, []);
 
     useEffect(() => {
-        const charger = () => getNombreAlerteNouvelle().then((d) => setAlerteCount(d?.nombre ?? 0));
+        const charger = async () => {
+            const d = await getNombreAlerteNouvelle();
+            setAlerteCount(d?.nombre ?? 0);
+        };
         charger();
         const timer = setInterval(charger, 60000);   // toutes les 60 s
         return () => clearInterval(timer);
     }, []);
 
     useEffect(() => {
-        GetMe()
-            .then((u) => {
+        const chargerMoi = async () => {
+            try {
+                const u = await GetMe();
                 setMe(u);
                 setIsAdmin(u?.id_role === 1);
-            })
-            .catch(() => {
+            } catch (e) {
                 setMe(null);
                 setIsAdmin(false);
-            });
+            }
+        };
+        chargerMoi();
     }, []);
 
     // const applyTheme = (theme) => {

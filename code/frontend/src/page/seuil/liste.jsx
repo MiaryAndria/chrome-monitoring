@@ -18,6 +18,7 @@ function SeuilListe() {
     const [refresh, setRefresh] = useState(0);
     const [categorie, setCategorie] = useState('');
     const [categories, setCategories] = useState([]);
+    const [error, setError] = useState(null);
 
     const { items: seuils, total, totalPages, loading } = usePaginatedData(
         getListeSeuilPage,
@@ -26,29 +27,31 @@ function SeuilListe() {
         { refresh, categorie: categorie || undefined }
     );
 
-    useEffect(() => {
-        getListeCategorieSeuil().then((data) => setCategories(data || []));
-    }, []);
-
-    useEffect(() => {
-        setCurrentPage(1);
-    }, [categorie]);
+    const chargerCategories = async () => {
+        try {
+            const data = await getListeCategorieSeuil();
+            setCategories(data || []);
+        } catch (e) {
+            setError(e.response?.data?.error);
+        }
+    };
 
     const supprimerSeuil = async (id) => {
         try {
             await deleteSeuil(id);
             setRefresh(r => r + 1);
         } catch (e) {
-            console.log(e);
+            setError(e.response?.data?.error);
         }
     };
 
     const columns = [
-        { header: 'Catégorie', className: 'w-[18%]', render: (s) => <span className="text-zinc-400">{s.categorie}</span> },
-        { header: 'Type', className: 'w-[25%]', render: (s) => <span className="font-bold text-zinc-100">{s.cle}</span> },
-        { header: 'Valeur', className: 'w-[15%]', render: (s) => <span className="text-zinc-300">{s.valeur}</span> },
-        { header: 'Sens', className: 'w-[10%]', render: (s) => <span className="font-mono text-zinc-300">{s.sens ?? '—'}</span> },
-        { header: 'Date', className: 'w-[15%] text-right', render: (s) => s.date ? (
+        { header: 'Catégorie', className: 'w-[15%]', render: (s) => <span className="text-zinc-400">{s.categorie}</span> },
+        { header: 'Type', className: 'w-[22%]', render: (s) => <span className="font-bold text-zinc-100">{s.cle}</span> },
+        { header: 'Valeur', className: 'w-[12%]', render: (s) => <span className="text-zinc-300">{s.valeur} {s.unite === '%' ? '%' : <span className="text-zinc-500 text-xs">(entier)</span>}</span> },
+        { header: 'Limite', className: 'w-[12%]', render: (s) => <span className="text-zinc-300">{s.limite ?? '—'}{s.limite != null ? (s.unite === '%' ? ' %' : ' (entier)') : ''}</span> },
+        { header: 'Sens', className: 'w-[8%]', render: (s) => <span className="font-mono text-zinc-300">{s.sens ?? '—'}</span> },
+        { header: 'Date', className: 'w-[14%] text-right', render: (s) => s.date ? (
             <span className="text-zinc-400 text-xs font-mono">
                 <span className="block">{new Date(s.date).toLocaleDateString('fr-FR')}</span>
                 <span className="block">{new Date(s.date).toLocaleTimeString('fr-FR')}</span>
@@ -68,6 +71,14 @@ function SeuilListe() {
         }
     ];
 
+    useEffect(() => {
+        chargerCategories();
+    }, []);
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [categorie]);
+
     return (
         <PageLayout
             title="Seuils"
@@ -80,6 +91,11 @@ function SeuilListe() {
             }
         >
             <div className="space-y-6">
+                {error && (
+                    <div className="text-xs text-red-400 bg-red-500/10 border border-red-500/30 p-2.5 rounded-lg">
+                        {error}
+                    </div>
+                )}
                 <div className="glass-panel rounded-2xl p-5 relative z-50">
                     <div className="flex flex-wrap items-end gap-3">
                         <div>

@@ -10,11 +10,23 @@ export default function AdminRoute() {
 
     useEffect(() => {
         let actif = true;
-        GetMe()
-            .then((u) => { if (actif) setIsAdmin(u?.id_role === ID_ROLE_ADMIN); })
-            .catch(() => { if (actif) setIsAdmin(false); })
-            .finally(() => { if (actif) setChecking(false); });
-        return () => { actif = false; };
+
+        const verifier = async () => {
+            try {
+                const u = await GetMe();
+                if (actif) setIsAdmin(u?.id_role === ID_ROLE_ADMIN);
+            } catch (e) {
+                if (actif) setIsAdmin(false);
+            } finally {
+                if (actif) setChecking(false);
+            }
+        };
+
+        verifier();
+
+        return () => {
+            actif = false;
+        };
     }, []);
 
     if (checking) {

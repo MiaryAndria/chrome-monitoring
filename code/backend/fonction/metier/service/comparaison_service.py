@@ -10,7 +10,7 @@ from backend.fonction.metier.repository.devices import (
 )
 from backend.fonction.metier.repository.cpu import get_cpu_device_date
 from backend.fonction.metier.repository.ram import get_ram_device_date
-from backend.fonction.metier.repository.comparaison.comparaison import (
+from backend.fonction.metier.repository.comparaison import (
     get_liste_comparaison,
     find_comparaisons_paginated,
     get_comparaison_by_id,
@@ -29,12 +29,13 @@ from backend.utils.comparaison_stats import (
     score_puissance_ram,
     vainqueur,
 )
-from backend.fonction.metier.repository.statut.constants import (
+from backend.fonction.metier.repository.statut import (
     ID_STATUT_COMMENCER,
     ID_STATUT_EN_COURS,
     ID_STATUT_TERMINER,
     ID_STATUT_ECHEC,
 )
+from backend.exceptions import ValidationError, NotFoundError, ConflictError
 
 # t_type_comparaison : 1 = Simple, 2 = Double
 TYPE_SIMPLE = 1
@@ -75,30 +76,27 @@ def getListeComparaison():
 
 
 
-def _comparaison_row_to_dict(r):
-    return {
-        "id": r[0],
-        "id_device_a": r[1],
-        "id_device_b": r[2],
-        "device_a": r[10],
-        "device_b": r[11],
-        "id_type_comparaison": r[3],
-        "date_reference_a": str(r[4]) if r[4] else None,
-        "date_reference_b": str(r[5]) if r[5] else None,
-        "date_comparaison": str(r[6]) if r[6] else None,
-        "resultat": r[7],
-        "version_a": r[8],
-        "version_b": r[9],
-    }
-
-
 def _fetch_comparaisons_page(page=1, page_size=10, datetime_from=None, datetime_to=None):
     with lecture() as cur:
         if cur is None:
             return build_page([], 0, page, page_size)
-        rows = find_comparaisons_paginated(cur, page, page_size, datetime_from, datetime_to)
-        total = rows[0][12] if rows else 0
-        items = [_comparaison_row_to_dict(r) for r in rows]
+        rows, total = find_comparaisons_paginated(cur, page, page_size, datetime_from, datetime_to)
+        items = []
+        for r in rows:
+            items.append({
+                "id": r[0],
+                "id_device_a": r[1],
+                "id_device_b": r[2],
+                "device_a": r[10],
+                "device_b": r[11],
+                "id_type_comparaison": r[3],
+                "date_reference_a": str(r[4]) if r[4] else None,
+                "date_reference_b": str(r[5]) if r[5] else None,
+                "date_comparaison": str(r[6]) if r[6] else None,
+                "resultat": r[7],
+                "version_a": r[8],
+                "version_b": r[9],
+            })
         return build_page(items, total, page, page_size)
 
 
@@ -125,7 +123,22 @@ def get_comparaison_detail(id):
         row = get_comparaison_by_id(cur, id)
         if row is None:
             return None
-        return _comparaison_row_to_dict(row)
+        result = []
+        result.append({
+            "id": row[0],
+            "id_device_a": row[1],
+            "id_device_b": row[2],
+            "device_a": row[10],
+            "device_b": row[11],
+            "id_type_comparaison": row[3],
+            "date_reference_a": str(row[4]) if row[4] else None,
+            "date_reference_b": str(row[5]) if row[5] else None,
+            "date_comparaison": str(row[6]) if row[6] else None,
+            "resultat": row[7],
+            "version_a": row[8],
+            "version_b": row[9],
+        })
+        return result
 
 
 def _extraire_specs(device, cpu_info):
@@ -141,14 +154,15 @@ def get_liste_version_device(id_device):
     with lecture() as cur:
         if cur is None:
             return []
-        return [
-            {
+        rows = get_liste_version_by_device(cur, id_device)
+        result = []
+        for l in rows:
+            result.append({
                 "id": l[0],
                 "chromeos_version": l[1],
                 "date": l[2],
-            }
-            for l in get_liste_version_by_device(cur, id_device)
-        ]
+            })
+        return result
              
 def get_data_device(cur, id_device, chromeos_version):
     """Données comparables d'un appareil sur l'intervalle d'une version."""
@@ -169,8 +183,15 @@ def get_data_device(cur, id_device, chromeos_version):
     releves_cpu = get_cpu_device_date(cur, id_device, date_debut, date_fin)
     releves_ram = get_ram_device_date(cur, id_device, date_debut, date_fin)
 
-    cpu_resume = resume_serie([r["valeur"] for r in releves_cpu])
-    ram_resume = resume_serie([r["valeur"] for r in releves_ram])
+    valeurs_cpu = []
+    for r in releves_cpu:
+        valeurs_cpu.append(r["valeur"])
+    valeurs_ram = []
+    for r in releves_ram:
+        valeurs_ram.append(r["valeur"])
+
+    cpu_resume = resume_serie(valeurs_cpu)
+    ram_resume = resume_serie(valeurs_ram)
     
     return {
         "id_device": device[0],
@@ -317,7 +338,7 @@ def _executer_comparaison(id_device_a, id_device_b, version_a, version_b, id_typ
             detail_a = get_data_device(cur, id_device_a, version_a)
             detail_b = get_data_device(cur, id_device_b, version_b)
             if detail_a is None or detail_b is None:
-                raise ValueError("Appareil ou version introuvable")
+                raise NotFoundError("Appareil ou version introuvable")
 
             id_comparaison = insert_comparaison(
                 cur, id_device_a, id_device_b,
@@ -344,14 +365,22 @@ def _executer_comparaison(id_device_a, id_device_b, version_a, version_b, id_typ
 
 
 def comparaisonSimple(id_device, version_a, version_b):
+    if not id_device:
+        raise ValidationError("Veuillez sélectionner un appareil.")
+    if not version_a or not version_b:
+        raise ValidationError("Veuillez choisir deux versions.")
     if version_a == version_b:
-        raise ValueError("Il faut deux versions différentes")
+        raise ConflictError("Les versions comparées doivent être différentes.")
     return _executer_comparaison(id_device, id_device, version_a, version_b, TYPE_SIMPLE)
 
 
 def comparaisonDouble(id_device_a, version_a, id_device_b, version_b):
+    if not id_device_a or not id_device_b:
+        raise ValidationError("Veuillez sélectionner deux appareils.")
+    if not version_a or not version_b:
+        raise ValidationError("Veuillez choisir une version pour chaque appareil.")
     if id_device_a == id_device_b:
-        raise ValueError("Il faut deux appareils différents")
+        raise ConflictError("Les appareils comparés doivent être différents.")
     return _executer_comparaison(id_device_a, id_device_b, version_a, version_b, TYPE_DOUBLE)
 
 

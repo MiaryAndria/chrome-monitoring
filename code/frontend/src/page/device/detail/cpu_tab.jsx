@@ -17,9 +17,26 @@ function CpuTab({ reports, deviceId, datetimeFrom, datetimeTo }) {
     const [somme, setSomme] = useState(null);
     const [sommeLoading, setSommeLoading] = useState(false);
 
+    const chargerLatest = async () => {
+        const data = await getCpuLatest(deviceId);
+        setLatest(data);
+    };
+
+    const chargerSomme = async (estAnnule) => {
+        try {
+            const data = await getCpuSomme(deviceId, { date_debut: datetimeFrom, date_fin: datetimeTo });
+            if (!estAnnule()) setSomme(data);
+        } catch (e) {
+            if (!estAnnule()) console.error(e);
+        } finally {
+            if (!estAnnule()) setSommeLoading(false);
+        }
+    };
+
     useEffect(() => {
         if (!deviceId) return;
-        getCpuLatest(deviceId).then(setLatest);
+        chargerLatest();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [deviceId]);
 
     useEffect(() => {
@@ -29,21 +46,14 @@ function CpuTab({ reports, deviceId, datetimeFrom, datetimeTo }) {
         }
 
         let annule = false;
+        const estAnnule = () => annule;
         setSommeLoading(true);
-        getCpuSomme(deviceId, { date_debut: datetimeFrom, date_fin: datetimeTo })
-            .then((data) => {
-                if (!annule) setSomme(data);
-            })
-            .catch((e) => {
-                if (!annule) console.error(e);
-            })
-            .finally(() => {
-                if (!annule) setSommeLoading(false);
-            });
+        chargerSomme(estAnnule);
 
         return () => {
             annule = true;
         };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [deviceId, datetimeFrom, datetimeTo]);
 
     const summary = extractCpuSummary(reports);

@@ -287,10 +287,15 @@ def generate_excel(sections, titre_doc, device_info=None):
             cell.border = header_border
 
         for row in data:
-            ws.append([str(cell) if (cell is not None and str(cell).strip() != "") else "-" for cell in row])
+            ligne = []
+            for cell in row:
+                ligne.append(str(cell) if (cell is not None and str(cell).strip() != "") else "-")
+            ws.append(ligne)
 
         for i, col in enumerate(cols, start=1):
-            values = [str(col)] + [str(r[i - 1]) if r[i - 1] is not None else "" for r in data]
+            values = [str(col)]
+            for r in data:
+                values.append(str(r[i - 1]) if r[i - 1] is not None else "")
             longest = max(len(v) for v in values) if values else 10
             ws.column_dimensions[get_column_letter(i)].width = min(max(longest + 2, 12), 32)
 
@@ -382,10 +387,16 @@ def generate_pdf(sections, titre_doc, sous_titre="", device_info=None, paysage=T
         if not data:
             elements.append(Paragraph("Aucune donnée disponible pour cette section.", styles["Italic"]))
         else:
-            table_data = [[str(c) for c in cols]] + [
-                [str(c) if (c is not None and str(c).strip() != "") else "-" for c in row]
-                for row in data
-            ]
+            table_data = []
+            entete = []
+            for c in cols:
+                entete.append(str(c))
+            table_data.append(entete)
+            for row in data:
+                ligne = []
+                for c in row:
+                    ligne.append(str(c) if (c is not None and str(c).strip() != "") else "-")
+                table_data.append(ligne)
             table = Table(
                 table_data,
                 repeatRows=1,
@@ -463,13 +474,19 @@ def _titres_uniques(noms):
 def sections_devices():
     from backend.fonction.metier.service.device_service import getDevicesPage
     items = getDevicesPage(page=1, page_size=TAILLE_EXPORT).get("items") or []
-    return [("Appareils", COLS_DEVICE, [_ligne_device(d) for d in items])]
+    lignes = []
+    for d in items:
+        lignes.append(_ligne_device(d))
+    return [("Appareils", COLS_DEVICE, lignes)]
 
 
 def sections_imprimantes():
     from backend.fonction.metier.service.imprimante_service import get_imprimante
     items = get_imprimante() or []
-    return [("Imprimantes", COLS_IMPRIMANTE, [_ligne_imprimante(i) for i in items])]
+    lignes = []
+    for i in items:
+        lignes.append(_ligne_imprimante(i))
+    return [("Imprimantes", COLS_IMPRIMANTE, lignes)]
 
 
 def sections_filiales():
@@ -484,7 +501,9 @@ def sections_filiales():
         par_filiale.setdefault(d.get("filiale"), []).append(d)
 
     # Ordre des filiales connu en base, puis d'éventuelles valeurs inattendues
-    noms = [f[1] for f in filiales]
+    noms = []
+    for f in filiales:
+        noms.append(f[1])
     for nom in par_filiale:
         if nom and nom not in noms:
             noms.append(nom)
@@ -492,7 +511,10 @@ def sections_filiales():
     titres = _titres_uniques(noms)
     sections = []
     for titre, nom in zip(titres, noms):
-        sections.append((titre, COLS_DEVICE, [_ligne_device(d) for d in par_filiale.get(nom, [])]))
+        lignes = []
+        for d in par_filiale.get(nom, []):
+            lignes.append(_ligne_device(d))
+        sections.append((titre, COLS_DEVICE, lignes))
     return sections
 
 
@@ -595,7 +617,10 @@ def _generate_comparaison_excel(titre_doc, cols, rows, verdict=""):
         cell.border = border("D1D5DB")
 
     for row in rows:
-        ws.append([str(x) if x is not None and str(x).strip() != "" else "—" for x in row])
+        ligne = []
+        for x in row:
+            ligne.append(str(x) if x is not None and str(x).strip() != "" else "—")
+        ws.append(ligne)
         for cell in ws[ws.max_row]:
             cell.alignment = Alignment(vertical="center", wrap_text=True)
             cell.border = border("E5E7EB")

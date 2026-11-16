@@ -1,9 +1,12 @@
 from psycopg2.extras import execute_values
-def get_liste_rapport_device(cur):
+def get_liste_rapport_device(cur, limit=500):
     cur.execute(
         """
         SELECT * FROM t_rapport_device
-        """
+        ORDER BY report_time DESC, id DESC
+        LIMIT %s
+        """,
+        (limit,)
     )
     result = cur.fetchall()
     return result

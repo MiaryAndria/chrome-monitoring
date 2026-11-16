@@ -1,8 +1,9 @@
 from typing import List, Optional
 from datetime import datetime
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Query
 
+from backend.exceptions import NotFoundError
 from backend.fonction.metier.models.device import DeviceResponses, DevicePageResponse
 from backend.fonction.metier.service.device_service import (
     getDeviceDetail,
@@ -10,8 +11,7 @@ from backend.fonction.metier.service.device_service import (
     get_modeles,
     get_device_stats,
 )
-from backend.utils.validation import is_valid_datetime_range
-import traceback
+from backend.utils.validation import valider_plage_datetime
 
 router = APIRouter()
 
@@ -29,68 +29,38 @@ def getListe(
     recherche: Optional[str] = None,
     datetime_from: Optional[datetime] = None,
     datetime_to: Optional[datetime] = None,
-    utilisateur_recent:Optional[str]=None,
+    utilisateur_recent: Optional[str] = None,
 ):
-    if not is_valid_datetime_range(datetime_from, datetime_to):
-        raise HTTPException(
-            status_code=400,
-            detail="datetime_to doit être supérieur ou égal à datetime_from",
-        )
-    try:
-        return getDevicesPage(
-            page=page,
-            page_size=page_size,
-            id_filiale=id_filiale,
-            filiale=filiale,
-            id_statut=id_statut,
-            statut=statut,
-            type_appareil=type_appareil,
-            modele=modele,
-            recherche=recherche,
-            datetime_from=datetime_from,
-            datetime_to=datetime_to,
-            utilisateur_recent=utilisateur_recent
-        )
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    valider_plage_datetime(datetime_from, datetime_to)
+    return getDevicesPage(
+        page=page,
+        page_size=page_size,
+        id_filiale=id_filiale,
+        filiale=filiale,
+        id_statut=id_statut,
+        statut=statut,
+        type_appareil=type_appareil,
+        modele=modele,
+        recherche=recherche,
+        datetime_from=datetime_from,
+        datetime_to=datetime_to,
+        utilisateur_recent=utilisateur_recent,
+    )
 
 
 @router.get("/modeles", response_model=List[str])
 def getModeles():
-    try:
-        return get_modeles()
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    return get_modeles()
 
 
 @router.get("/stats")
 def getStats():
-    try:
-        return get_device_stats()
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    return get_device_stats()
 
 
 @router.get("/{id}", response_model=DeviceResponses)
 def getDetailDevice(id: int):
-    try:
-        device = getDeviceDetail(id)
-
-        if device is None:
-            raise HTTPException(
-                status_code=404,
-                detail="Device introuvable"
-            )
-
-        return device
-
-    except HTTPException:
-        raise
-
-    except Exception as e:
-        traceback.print_exc()
-
-        raise HTTPException(
-            status_code=500,
-            detail=str(e)
-        )
+    device = getDeviceDetail(id)
+    if device is None:
+        raise NotFoundError("Device introuvable")
+    return device

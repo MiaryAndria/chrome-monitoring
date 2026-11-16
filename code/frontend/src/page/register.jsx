@@ -19,26 +19,12 @@ function Inscription() {
         e.preventDefault();
         if (loading) return;
         setError('');
-
-        if (!nom.trim() || !email.trim() || !password) {
-            setError('Tous les champs sont obligatoires.');
-            return;
-        }
-        if (password.length < 6) {
-            setError('Le mot de passe doit contenir au moins 6 caractères.');
-            return;
-        }
-        if (password !== confirm) {
-            setError('Les mots de passe ne correspondent pas.');
-            return;
-        }
-
         try {
             setLoading(true);
-            await Register(nom, email, password);
+            await Register(nom.trim(), email.trim(), password, confirm);
             navigate('/dashboard', { replace: true, state: { welcome: true } });
         } catch (err) {
-            setError(err.response?.data?.detail || "Impossible de créer le compte.");
+            setError(err.response?.data?.error || err.response?.data?.detail || "Impossible de créer le compte.");
         } finally {
             setLoading(false);
         }

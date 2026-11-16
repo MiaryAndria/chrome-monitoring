@@ -44,11 +44,16 @@ function ListeUtilisateursEntreprise() {
         }
     );
 
+    const chargerFiliales = async () => {
+        const data = await getListeFiliale();
+        setListeFiliales(data || []);
+    };
+
     const filtresCharges = useRef(false);
     useEffect(() => {
         if (!firstLoadDone || filtresCharges.current) return;
         filtresCharges.current = true;
-        getListeFiliale().then((data) => setListeFiliales(data || []));
+        chargerFiliales();
     }, [firstLoadDone]);
 
     const filtresActifs = filiale !== "" || search !== "";

@@ -37,8 +37,10 @@ export default function usePaginatedData(fetcher, page, pageSize, params) {
             setFirstLoadDone(true);
         } else {
             setLoading(true);
-            fetcher({ page, page_size: pageSize, ...params })
-                .then((data) => {
+
+            const charger = async () => {
+                try {
+                    const data = await fetcher({ page, page_size: pageSize, ...params });
                     if (annule) return;
                     const pagesTotal = data?.total_pages || 0;
                     setItems(data?.items || []);
@@ -47,30 +49,31 @@ export default function usePaginatedData(fetcher, page, pageSize, params) {
                     setError(null);
                     setFirstLoadDone(true);
 
-                    // Ne precharge la page suivante qu'apres la premiere page :
-                    // evite un second scan complet a l'ouverture.
                     const cleSuivante = buildKey(page + 1, pageSize, paramsKey);
                     if (page > 1 && page + 1 <= pagesTotal && !prefetched.current.has(cleSuivante)) {
-                        fetcher({ page: page + 1, page_size: pageSize, ...params })
-                            .then((d) => {
-                                if (d) prefetched.current.set(cleSuivante, d);
-                            })
-                            .catch(() => {});
+                        try {
+                            const d = await fetcher({ page: page + 1, page_size: pageSize, ...params });
+                            if (d) prefetched.current.set(cleSuivante, d);
+                        } catch (e) {
+                            console.log(e);
+                        }
                     }
-                })
-                .catch((e) => {
+                } catch (e) {
                     if (annule) return;
                     console.log(e);
                     setError(e);
-                })
-                .finally(() => {
+                } finally {
                     if (!annule) setLoading(false);
-                });
+                }
+            };
+
+            charger();
         }
 
         return () => {
             annule = true;
         };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [fetcher, page, pageSize, paramsKey]);
 
     return { items, total, totalPages, loading, error, firstLoadDone };

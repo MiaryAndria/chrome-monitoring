@@ -7,32 +7,26 @@ from backend.fonction.metier.repository.cpu import (
 )
 
 
-def _serialize_latest_cpu(row):
-    if row is None:
-        return None
-
-    date_cpu = row.get("date")
-    utilisation = row.get("cpu_utiliser")
-
-    return {
-        "id": row.get("id"),
-        "id_device": row.get("id_device"),
-        "cpu_model": row.get("cpu_model"),
-        "freq_max_proc": row.get("freq_max_proc"),
-        "cpu_architecture": row.get("cpu_architecture"),
-        "cpu_utiliser": float(utilisation) if utilisation is not None else None,
-        "cpu_libre": row.get("cpu_libre"),
-        "cpu_total": row.get("cpu_total"),
-        "date": str(date_cpu) if date_cpu else None,
-    }
-
-
 def get_latest_cpu(id_device):
     with lecture() as cur:
         if cur is None:
             return None
         row = get_latest_by_device_repository(cur, id_device)
-        return _serialize_latest_cpu(row)
+        if row is None:
+            return None
+        date_cpu = row.get("date")
+        utilisation = row.get("cpu_utiliser")
+        return {
+            "id": row.get("id"),
+            "id_device": row.get("id_device"),
+            "cpu_model": row.get("cpu_model"),
+            "freq_max_proc": row.get("freq_max_proc"),
+            "cpu_architecture": row.get("cpu_architecture"),
+            "cpu_utiliser": float(utilisation) if utilisation is not None else None,
+            "cpu_libre": row.get("cpu_libre"),
+            "cpu_total": row.get("cpu_total"),
+            "date": str(date_cpu) if date_cpu else None,
+        }
 
 
 def get_cpu_device_date(id_device, date_debut, date_fin):
@@ -60,10 +54,12 @@ def _group_by_day(mesures, date_debut, date_fin):
 
 def _build_date_summary(mesures, date_debut, date_fin):
     if date_debut.date() == date_fin.date():
-        detail = [
-            {"datetime": mesure["date"].isoformat(), "valeur": mesure["valeur"]}
-            for mesure in mesures
-        ]
+        detail = []
+        for mesure in mesures:
+            detail.append({
+                "datetime": mesure["date"].isoformat(),
+                "valeur": mesure["valeur"],
+            })
         return {"total": None, "same_day": True, "detail": detail}
     return {
         "total": sum(mesure["valeur"] for mesure in mesures),

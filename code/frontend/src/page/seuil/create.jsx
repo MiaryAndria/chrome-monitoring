@@ -39,22 +39,15 @@ function SeuilCreate() {
         chargerTypes(idCat);
     };
 
+    const [error, setError] = useState(null);
+    const unite = typeSelectionne?.unite || (limite === 100 || limite === null ? '%' : 'int');
     const creerSeuil = async () => {
-        const valeurNum = Number(valeur);
-        if (valeur === '' || !Number.isInteger(valeurNum) || valeurNum < 0) {
-            window.alert("La valeur doit être un nombre entier positif.");
-            return;
-        }
-        if (limite !== null && limite !== undefined && valeurNum > limite) {
-            window.alert(`La valeur ne peut pas dépasser ${limite} pour ce type de seuil.`);
-            return;
-        }
+        setError(null);
         try {
-            await createSeuil(Number(idType), valeurNum);
+            await createSeuil(idType ? Number(idType) : null, valeur === '' ? null : Number(valeur));
             navigate('/liste/seuil');
         } catch (e) {
-            const msg = e?.response?.data?.detail || "Erreur lors de la création du seuil.";
-            window.alert(msg);
+            setError(e?.response?.data?.error || e?.response?.data?.detail || "Erreur lors de la création du seuil.");
         }
     };
 
@@ -102,7 +95,9 @@ function SeuilCreate() {
                         </div>
                     )}
                     <div className="config-form-group">
-                        <label className="config-form-label">Valeur</label>
+                        <label className="config-form-label">
+                            Valeur {typeSelectionne ? (unite === '%' ? '(%)' : '(entier)') : ''}
+                        </label>
                         <input
                             type="number"
                             className="config-form-input"
@@ -111,13 +106,21 @@ function SeuilCreate() {
                             placeholder="Entrer valeur"
                             min={0}
                             max={limite ?? undefined}
+                            step={1}
                         />
-                        {limite !== null && limite !== undefined && (
+                        {typeSelectionne && (
                             <p className="text-xs text-zinc-500 mt-1">
-                                Valeur maximale pour ce type : {limite}
+                                Unité : {unite === '%' ? 'pourcentage (%)' : 'valeur entière (int)'}
+                                {limite !== null && limite !== undefined ? ` — limite max : ${limite}${unite === '%' ? ' %' : ''}` : ' — aucune limite définie'}
                             </p>
                         )}
                     </div>
+
+                    {error && (
+                        <p className="text-xs text-red-400 bg-red-500/10 border border-red-500/30 p-2.5 rounded-lg">
+                            {error}
+                        </p>
+                    )}
 
                     <div className="config-form-actions">
                         <button onClick={() => navigate('/liste/seuil')} className="config-btn config-btn-ghost">

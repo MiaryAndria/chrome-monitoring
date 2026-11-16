@@ -53,10 +53,15 @@ def find_imprimantes_paginated(cur, page=1, page_size=10, recherche=None,
     offset = (page - 1) * page_size
 
     cur.execute(
+        f"SELECT COUNT(*) FROM v_imprimantes_filtrees {where}",
+        tuple(params),
+    )
+    total = cur.fetchone()[0]
+
+    cur.execute(
         f"""
         SELECT
-            id, vid, pid, vendor, nom, derniere_detection,
-            COUNT(*) OVER() AS total
+            id, vid, pid, vendor, nom, derniere_detection
         FROM v_imprimantes_filtrees
         {where}
         ORDER BY id ASC
@@ -64,7 +69,7 @@ def find_imprimantes_paginated(cur, page=1, page_size=10, recherche=None,
         """,
         tuple(params + [page_size, offset])
     )
-    return _rows_to_dicts(cur)
+    return _rows_to_dicts(cur), total
 
 
 def get_liste_vendor(cur):

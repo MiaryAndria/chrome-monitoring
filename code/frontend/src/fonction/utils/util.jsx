@@ -188,3 +188,97 @@ export const exportExcel = async ({ onglet, id, date_debut, date_fin } = {}) => 
     showExportSuccess('Rapport généré avec succès', 'Excel');
     return response;
 };
+
+export const formatFreq = (khz) => {
+    const n = Number(khz);
+    if (!n) return "—";
+    return `${(n / 1_000_000).toFixed(1)} GHz`;
+}
+
+export const Badge = ({ gagnant, labels }) => {
+    if (gagnant === "indetermine") {
+        return (
+            <span className="text-[11px] px-2 py-0.5 rounded-lg bg-zinc-500/10 text-zinc-400 border border-white/10">
+                Indéterminé
+            </span>
+        );
+    }
+    if (gagnant === "egal") {
+        return (
+            <span className="text-[11px] px-2 py-0.5 rounded-lg bg-zinc-500/10 text-zinc-300 border border-white/10">
+                Égalité
+            </span>
+        );
+    }
+    return (
+        <span className="text-[11px] px-2 py-0.5 rounded-lg bg-emerald-500/10 text-emerald-300 border border-emerald-500/20">
+            {gagnant === "a" ? labels.a : labels.b} en tête
+        </span>
+    );
+}
+
+export const Bloc = ({ titre, gagnant, labels, ligneA, ligneB, ecart }) => {
+    return (
+        <div className="rounded-xl border border-white/10 p-4 bg-zinc-900/40 space-y-3">
+            <div className="flex items-center justify-between gap-2">
+                <span className="text-xs uppercase tracking-wider text-zinc-400 font-semibold">{titre}</span>
+                <Badge gagnant={gagnant} labels={labels} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-0.5 min-w-0">
+                    <div className="text-[11px] text-zinc-500 truncate">{labels.a}</div>
+                    {ligneA.map((l, i) => (
+                        <div key={i} className="text-sm text-zinc-200 break-words">{l}</div>
+                    ))}
+                </div>
+                <div className="space-y-0.5 min-w-0">
+                    <div className="text-[11px] text-zinc-500 truncate">{labels.b}</div>
+                    {ligneB.map((l, i) => (
+                        <div key={i} className="text-sm text-zinc-200 break-words">{l}</div>
+                    ))}
+                </div>
+            </div>
+            {ecart != null && <div className="text-[11px] text-zinc-500">Écart : {ecart}</div>}
+        </div>
+    );
+}
+
+export const colorMap = {
+    cyan: { icon: 'bg-cyan-500/10 text-cyan-400', border: 'hover:border-cyan-500/30', val: 'text-cyan-400' },
+    purple: { icon: 'bg-purple-500/10 text-purple-400', border: 'hover:border-purple-500/30', val: 'text-purple-400' },
+    amber: { icon: 'bg-amber-500/10 text-amber-400', border: 'hover:border-amber-500/30', val: 'text-amber-400' },
+    emerald: { icon: 'bg-emerald-500/10 text-emerald-400', border: 'hover:border-emerald-500/30', val: 'text-emerald-400' },
+    blue: { icon: 'bg-blue-500/10 text-blue-400', border: 'hover:border-blue-500/30', val: 'text-blue-400' },
+    pink: { icon: 'bg-pink-500/10 text-pink-400', border: 'hover:border-pink-500/30', val: 'text-pink-400' },
+};
+
+export const CarteRessource = ({ titre, children }) => {
+    return (
+        <div className="glass-panel rounded-2xl p-5 space-y-3">
+            <h3 className="text-sm font-semibold text-zinc-200">{titre}</h3>
+            {children}
+        </div>
+    );
+}
+
+export const formatPct = (value) => {
+    return value == null ? "—" : `${value} %`;
+}
+
+export const ligneUsageCpu = (c) => {
+    if (!c || c.moyenne == null) return ["Aucune donnée relevée"];
+    return [`${formatPct(c.moyenne)} (moyenne)`, `min ${formatPct(c.min)} · max ${formatPct(c.max)} · n ${c.n}`];
+}
+
+export const ligneUsageRam = (r) => {
+    if (!r || r.moyenne_pct == null) return ["Aucune donnée relevée"];
+    return [`${formatPct(r.moyenne_pct)} utilisés`, `${formatBytes(r.moyenne_util) || "—"} / ${formatBytes(r.total) || "—"}`];
+}
+
+export const lignePuissanceCpu = (s) => {
+    return [s.cpu_model || "—", `${formatFreq(s.freq_max_proc)} · ${s.cpu_architecture || "—"}`, `score ${s.score ?? "—"}`];
+}
+
+export const lignePuissanceRam = (s) => {
+    return [formatBytes(s.ram_total) || "—", `score ${s.score ?? "—"}`];
+}

@@ -10,6 +10,19 @@ export const listeComparaison = async () => {
     }
 };
 
+export const toOptions =async(versions) =>{
+    const vus = new Set();
+    const options = [];
+    for (const v of versions || []) {
+        const valeur = v.chromeos_version;
+        if (!valeur || vus.has(valeur)) continue;
+        vus.add(valeur);
+        options.push({ value: valeur, label: valeur });
+    }
+    return options;
+}
+
+
 export const listeComparaisonPage = async (params = {}) => {
     try {
         const response = await api_service.get("comparaison/liste/page", { params });

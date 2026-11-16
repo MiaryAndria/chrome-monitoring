@@ -21,25 +21,16 @@ def insert_into_device_ram(cur, id_device, ram_total, ram_utiliser, ram_libre, d
 
 
 def get_max_total_ram(cur, id_device, datetime_from=None, datetime_to=None):
-    """
-    Retourne la plus grande valeur de ram_total relevée pour un device.
-    Les bornes de date sont optionnelles (TIMESTAMPTZ).
-    """
-    query = """
+    cur.execute(
+        """
         SELECT MAX(ram_total)
         FROM t_device_ram
         WHERE id_device = %s
-    """
-    params = [id_device]
-
-    if datetime_from is not None:
-        query += " AND date >= %s"
-        params.append(datetime_from)
-    if datetime_to is not None:
-        query += " AND date <= %s"
-        params.append(datetime_to)
-
-    cur.execute(query, tuple(params))
+          AND (%s IS NULL OR date >= %s)
+          AND (%s IS NULL OR date <= %s)
+        """,
+        (id_device, datetime_from, datetime_from, datetime_to, datetime_to)
+    )
     row = cur.fetchone()
     return row[0] if row else None
 

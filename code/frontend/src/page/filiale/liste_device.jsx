@@ -76,7 +76,11 @@ function ListeDeviceFiliale() {
         if (!firstLoadDone || filtresCharges.current) return;
         filtresCharges.current = true;
         getStatut();
-        getModeles().then(setModeles);
+        const chargerModeles = async () => {
+            const data = await getModeles();
+            setModeles(data);
+        };
+        chargerModeles();
         getUtilisateurRecent();
     }, [firstLoadDone]);
 
@@ -116,6 +120,7 @@ function ListeDeviceFiliale() {
 
     useEffect(() => {
         chargerInfos();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [id_filiale]);
 
     // Revenir à la page 1 quand le filtre change

@@ -32,20 +32,19 @@ from backend.fonction.metier.repository.devices import (
     get_liste_device,
     get_utilisateur_recent_by_device,
 )
-from backend.fonction.metier.repository.statut.constants import (
+from backend.fonction.metier.repository.statut import (
     ID_STATUT_ACTIVE,
     ID_STATUT_RESOLUE,
     ID_STATUT_CREER,
 )
-from backend.fonction.metier.repository.configuration.constants import (
+from backend.fonction.metier.repository.configuration import (
     ID_CONFIG_ALERTE_EVENEMENTS_FENETRE_JOURS,
 )
 from backend.utils.config_db import get_int_configuration
 from backend.utils.format_valeur import usage_percent
 from backend.utils.pagination import build_page
 from backend.core.cache import cache_get, cache_set, cache_invalidate_prefix
-from backend.utils.builder import _serialize_alerte_resume
-from backend.fonction.metier.repository.synchronisation.synchronisation_historique import get_date_derniere_synchronisation
+from backend.fonction.metier.repository.synchronisation import get_date_derniere_synchronisation
 
 # Cle de configuration : fenetre (jours) du seuil d'evenements.
 FENETRE_EVENEMENTS_DEFAUT = 7
@@ -78,20 +77,32 @@ def getTypeAlerte():
     with lecture() as cur:
         if cur is None:
             return []
-        return [
-            {
+        rows = get_type_alerte(cur)
+        result = []
+        for t in rows:
+            result.append({
                 "id": t[0],
                 "type": t[1],
-            }
-            for t in get_type_alerte(cur)
-        ]
+            })
+        return result
 
 def getDernieresAlertes(limit):
     with lecture() as cur:
         if cur is None:
             return []
         rows = get_dernieres_alertes(cur, limit)
-        return [_serialize_alerte_resume(r) for r in rows]
+        result = []
+        for r in rows:
+            result.append({
+                "id": r[0],
+                "id_device": r[1],
+                "serial_number": r[2],
+                "type": r[3],
+                "message": r[4],
+                "date": r[5],
+                "utilisateur_recent": r[6],
+            })
+        return result
 
 
 def getListeDeviceAlerteDate(date_debut=None, date_fin=None):
@@ -99,22 +110,53 @@ def getListeDeviceAlerteDate(date_debut=None, date_fin=None):
         if cur is None:
             return []
         rows = get_liste_device_alerte_by_date(cur, date_debut, date_fin)
-        return [_serialize_alerte_resume(r) for r in rows]
+        result = []
+        for r in rows:
+            result.append({
+                "id": r[0],
+                "id_device": r[1],
+                "serial_number": r[2],
+                "type": r[3],
+                "message": r[4],
+                "date": r[5],
+                "utilisateur_recent": r[6],
+            })
+        return result
 
 def getListeDeviceAlerteDateResolue(date_debut=None, date_fin=None):
     with lecture() as cur:
         if cur is None:
             return []
         rows = get_liste_device_alerte_by_date_resolue(cur, date_debut, date_fin)
-        return [_serialize_alerte_resume(r) for r in rows]
+        result = []
+        for r in rows:
+            result.append({
+                "id": r[0],
+                "id_device": r[1],
+                "serial_number": r[2],
+                "type": r[3],
+                "message": r[4],
+                "date": r[5],
+                "utilisateur_recent": r[6],
+            })
+        return result
 
 def _fetch_device_alertes_page(page, page_size, date_debut, date_fin,type,search):
     with lecture() as cur:
         if cur is None:
             return build_page([], 0, page, page_size)
-        rows = find_device_alertes_paginated(cur, page, page_size, date_debut, date_fin,type,search)
-        total = rows[0][7] if rows else 0
-        items = [_serialize_alerte_resume(r) for r in rows]
+        rows, total = find_device_alertes_paginated(cur, page, page_size, date_debut, date_fin,type,search)
+        items = []
+        for r in rows:
+            items.append({
+                "id": r[0],
+                "id_device": r[1],
+                "serial_number": r[2],
+                "type": r[3],
+                "message": r[4],
+                "date": r[5],
+                "utilisateur_recent": r[6],
+            })
         return build_page(items, total, page, page_size)
 
 def getDeviceAlertesPage(page=1, page_size=10, date_debut=None, date_fin=None,type=None,search=None):
@@ -129,9 +171,18 @@ def _fetch_device_alertes_resolues_page(page, page_size, date_debut, date_fin,ty
     with lecture() as cur:
         if cur is None:
             return build_page([], 0, page, page_size)
-        rows = find_device_alertes_resolues_paginated(cur, page, page_size, date_debut, date_fin,type,search)
-        total = rows[0][7] if rows else 0
-        items = [_serialize_alerte_resume(r) for r in rows]
+        rows, total = find_device_alertes_resolues_paginated(cur, page, page_size, date_debut, date_fin,type,search)
+        items = []
+        for r in rows:
+            items.append({
+                "id": r[0],
+                "id_device": r[1],
+                "serial_number": r[2],
+                "type": r[3],
+                "message": r[4],
+                "date": r[5],
+                "utilisateur_recent": r[6],
+            })
         return build_page(items, total, page, page_size)
 
 
@@ -298,7 +349,18 @@ def getNouvellesAlertes(limit):
         if date_depuis is None:
             return []
         rows = get_alertes_nouvelles(cur, date_depuis, limit)
-        return [_serialize_alerte_resume(r) for r in rows]
+        result = []
+        for r in rows:
+            result.append({
+                "id": r[0],
+                "id_device": r[1],
+                "serial_number": r[2],
+                "type": r[3],
+                "message": r[4],
+                "date": r[5],
+                "utilisateur_recent": r[6],
+            })
+        return result
 
 def getNombreAlerteNouvelle():
     with lecture() as cur:

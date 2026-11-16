@@ -23,8 +23,11 @@ from backend.fonction.metier.controller.alerteController import router as alerte
 from backend.fonction.metier.controller.export_controller import router as export_router
 from backend.fonction.metier.controller.utilisateur_controller import router as utilisateur_router
 from backend.fonction.metier.service.reset_service import reset_data
+from backend.middlewares.error_handler import register_error_handlers
 
 app = FastAPI()
+
+register_error_handlers(app)
 
 app.add_middleware(
     CORSMiddleware,
@@ -75,11 +78,8 @@ def accueil():
 
 @app.post("/reset", dependencies=protected)
 def resetAll():
-    try:
-        reset_data()
-        return {"message": "Suppression terminée avec succès"}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    reset_data()
+    return {"message": "Suppression terminée avec succès"}
 
 # @app.get("/liste/device", dependencies=protected)
 # def getListe():

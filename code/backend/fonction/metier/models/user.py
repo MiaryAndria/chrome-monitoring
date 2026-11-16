@@ -4,14 +4,15 @@ from pydantic import BaseModel
 
 
 class UserLogin(BaseModel):
-    email: str
-    mdp: str
+    email: str = ""
+    mdp: str = ""
 
 
 class UserSignin(BaseModel):
-    nom: str
-    email: str
-    mdp: str
+    nom: str = ""
+    email: str = ""
+    mdp: str = ""
+    confirm_mdp: str = ""
 
 
 class UserRoleUpdate(BaseModel):

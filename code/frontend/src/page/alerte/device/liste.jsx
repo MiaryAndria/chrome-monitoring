@@ -30,8 +30,9 @@ function ListeDeviceAlerte() {
     const [heureFin, setHeureFin] = useState('23:59');
     const [datetimeDebutApplique, setDatetimeDebutApplique] = useState('');
     const [datetimeFinApplique, setDatetimeFinApplique] = useState('');
+    const [erreurFiltreDate, setErreurFiltreDate] = useState('');
 
-    const { items: liste, total, totalPages, loading } = usePaginatedData(
+    const { items: liste, total, totalPages, loading, error } = usePaginatedData(
         getListeAlertePage,
         page,
         pageSize,
@@ -58,21 +59,20 @@ function ListeDeviceAlerte() {
     }
 
     const filtrerByDate = () => {
-        if (dateDebut && dateFin && dateDebut > dateFin) {
-            alert("La date de début doit être antérieure ou égale à la date de fin.");
+        setErreurFiltreDate('');
+        if (!dateDebut && !dateFin) {
+            setDatetimeDebutApplique('');
+            setDatetimeFinApplique('');
+            setPage(1);
             return;
         }
-        if (dateDebut && dateFin && dateDebut === dateFin && heureDebut > heureFin) {
-            alert("L'heure de début doit être antérieure ou égale à l'heure de fin.");
-            return;
-        }
-
         setDatetimeDebutApplique(dateDebut ? `${dateDebut}T${heureDebut || '00:00'}:00` : '');
         setDatetimeFinApplique(dateFin ? `${dateFin}T${heureFin || '23:59'}:59` : '');
         setPage(1);
     };
 
     const resetDate = () => {
+        setErreurFiltreDate('');
         setDateDebut('');
         setHeureDebut('00:00');
         setDateFin('');
@@ -87,22 +87,7 @@ function ListeDeviceAlerte() {
         setSearch('');
         setPage(1);
     };
-
-    useEffect(() => {
-        getType()
-    }, []);
-
-    useEffect(() => {
-        if (type.length > 0) {
-            chargerStats()
-        }
-    }, [type, datetimeDebutApplique, datetimeFinApplique])
-
     // Un changement de filtre repart en page 1 (le hook refetch tout seul).
-    useEffect(() => {
-        setPage(1);
-    }, [search, TypeFiltered, datetimeDebutApplique, datetimeFinApplique]);
-
     const filtresActifs = TypeFiltered !== "" || search !== "" || !!datetimeDebutApplique || !!datetimeFinApplique;
 
     const totalActives = Number(total) || 0;
@@ -119,6 +104,8 @@ function ListeDeviceAlerte() {
     const donutData = [];
     for (const s of statsParType) {
         if (TypeFiltered && s.type !== TypeFiltered || s.value <= 0) {
+            continue;
+        } else if (s.value === 0) {
             continue;
         }
         donutData.push({ name: s.label, value: s.value, color: s.color });
@@ -166,6 +153,27 @@ function ListeDeviceAlerte() {
         },
     ];
 
+    useEffect(() => {
+        getType();
+    }, []);
+
+    useEffect(() => {
+        if (type.length > 0) {
+            chargerStats();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [type, datetimeDebutApplique, datetimeFinApplique]);
+
+    useEffect(() => {
+        setPage(1);
+    }, [search, TypeFiltered, datetimeDebutApplique, datetimeFinApplique]);
+
+    useEffect(() => {
+        if (error) {
+            setErreurFiltreDate(error?.response?.data?.error || error?.response?.data?.detail || '');
+        }
+    }, [error]);
+
     return (
         <PageLayout
             title="Alertes des appareils"
@@ -205,6 +213,11 @@ function ListeDeviceAlerte() {
                         onFilter={filtrerByDate}
                         onReset={resetDate}
                     />
+                    {erreurFiltreDate && (
+                        <p className="text-xs text-red-400 bg-red-500/10 border border-red-500/30 p-2.5 rounded-lg">
+                            {erreurFiltreDate}
+                        </p>
+                    )}
 
                     <div className="flex flex-wrap items-center gap-3">
                         <span className="text-[10px] text-zinc-500 uppercase font-semibold tracking-wider">Type :</span>

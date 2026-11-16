@@ -64,8 +64,7 @@ function DateHeureFilter({
 
             <button
                 onClick={onFilter}
-                disabled={!dateDebut || !dateFin}
-                className="px-4 py-1.5 rounded-lg text-xs font-medium bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 hover:bg-cyan-500/30 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                className="px-4 py-1.5 rounded-lg text-xs font-medium bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 hover:bg-cyan-500/30 transition-all"
             >
                 Filtrer
             </button>

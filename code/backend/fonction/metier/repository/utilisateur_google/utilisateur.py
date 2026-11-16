@@ -69,6 +69,21 @@ def find_utilisateurs_recent_paginated(cur, page=1, page_size=10, filiale=None, 
 
     cur.execute(
         f"""
+        SELECT COUNT(*)
+        FROM (
+            SELECT u.id
+            FROM t_utilisateur u
+            JOIN t_device_utilisateur_recent dur ON dur.id_utilisateur = u.id
+            {where}
+            GROUP BY u.id, u.email
+        ) sous_total
+        """,
+        tuple(params),
+    )
+    total = cur.fetchone()[0]
+
+    cur.execute(
+        f"""
         SELECT
             u.id,
             u.email,
@@ -81,8 +96,7 @@ def find_utilisateurs_recent_paginated(cur, page=1, page_size=10, filiale=None, 
                     JOIN t_filiale f ON f.id = fu.id_filiale
                     WHERE fu.id_utilisateur = u.id
                 ), '{{}}'::text[]
-            ) AS filiales,
-            COUNT(*) OVER() AS total
+            ) AS filiales
         FROM t_utilisateur u
         JOIN t_device_utilisateur_recent dur ON dur.id_utilisateur = u.id
         {where}
@@ -92,7 +106,7 @@ def find_utilisateurs_recent_paginated(cur, page=1, page_size=10, filiale=None, 
         """,
         tuple(params + [page_size, offset]),
     )
-    return cur.fetchall()
+    return cur.fetchall(), total
 
 
 def get_devices_by_utilisateur_recent(cur, id_utilisateur, limit=100):

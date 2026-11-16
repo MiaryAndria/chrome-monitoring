@@ -27,13 +27,17 @@ function ListeUtilisateur() {
         { refresh }
     );
 
+    const chargerRoles = async () => {
+        try {
+            const listeRoles = await getRoles();
+            setRoles(listeRoles);
+        } catch (e) {
+            setError(e.response?.data?.error);
+        }
+    };
+
     useEffect(() => {
-        getRoles()
-            .then((listeRoles) => setRoles(listeRoles))
-            .catch((e) => {
-                console.log(e);
-                setError("Impossible de charger les rôles.");
-            });
+        chargerRoles();
     }, []);
 
     const validerRole = async (user, id_role) => {
@@ -43,8 +47,7 @@ function ListeUtilisateur() {
             await updateRoleUtilisateur(user.id, id_role);
             setRefresh(r => r + 1);
         } catch (e) {
-            console.log(e);
-            setError("Impossible de modifier le rôle.");
+            setError(e.response?.data?.error);
         } finally {
             setSavingId(null);
         }
@@ -55,7 +58,7 @@ function ListeUtilisateur() {
             await deleteUtilisateur(id);
             setRefresh(r => r + 1);
         } catch (e) {
-            console.log(e);
+            setError(e.response?.data?.error);
         }
     };
 

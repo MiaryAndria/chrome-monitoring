@@ -9,10 +9,6 @@ def insert_imprimante_device(cur, id_imprimante, id_device, date):
 
 
 def get_devices_by_imprimante(cur, id_imprimante):
-    """
-    Retourne la liste des devices sur lesquels une imprimante a été détectée.
-    Chaque device est retourné avec sa dernière date de détection.
-    """
     cur.execute("""
         SELECT DISTINCT ON (d.id)
             d.id                AS id_device,
@@ -21,24 +17,24 @@ def get_devices_by_imprimante(cur, id_imprimante):
             d.modele,
             d.ip_adress,
             d.mac_adress,
-            v.chromeos_version,
+            (
+                SELECT dv.chromeos_version
+                FROM t_device_version dv
+                WHERE dv.id_device = d.id
+                ORDER BY dv.date DESC, dv.id DESC
+                LIMIT 1
+            ) AS chromeos_version,
             idv.date            AS derniere_detection
         FROM t_imprimante_device idv
         JOIN t_device d ON d.id = idv.id_device
-        LEFT JOIN LATERAL (
-            SELECT dv.chromeos_version
-            FROM t_device_version dv
-            WHERE dv.id_device = d.id
-            ORDER BY dv.date DESC, dv.id DESC
-            LIMIT 1
-        ) v ON TRUE
         WHERE idv.id_imprimante = %s
         ORDER BY d.id, idv.date DESC
     """, (id_imprimante,))
 
     rows = cur.fetchall()
-    return [
-        {
+    result = []
+    for r in rows:
+        result.append({
             "id_device": r[0],
             "device_id": r[1],
             "serial_number": r[2],
@@ -47,6 +43,5 @@ def get_devices_by_imprimante(cur, id_imprimante):
             "mac_adress": r[5],
             "chromeos_version": r[6],
             "derniere_detection": r[7],
-        }
-        for r in rows
-    ]
+        })
+    return result

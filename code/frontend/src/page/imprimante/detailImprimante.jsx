@@ -36,7 +36,7 @@ function DetailImprimante() {
                 setImprimante(result);
             } catch (e) {
                 console.error(e);
-                setError("Impossible de charger le détail de l'imprimante.");
+                setError(e.response?.data?.error || "Impossible de charger le détail de l'imprimante.");
             } finally {
                 setLoading(false);
             }

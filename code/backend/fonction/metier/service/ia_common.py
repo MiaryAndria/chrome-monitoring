@@ -14,6 +14,9 @@ load_dotenv()
 
 from google import genai
 from google.genai import types
+from openpyxl import load_workbook
+
+from backend.exceptions import ValidationError
 
 MODEL = os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite")
 _client = None
@@ -144,7 +147,7 @@ def decoder_piece_jointe(piece):
     try:
         return base64.b64decode(contenu, validate=False)
     except Exception:
-        raise ValueError("contenu base64 invalide")
+        raise ValidationError("contenu base64 invalide")
 
 
 def nom_local(balise):
@@ -204,7 +207,6 @@ def extraire_texte_odt(brut):
 
 
 def extraire_texte_xlsx(brut):
-    from openpyxl import load_workbook
 
     classeur = load_workbook(io.BytesIO(brut), read_only=True, data_only=True)
     lignes = []
@@ -286,7 +288,7 @@ def construire_pieces_jointes(pieces):
     if not pieces:
         return []
     if len(pieces) > MAX_PIECES:
-        raise ValueError(f"Trop de pièces jointes (maximum {MAX_PIECES} par message).")
+        raise ValidationError(f"Trop de pièces jointes (maximum {MAX_PIECES} par message).")
 
     parts = []
     noms = []

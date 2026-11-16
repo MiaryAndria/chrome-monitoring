@@ -128,33 +128,31 @@ function DetailDevice() {
         }
     };
 
+    const [erreurFiltre, setErreurFiltre] = useState('');
+
     const filtrerByDate = async () => {
         if (activeTab === 'general') return;
-        if (!dateDebut || !dateFin) return;
-        if (dateDebut > dateFin) {
-            alert("La date de début doit être antérieure à la date de fin.");
+        if (!dateDebut && !dateFin) {
+            setErreurFiltre('');
+            resetFiltre();
             return;
         }
-        if (dateDebut === dateFin && heureDebut > heureFin) {
-            alert("L'heure de début doit être antérieure à l'heure de fin.");
-            return;
-        }
-
         try {
             setTabLoading(true);
+            setErreurFiltre('');
             const idType = await getIdByName(TYPE_RAPPORT_NAME[activeTab]);
             if (!idType) return;
 
-            const datetimeFrom = `${dateDebut}T${heureDebut || '00:00'}:00`;
-            const datetimeTo = `${dateFin}T${heureFin || '23:59'}:59`;
-
-            setFiltreDebut(datetimeFrom);
-            setFiltreFin(datetimeTo);
+            const datetimeFrom = dateDebut ? `${dateDebut}T${heureDebut || '00:00'}:00` : undefined;
+            const datetimeTo = dateFin ? `${dateFin}T${heureFin || '23:59'}:59` : undefined;
 
             const res = await filterByDeviceIdAndDateTime(id, idType, datetimeFrom, datetimeTo);
+            setFiltreDebut(datetimeFrom || '');
+            setFiltreFin(datetimeTo || '');
             setTabData(prev => ({ ...prev, [activeTab]: res || [] }));
         } catch (e) {
             console.error(e);
+            setErreurFiltre(e?.response?.data?.error || e?.response?.data?.detail || '');
         } finally {
             setTabLoading(false);
         }
@@ -168,6 +166,7 @@ function DetailDevice() {
         setHeureFin('23:59');
         setFiltreDebut('');
         setFiltreFin('');
+        setErreurFiltre('');
 
         try {
             setTabLoading(true);
@@ -202,6 +201,7 @@ function DetailDevice() {
             fetchDeviceDetail();
             fetchGeneralData();
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [id]);
 
     const renderTabContent = () => {
@@ -312,18 +312,25 @@ function DetailDevice() {
                             </div>
 
                             {activeTab !== 'general' && (
-                                <DateHeureFilter
-                                    dateDebut={dateDebut}
-                                    heureDebut={heureDebut}
-                                    dateFin={dateFin}
-                                    heureFin={heureFin}
-                                    setDateDebut={setDateDebut}
-                                    setHeureDebut={setHeureDebut}
-                                    setDateFin={setDateFin}
-                                    setHeureFin={setHeureFin}
-                                    onFilter={filtrerByDate}
-                                    onReset={resetFiltre}
-                                />
+                                <>
+                                    <DateHeureFilter
+                                        dateDebut={dateDebut}
+                                        heureDebut={heureDebut}
+                                        dateFin={dateFin}
+                                        heureFin={heureFin}
+                                        setDateDebut={setDateDebut}
+                                        setHeureDebut={setHeureDebut}
+                                        setDateFin={setDateFin}
+                                        setHeureFin={setHeureFin}
+                                        onFilter={filtrerByDate}
+                                        onReset={resetFiltre}
+                                    />
+                                    {erreurFiltre && (
+                                        <p className="text-xs text-red-400 bg-red-500/10 border border-red-500/30 p-2.5 rounded-lg">
+                                            {erreurFiltre}
+                                        </p>
+                                    )}
+                                </>
                             )}
 
                             {renderTabContent()}

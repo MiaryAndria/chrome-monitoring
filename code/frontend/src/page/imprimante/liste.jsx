@@ -29,11 +29,8 @@ function ListeImprimante() {
     const [datetimeTo, setDatetimeTo] = useState('');
     const [vendors, setVendors] = useState([]);
     const [vendor, setVendor] = useState("");
+    const [erreurFiltreDate, setErreurFiltreDate] = useState('');
     const navigate = useNavigate();
-
-    useEffect(() => {
-        getVendors().then(setVendors);
-    }, []);
 
     const { items: imprimantes, total, totalPages, loading, error } = usePaginatedData(
         getImprimantes,
@@ -54,28 +51,26 @@ function ListeImprimante() {
         { header: "PID", render: (imp) => <span className="font-mono text-zinc-400">{imp.pid || '-'}</span> },
     ];
 
-    // Revenir à la page 1 quand un filtre change
-    useEffect(() => {
-        setCurrentPage(1);
-    }, [search, vendor, datetimeFrom, datetimeTo]);
+    const chargerVendors = async () => {
+        const data = await getVendors();
+        setVendors(data);
+    };
 
     const filtrerParDate = () => {
-        if (!dateDebut || !dateFin) return;
-        if (dateDebut > dateFin) {
-            alert("La date de début doit être antérieure à la date de fin.");
+        setErreurFiltreDate('');
+        if (!dateDebut && !dateFin) {
+            setDatetimeFrom('');
+            setDatetimeTo('');
+            setCurrentPage(1);
             return;
         }
-        if (dateDebut === dateFin && heureDebut > heureFin) {
-            alert("L'heure de début doit être antérieure à l'heure de fin.");
-            return;
-        }
-
-        setDatetimeFrom(`${dateDebut}T${heureDebut || '00:00'}:00`);
-        setDatetimeTo(`${dateFin}T${heureFin || '23:59'}:59`);
+        setDatetimeFrom(dateDebut ? `${dateDebut}T${heureDebut || '00:00'}:00` : '');
+        setDatetimeTo(dateFin ? `${dateFin}T${heureFin || '23:59'}:59` : '');
         setCurrentPage(1);
     };
 
     const resetDate = () => {
+        setErreurFiltreDate('');
         setDateDebut('');
         setHeureDebut('00:00');
         setDateFin('');
@@ -84,6 +79,20 @@ function ListeImprimante() {
         setDatetimeTo('');
         setCurrentPage(1);
     };
+
+    useEffect(() => {
+        chargerVendors();
+    }, []);
+
+    useEffect(() => {
+        if (error) {
+            setErreurFiltreDate(error?.response?.data?.error || error?.response?.data?.detail || '');
+        }
+    }, [error]);
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [search, vendor, datetimeFrom, datetimeTo]);
 
     return (
         <PageLayout
@@ -112,7 +121,7 @@ function ListeImprimante() {
                             </div>
                         </div>
 
-                        <div className="mt-4 pt-4 border-t border-white/5">
+                        <div className="mt-4 pt-4 border-t border-white/5 space-y-3">
                             <DateHeureFilter
                                 dateDebut={dateDebut}
                                 heureDebut={heureDebut}
@@ -125,6 +134,11 @@ function ListeImprimante() {
                                 onFilter={filtrerParDate}
                                 onReset={resetDate}
                             />
+                            {erreurFiltreDate && (
+                                <p className="text-xs text-red-400 bg-red-500/10 border border-red-500/30 p-2.5 rounded-lg">
+                                    {erreurFiltreDate}
+                                </p>
+                            )}
                         </div>
                     </div>
 

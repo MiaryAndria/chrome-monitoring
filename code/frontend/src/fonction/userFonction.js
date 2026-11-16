@@ -10,9 +10,9 @@ export const Login = async (email, mdp) => {
   }
 };
 
-export const Register = async (nom, email, mdp) => {
+export const Register = async (nom, email, mdp, confirm_mdp) => {
   try {
-    const response = await api_service.post("/user/signin", { nom, email, mdp });
+    const response = await api_service.post("/user/signin", { nom, email, mdp, confirm_mdp });
     return response.data;
   } catch (e) {
     console.log(e);

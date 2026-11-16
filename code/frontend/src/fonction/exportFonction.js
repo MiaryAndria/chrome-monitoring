@@ -13,9 +13,6 @@ export const telechargerFichier = async (url, nomDefaut) => {
     window.URL.revokeObjectURL(objectUrl);
 };
 
-export const exporterEntite = (entite) =>
-    telechargerFichier(`/export/excel/${entite}`, `${entite}.xlsx`);
-
 export const exporterAppareilsExcel = () =>
     telechargerFichier("/export/excel/devices", "liste_appareils.xlsx");
 

@@ -18,6 +18,7 @@ function ConfigurationListe() {
     const [refresh, setRefresh] = useState(0);
     const [categorie, setCategorie] = useState('');
     const [categories, setCategories] = useState([]);
+    const [error, setError] = useState(null);
 
     const { items: conf, total, totalPages, loading } = usePaginatedData(
         getListeConfigurationPage,
@@ -26,20 +27,21 @@ function ConfigurationListe() {
         { refresh, categorie: categorie || undefined }
     );
 
-    useEffect(() => {
-        getListeCategorieConfiguration().then((data) => setCategories(data || []));
-    }, []);
-
-    useEffect(() => {
-        setCurrentPage(1);
-    }, [categorie]);
+    const chargerCategories = async () => {
+        try {
+            const data = await getListeCategorieConfiguration();
+            setCategories(data || []);
+        } catch (e) {
+            setError(e.response?.data?.error);
+        }
+    };
 
     const supprimerConfiguration = async (id) => {
         try {
             await deleteConfiguration(id);
             setRefresh(r => r + 1);
         } catch (e) {
-            console.log(e);
+            setError(e.response?.data?.error);
         }
     };
 
@@ -47,12 +49,14 @@ function ConfigurationListe() {
         { header: 'Catégorie', className: 'w-[18%]', render: (c) => <span className="text-zinc-400">{c.categorie}</span> },
         { header: 'Type', className: 'w-[25%]', render: (c) => <span className="font-bold text-zinc-100">{c.cle}</span> },
         { header: 'Valeur', className: 'w-[15%]', render: (c) => <span className="text-zinc-300">{c.valeur}</span> },
-        { header: 'Date', className: 'w-[15%] text-right', render: (c) => c.date ? (
-            <span className="text-zinc-400 text-xs font-mono">
-                <span className="block">{new Date(c.date).toLocaleDateString('fr-FR')}</span>
-                <span className="block">{new Date(c.date).toLocaleTimeString('fr-FR')}</span>
-            </span>
-        ) : <span className="text-zinc-500">-</span> },
+        {
+            header: 'Date', className: 'w-[15%] text-right', render: (c) => c.date ? (
+                <span className="text-zinc-400 text-xs font-mono">
+                    <span className="block">{new Date(c.date).toLocaleDateString('fr-FR')}</span>
+                    <span className="block">{new Date(c.date).toLocaleTimeString('fr-FR')}</span>
+                </span>
+            ) : <span className="text-zinc-500">-</span>
+        },
         {
             header: 'Actions', sticky: true, className: 'w-[15%] text-right', render: (c) => (
                 <div className="config-table-actions">
@@ -67,6 +71,14 @@ function ConfigurationListe() {
         }
     ];
 
+    useEffect(() => {
+        chargerCategories();
+    }, []);
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [categorie]);
+
     return (
         <PageLayout
             title="Configurations"
@@ -79,6 +91,11 @@ function ConfigurationListe() {
             }
         >
             <div className="space-y-6">
+                {error && (
+                    <div className="text-xs text-red-400 bg-red-500/10 border border-red-500/30 p-2.5 rounded-lg">
+                        {error}
+                    </div>
+                )}
                 <div className="glass-panel rounded-2xl p-5 relative z-50">
                     <div className="flex flex-wrap items-end gap-3">
                         <div>

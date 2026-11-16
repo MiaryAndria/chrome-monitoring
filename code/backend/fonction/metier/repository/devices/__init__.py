@@ -10,8 +10,6 @@ from .devices import (
     get_last_version,
     insert_device_version,
     delete_all,
-    insert_device_cpu,
-    get_last_cpu_for_device,
     update_device_ram_total,
     _get_device_cpu_info,
     get_map_devices,

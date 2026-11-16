@@ -1,32 +1,13 @@
 from datetime import datetime
 
-# Colonnes communes : id, id_type_configuration, type, categorie, valeur, date
-# Une seule lecture du dernier statut par configuration (LEFT JOIN LATERAL).
-CONFIG_COLONNES = """
-SELECT c.id, c.id_type_configuration, t.type, cat.categorie, c.valeur, ds.date
-"""
-
-CONFIG_FROM = """
-FROM t_configuration c
-JOIN t_type_configuration t ON t.id = c.id_type_configuration
-JOIN t_categorie_type_configuration cat ON cat.id = t.id_categorie
-LEFT JOIN LATERAL (
-    SELECT cs.id_statut, cs.date
-    FROM t_configuration_statut cs
-    WHERE cs.id_configuration = c.id
-    ORDER BY cs.date DESC, cs.id DESC
-    LIMIT 1
-) ds ON true
-"""
-
 
 def get_liste_configuration(cur):
     cur.execute(
-        CONFIG_COLONNES
-        + CONFIG_FROM
-        + """
-        WHERE ds.id_statut <> 14
-        ORDER BY c.id ASC
+        """
+        SELECT id, id_type_configuration, type, categorie, valeur, date
+        FROM v_configuration
+        WHERE id_statut <> 14
+        ORDER BY id ASC
         """
     )
     return cur.fetchall()
@@ -34,34 +15,35 @@ def get_liste_configuration(cur):
 
 def find_configurations_paginated(cur, page=1, page_size=10, categorie=None):
     offset = (page - 1) * page_size
-    query = (
-        CONFIG_COLONNES
-        + """,
-               COUNT(*) OVER() AS total
-        """
-        + CONFIG_FROM
-        + """
-        WHERE ds.id_statut <> 14
-        """
-    )
+    where = " WHERE id_statut <> 14"
     params = []
     if categorie:
-        query += " AND cat.categorie = %s"
+        where += " AND categorie = %s"
         params.append(categorie)
-    query += " ORDER BY c.id ASC LIMIT %s OFFSET %s"
-    params.append(page_size)
-    params.append(offset)
-    cur.execute(query, tuple(params))
-    return cur.fetchall()
+
+    cur.execute(f"SELECT COUNT(*) FROM v_configuration{where}", tuple(params))
+    total = cur.fetchone()[0]
+
+    cur.execute(
+        f"""
+        SELECT id, id_type_configuration, type, categorie, valeur, date
+        FROM v_configuration
+        {where}
+        ORDER BY id ASC
+        LIMIT %s OFFSET %s
+        """,
+        tuple(params + [page_size, offset]),
+    )
+    return cur.fetchall(), total
 
 
 def get_liste_archiver(cur):
     cur.execute(
-        CONFIG_COLONNES
-        + CONFIG_FROM
-        + """
-        WHERE ds.id_statut = 14
-        ORDER BY c.id ASC
+        """
+        SELECT id, id_type_configuration, type, categorie, valeur, date
+        FROM v_configuration
+        WHERE id_statut = 14
+        ORDER BY id ASC
         """
     )
     return cur.fetchall()
@@ -69,35 +51,28 @@ def get_liste_archiver(cur):
 
 def find_configurations_archived_paginated(cur, page=1, page_size=10):
     offset = (page - 1) * page_size
+    cur.execute("SELECT COUNT(*) FROM v_configuration WHERE id_statut = 14")
+    total = cur.fetchone()[0]
+
     cur.execute(
-        CONFIG_COLONNES
-        + """,
-               COUNT(*) OVER() AS total
         """
-        + CONFIG_FROM
-        + """
-        WHERE ds.id_statut = 14
-        ORDER BY c.id ASC
+        SELECT id, id_type_configuration, type, categorie, valeur, date
+        FROM v_configuration
+        WHERE id_statut = 14
+        ORDER BY id ASC
         LIMIT %s OFFSET %s
         """,
         (page_size, offset),
     )
-    return cur.fetchall()
+    return cur.fetchall(), total
 
 
 def get_by_id_liste_archiver(cur, id_configuration):
     cur.execute(
         """
-        SELECT c.id
-        FROM t_configuration c
-        WHERE c.id = %s
-          AND (
-              SELECT cs.id_statut
-              FROM t_configuration_statut cs
-              WHERE cs.id_configuration = c.id
-              ORDER BY cs.date DESC, cs.id DESC
-              LIMIT 1
-          ) = 14
+        SELECT id
+        FROM v_configuration
+        WHERE id = %s AND id_statut = 14
         """,
         (id_configuration,),
     )
@@ -106,10 +81,10 @@ def get_by_id_liste_archiver(cur, id_configuration):
 
 def get_configuration_by_id(cur, id):
     cur.execute(
-        CONFIG_COLONNES
-        + CONFIG_FROM
-        + """
-        WHERE c.id = %s
+        """
+        SELECT id, id_type_configuration, type, categorie, valeur, date
+        FROM v_configuration
+        WHERE id = %s
         """,
         (id,),
     )
@@ -119,13 +94,10 @@ def get_configuration_by_id(cur, id):
 def get_valeur_configuration(cur, type_):
     cur.execute(
         """
-        SELECT c.valeur
-        """
-        + CONFIG_FROM
-        + """
-        WHERE t.type = %s
-          AND ds.id_statut <> 14
-        ORDER BY c.id DESC
+        SELECT valeur
+        FROM v_configuration
+        WHERE type = %s AND id_statut <> 14
+        ORDER BY id DESC
         LIMIT 1
         """,
         (type_,),
@@ -136,11 +108,19 @@ def get_valeur_configuration(cur, type_):
 def get_valeur_configuration_by_id(cur, id_configuration):
     cur.execute(
         """
-        SELECT c.valeur
-        FROM t_configuration c
-        WHERE c.id = %s
+        SELECT valeur
+        FROM t_configuration
+        WHERE id = %s
         """,
         (id_configuration,),
+    )
+    return cur.fetchone()
+
+
+def get_type_configuration_by_id(cur, id_type_configuration):
+    cur.execute(
+        "SELECT id, type FROM t_type_configuration WHERE id = %s",
+        (id_type_configuration,),
     )
     return cur.fetchone()
 

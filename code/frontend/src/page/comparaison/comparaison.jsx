@@ -13,15 +13,15 @@ function Comparaison() {
     const navigate = useNavigate();
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
-
     const [dateDebut, setDateDebut] = useState('');
     const [heureDebut, setHeureDebut] = useState('00:00');
     const [dateFin, setDateFin] = useState('');
     const [heureFin, setHeureFin] = useState('23:59');
     const [datetimeDebutApplique, setDatetimeDebutApplique] = useState('');
     const [datetimeFinApplique, setDatetimeFinApplique] = useState('');
+    const [erreurFiltre, setErreurFiltre] = useState('');
 
-    const { items: liste, total, totalPages, loading } = usePaginatedData(
+    const { items: liste, total, totalPages, loading, error } = usePaginatedData(
         listeComparaisonPage,
         currentPage,
         pageSize,
@@ -32,20 +32,20 @@ function Comparaison() {
     );
 
     const filtrer = () => {
-        if (!dateDebut || !dateFin) {
-            window.alert("Choisissez une date de début et une date de fin.");
+        setErreurFiltre('');
+        if (!dateDebut && !dateFin) {
+            setDatetimeDebutApplique('');
+            setDatetimeFinApplique('');
+            setCurrentPage(1);
             return;
         }
-        if (dateDebut > dateFin || (dateDebut === dateFin && heureDebut > heureFin)) {
-            window.alert("L'heure de début doit être antérieure ou égale à l'heure de fin.");
-            return;
-        }
-        setDatetimeDebutApplique(`${dateDebut}T${heureDebut || '00:00'}:00`);
-        setDatetimeFinApplique(`${dateFin}T${heureFin || '23:59'}:59`);
+        setDatetimeDebutApplique(dateDebut ? `${dateDebut}T${heureDebut || '00:00'}:00` : '');
+        setDatetimeFinApplique(dateFin ? `${dateFin}T${heureFin || '23:59'}:59` : '');
         setCurrentPage(1);
     };
 
     const reinitialiser = () => {
+        setErreurFiltre('');
         setDateDebut('');
         setHeureDebut('00:00');
         setDateFin('');
@@ -54,6 +54,12 @@ function Comparaison() {
         setDatetimeFinApplique('');
         setCurrentPage(1);
     };
+
+    useEffect(() => {
+        if (error) {
+            setErreurFiltre(error?.response?.data?.error || error?.response?.data?.detail || '');
+        }
+    }, [error]);
 
     return (
         <PageLayout
@@ -81,7 +87,7 @@ function Comparaison() {
                 </button>
             </div>
 
-            <div className="glass-panel rounded-2xl p-5 relative z-50">
+            <div className="glass-panel rounded-2xl p-5 relative z-50 space-y-3">
                 <DateHeureFilter
                     dateDebut={dateDebut}
                     heureDebut={heureDebut}
@@ -94,6 +100,11 @@ function Comparaison() {
                     onFilter={filtrer}
                     onReset={reinitialiser}
                 />
+                {erreurFiltre && (
+                    <p className="text-xs text-red-400 bg-red-500/10 border border-red-500/30 p-2.5 rounded-lg">
+                        {erreurFiltre}
+                    </p>
+                )}
             </div>
 
             <div className="glass-panel rounded-2xl p-5">

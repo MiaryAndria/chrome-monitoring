@@ -12,6 +12,7 @@ function ConfigurationUpdate() {
     const [existedIdType, setExistedIdType] = useState('');
     const [existedValeur, setExistedValeur] = useState('');
     const navigate = useNavigate();
+    const [error, setError] = useState(null);
     const { id } = useParams();
 
     const getDetail = async (id) => {
@@ -26,12 +27,13 @@ function ConfigurationUpdate() {
     };
 
     const updConfiguration = async () => {
+        setError(null);
+        const nouvelleValeur = valeur === '' ? existedValeur : valeur;
         try {
-            const nouvelleValeur = valeur === '' ? existedValeur : valeur;
             await updateConfiguration(id, existedIdType, nouvelleValeur);
             navigate('/liste/configuration');
         } catch (e) {
-            console.log(e);
+            setError(e?.response?.data?.error || e?.response?.data?.detail || "Erreur lors de la mise à jour de la configuration.");
         }
     };
 
@@ -74,6 +76,12 @@ function ConfigurationUpdate() {
                             placeholder={existedValeur}
                         />
                     </div>
+
+                    {error && (
+                        <p className="text-xs text-red-400 bg-red-500/10 border border-red-500/30 p-2.5 rounded-lg">
+                            {error}
+                        </p>
+                    )}
 
                     <div className="config-form-actions">
                         <button onClick={() => navigate('/liste/configuration')} className="config-btn config-btn-ghost">

@@ -6,17 +6,10 @@ import {
     extractBatterySummary, extractPeripheralsSummary,
     getCpuLatest, getRamLatest, getDiskLatest
 } from '../../../fonction/deviceFonction';
-import { formatBytes, exportPdf, exportExcel,usagePercent } from '../../../fonction/utils/util';
+import { formatBytes, exportPdf, exportExcel,usagePercent,colorMap } from '../../../fonction/utils/util';
 import ExportModal from '../../../components/ExportModal';
 
-const colorMap = {
-    cyan: { icon: 'bg-cyan-500/10 text-cyan-400', border: 'hover:border-cyan-500/30', val: 'text-cyan-400' },
-    purple: { icon: 'bg-purple-500/10 text-purple-400', border: 'hover:border-purple-500/30', val: 'text-purple-400' },
-    amber: { icon: 'bg-amber-500/10 text-amber-400', border: 'hover:border-amber-500/30', val: 'text-amber-400' },
-    emerald: { icon: 'bg-emerald-500/10 text-emerald-400', border: 'hover:border-emerald-500/30', val: 'text-emerald-400' },
-    blue: { icon: 'bg-blue-500/10 text-blue-400', border: 'hover:border-blue-500/30', val: 'text-blue-400' },
-    pink: { icon: 'bg-pink-500/10 text-pink-400', border: 'hover:border-pink-500/30', val: 'text-pink-400' },
-};
+
 
 function GeneralTab({ generalData, device, onSelectTab, deviceId }) {
     const [modal, setModal] = useState(false);
@@ -24,11 +17,19 @@ function GeneralTab({ generalData, device, onSelectTab, deviceId }) {
     const [latestRam, setLatestRam] = useState(null);
     const [latestDisk, setLatestDisk] = useState(null);
 
+    const chargerLatest = async () => {
+        const cpuValue = await getCpuLatest(deviceId);
+        setLatestCpu(cpuValue);
+        const ramValue = await getRamLatest(deviceId);
+        setLatestRam(ramValue);
+        const diskValue = await getDiskLatest(deviceId);
+        setLatestDisk(diskValue);
+    };
+
     useEffect(() => {
         if (!deviceId || !generalData) return;
-        getCpuLatest(deviceId).then(setLatestCpu);
-        getRamLatest(deviceId).then(setLatestRam);
-        getDiskLatest(deviceId).then(setLatestDisk);
+        chargerLatest();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [deviceId, generalData]);
 
     const handleExport = async (format) => {

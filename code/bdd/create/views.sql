@@ -313,3 +313,259 @@ FROM t_imprimante i
 LEFT JOIN t_vendor v ON v.id = i.id_vendor
 LEFT JOIN t_imprimante_device idv ON idv.id_imprimante = i.id
 GROUP BY i.id, i.vid, i.pid, v.vendor, i.nom;
+
+-- ------------------------------------------------------------
+-- VUES MÉTIER centralisées (étape 6 — refactorisation)
+-- Chaque vue encapsule les JOIN / LATERAL / sous-requêtes complexes :
+-- le code Python ne fait plus que des SELECT simples vers ces vues.
+-- Toutes ces vues doivent être exécutées MANUELLEMENT sur la base
+-- (cf. en-tête du fichier) AVANT de déployer le code refactoré.
+-- ------------------------------------------------------------
+
+-- ------------------------------------------------------------
+-- v_seuil
+-- But : exposer chaque seuil avec son type, sa catégorie, son sens,
+--       sa borne (limite) et son DERNIER statut (archives incluses).
+-- Colonnes : id, id_type_seuil, type, categorie, valeur, date,
+--            sens, limite, id_statut
+-- Consommateur : repository/seuil/seuil.py
+--                → GET /seuil/liste, /liste/page, /{id}, /liste/archiver*
+-- Rôle : remplace les LATERAL/dernières lectures de t_seuil_statut
+--        codés en Python ; la limite provient de t_type_seuil.limite.
+-- ------------------------------------------------------------
+CREATE OR REPLACE VIEW v_seuil AS
+SELECT s.id,
+       s.id_type_seuil,
+       t.type,
+       c.categorie,
+       s.valeur,
+       ds.date,
+       t.sens,
+       t.limite,
+       ds.id_statut
+FROM t_seuil s
+JOIN t_type_seuil t ON t.id = s.id_type_seuil
+JOIN t_categorie_type_seuil c ON c.id = t.id_categorie
+LEFT JOIN LATERAL (
+    SELECT ss.id_statut, ss.date
+    FROM t_seuil_statut ss
+    WHERE ss.id_seuil = s.id
+    ORDER BY ss.date DESC, ss.id DESC
+    LIMIT 1
+) ds ON true;
+
+-- ------------------------------------------------------------
+-- v_configuration
+-- But : exposer chaque configuration avec son type, sa catégorie,
+--       sa valeur et son DERNIER statut (archives incluses).
+-- Colonnes : id, id_type_configuration, type, categorie, valeur,
+--            date, id_statut
+-- Consommateur : repository/configuration/configuration.py
+--                → GET /configuration/liste, /{id}, /liste/archiver*
+-- Rôle : remplace LATERAL + *_COLONNES/*_FROM codés en Python.
+-- ------------------------------------------------------------
+CREATE OR REPLACE VIEW v_configuration AS
+SELECT c.id,
+       c.id_type_configuration,
+       t.type,
+       cat.categorie,
+       c.valeur,
+       ds.date,
+       ds.id_statut
+FROM t_configuration c
+JOIN t_type_configuration t ON t.id = c.id_type_configuration
+JOIN t_categorie_type_configuration cat ON cat.id = t.id_categorie
+LEFT JOIN LATERAL (
+    SELECT cs.id_statut, cs.date
+    FROM t_configuration_statut cs
+    WHERE cs.id_configuration = c.id
+    ORDER BY cs.date DESC, cs.id DESC
+    LIMIT 1
+) ds ON true;
+
+-- ------------------------------------------------------------
+-- v_comparaison
+-- But : exposer les comparaisons avec le numéro de série des
+--       deux appareils comparés.
+-- Colonnes : id, id_device_a, id_device_b, id_type_comparaison,
+--            date_reference_a, date_reference_b, date_comparaison,
+--            resultat, version_a, version_b, device_a, device_b
+-- Consommateur : repository/comparaison/comparaison.py
+--                → GET /comparaison/liste/page, /{id}
+-- Rôle : remplace les 2 LEFT JOIN t_device en Python.
+-- ------------------------------------------------------------
+CREATE OR REPLACE VIEW v_comparaison AS
+SELECT c.id,
+       c.id_device_a,
+       c.id_device_b,
+       c.id_type_comparaison,
+       c.date_reference_a,
+       c.date_reference_b,
+       c.date_comparaison,
+       c.resultat,
+       c.version_a,
+       c.version_b,
+       da.serial_number AS device_a,
+       db.serial_number AS device_b
+FROM t_comparaison c
+LEFT JOIN t_device da ON da.id = c.id_device_a
+LEFT JOIN t_device db ON db.id = c.id_device_b;
+
+-- ------------------------------------------------------------
+-- v_statut_device
+-- But : liste des statuts « device » (ACTIVE, DELINQUENT, DISABLED,
+--       DEPROVISIONED).
+-- Colonnes : id, nom
+-- Consommateur : repository/statut/statut.py (get_liste_statut)
+--                → GET /statut/liste
+-- Rôle : remplace le ANY(%s) sur IDS_STATUTS_DEVICE.
+-- ------------------------------------------------------------
+CREATE OR REPLACE VIEW v_statut_device AS
+SELECT id, nom
+FROM t_statut
+WHERE id IN (1, 2, 3, 4)
+ORDER BY id ASC;
+
+-- ------------------------------------------------------------
+-- v_device_alerte
+-- But : chaque alerte device enrichie — série, type, utilisateur
+--       récent, DERNIER statut (ACTIVE/RESOLUE).
+-- Colonnes : id, id_device, serial_number, type, message, date,
+--            utilisateur_recent, id_statut
+-- Consommateur : repository/alerte/device_alerte.py
+--                → GET /alerte/device/page, /liste, /nouvelles, /stats
+-- Rôle : remplace les LATERAL + COUNT(*) OVER() en Python ;
+--        pagination désormais en COUNT séparé.
+-- ------------------------------------------------------------
+CREATE OR REPLACE VIEW v_device_alerte AS
+SELECT da.id,
+       da.id_device,
+       d.serial_number,
+       tr.type,
+       da.message,
+       da.date,
+       (
+           SELECT u.email
+           FROM t_device_utilisateur_recent ur
+           JOIN t_utilisateur u ON u.id = ur.id_utilisateur
+           WHERE ur.id_device = da.id_device
+           ORDER BY ur.date_observation DESC
+           LIMIT 1
+       ) AS utilisateur_recent,
+       (
+           SELECT s.id_statut
+           FROM t_device_alerte_statut s
+           WHERE s.id_device_alerte = da.id
+           ORDER BY s.date DESC NULLS LAST, s.id DESC
+           LIMIT 1
+       ) AS id_statut
+FROM t_device_alerte da
+JOIN t_device d ON d.id = da.id_device
+JOIN t_alerte tr ON tr.id = da.id_alerte;
+
+-- ------------------------------------------------------------
+-- v_device_detail
+-- But : exposer chaque appareil enrichi — type, utilisateur
+--       principal, utilisateur récents, DERNIER statut, filiale,
+--       dernier CPU / disque / version.
+-- Colonnes : id, device_id, serial_number, modele, id_type_appareil,
+--            type_appareil, chromeos_version, chrome_version,
+--            mac_adress, ip_adress, date, ram_total, id_utilisateur,
+--            utilisateur_email, status, id_status, id_filiale, filiale,
+--            utilisateurs_recents, cpu_model, cpu_freq_max,
+--            cpu_architecture, disk_total, disk_free, disk_used,
+--            disk_model, disk_type
+-- Consommateur : repository/devices/devices.py
+--                → GET /device/liste, /{id}
+-- Rôle : remplace LATERAL + get_liste_device/get_device_by_id ;
+--        similaire à v_appareils_filtres mais FAIT POUR le refactor.
+-- Note : v_appareils_filtres (existante) et v_device_detail coexistent ;
+--        le code refactoré utilise v_device_detail.
+-- ------------------------------------------------------------
+CREATE OR REPLACE VIEW v_device_detail AS
+SELECT
+    d.id,
+    d.device_id,
+    d.serial_number,
+    d.modele,
+    d.id_type_appareil,
+    ta.nom AS type_appareil,
+    v.chromeos_version,
+    v.chromeos_version AS chrome_version,
+    d.mac_adress,
+    d.ip_adress,
+    d.date_creation AS date,
+    d.ram_total,
+    du.id_utilisateur,
+    du.email AS utilisateur_email,
+    st.nom AS status,
+    st.id_statut AS id_status,
+    fi.id_filiale,
+    fi.org_unit_path AS filiale,
+    ru.emails AS utilisateurs_recents,
+    cp.cpu_model,
+    cp.freq_max_proc AS cpu_freq_max,
+    cp.cpu_architecture,
+    di.total_reel AS disk_total,
+    di.disponible AS disk_free,
+    di.total_utiliser AS disk_used,
+    di.model AS disk_model,
+    di.type AS disk_type
+FROM t_device d
+LEFT JOIN t_type_appareil ta ON ta.id = d.id_type_appareil
+LEFT JOIN LATERAL (
+    SELECT du.id_utilisateur, u.email
+    FROM t_device_utilisateur du
+    JOIN t_utilisateur u ON u.id = du.id_utilisateur
+    WHERE du.id_device = d.id
+    ORDER BY du.id ASC
+    LIMIT 1
+) du ON TRUE
+LEFT JOIN LATERAL (
+    SELECT ds.id_statut, s.nom
+    FROM t_device_statut ds
+    JOIN t_statut s ON s.id = ds.id_statut
+    WHERE ds.id_device = d.id
+    ORDER BY ds.date DESC, ds.id DESC
+    LIMIT 1
+) st ON TRUE
+LEFT JOIN LATERAL (
+    SELECT df.id_filiale, f.org_unit_path
+    FROM t_device_filiale df
+    JOIN t_filiale f ON f.id = df.id_filiale
+    WHERE df.id_device = d.id
+    ORDER BY df.id ASC
+    LIMIT 1
+) fi ON TRUE
+LEFT JOIN LATERAL (
+    SELECT array_agg(DISTINCT u2.email) AS emails
+    FROM t_device_utilisateur_recent dur
+    JOIN t_utilisateur u2 ON u2.id = dur.id_utilisateur
+    WHERE dur.id_device = d.id
+) ru ON TRUE
+LEFT JOIN LATERAL (
+    SELECT c.cpu_model, c.freq_max_proc, c.cpu_architecture
+    FROM t_device_cpu dc
+    JOIN t_cpu c ON c.id = dc.id_cpu
+    WHERE dc.id_device = d.id
+    ORDER BY dc.date DESC, dc.id DESC
+    LIMIT 1
+) cp ON TRUE
+LEFT JOIN LATERAL (
+    SELECT dd.total_reel, dd.disponible, dd.total_utiliser, dk.model, dk.type
+    FROM t_disk_device dd
+    JOIN t_disk dk ON dk.id = dd.id_disk
+    WHERE dd.id_device = d.id
+    ORDER BY dd.date DESC, dd.id DESC
+    LIMIT 1
+) di ON TRUE
+LEFT JOIN LATERAL (
+    SELECT dv.chromeos_version
+    FROM t_device_version dv
+    WHERE dv.id_device = d.id
+    ORDER BY dv.date DESC, dv.id DESC
+    LIMIT 1
+) v ON TRUE;
+
+
+

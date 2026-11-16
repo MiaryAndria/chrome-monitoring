@@ -39,6 +39,7 @@ function ListeEvent() {
     const [heureFin, setHeureFin] = useState('23:59');
     const [datetimeDebutApplique, setDatetimeDebutApplique] = useState('');
     const [datetimeFinApplique, setDatetimeFinApplique] = useState('');
+    const [erreurFiltreDate, setErreurFiltreDate] = useState('');
     const [typeEvenement, setTypeEvenement] = useState(typeDepuisUrl || "TOUS");
     const [filiale, setFiliale] = useState("");
     const [selectedExplanation, setSelectedExplanation] = useState(null);
@@ -46,15 +47,6 @@ function ListeEvent() {
     const [pageSize, setPageSize] = useState(10);
     const [viewMode, setViewMode] = useState('grid');
     const [openEventId, setOpenEventId] = useState(null);
-
-    // Bloque le défilement de la zone scrollable tant que le modal est ouvert
-    useEffect(() => {
-        if (!selectedExplanation) return;
-        const cible = document.querySelector('.device-layout .overflow-y-auto') || document.documentElement;
-        const precedent = cible.style.overflow;
-        cible.style.overflow = 'hidden';
-        return () => { cible.style.overflow = precedent; };
-    }, [selectedExplanation]);
 
     const {
         items: evenements,
@@ -107,22 +99,16 @@ function ListeEvent() {
         }
     };
 
-    useEffect(() => {
-        chargerReferences();
-    }, []);
-
     const filtrerByDate = () => {
-        if (dateDebut && dateFin && dateDebut > dateFin) {
-            alert("La date de début doit être antérieure ou égale à la date de fin.");
+        setErreurFiltreDate('');
+        if (!dateDebut && !dateFin) {
+            setDatetimeDebutApplique('');
+            setDatetimeFinApplique('');
+            setCurrentPage(1);
             return;
         }
-        if (dateDebut && dateFin && dateDebut === dateFin && heureDebut > heureFin) {
-            alert("L'heure de début doit être antérieure ou égale à l'heure de fin.");
-            return;
-        }
-
-        setDatetimeDebutApplique(`${dateDebut}T${heureDebut || '00:00'}:00`);
-        setDatetimeFinApplique(`${dateFin}T${heureFin || '23:59'}:59`);
+        setDatetimeDebutApplique(dateDebut ? `${dateDebut}T${heureDebut || '00:00'}:00` : '');
+        setDatetimeFinApplique(dateFin ? `${dateFin}T${heureFin || '23:59'}:59` : '');
         setCurrentPage(1);
     };
 
@@ -140,6 +126,7 @@ function ListeEvent() {
     };
 
     const resetDate = () => {
+        setErreurFiltreDate('');
         setDateDebut('');
         setHeureDebut('00:00');
         setDateFin('');
@@ -149,6 +136,24 @@ function ListeEvent() {
     };
 
     const filtresActifs = search !== "" || typeEvenement !== "TOUS" || filiale !== "" || !!datetimeDebutApplique || !!datetimeFinApplique;
+
+    useEffect(() => {
+        chargerReferences();
+    }, []);
+
+    useEffect(() => {
+        if (!selectedExplanation) return;
+        const cible = document.querySelector('.device-layout .overflow-y-auto') || document.documentElement;
+        const precedent = cible.style.overflow;
+        cible.style.overflow = 'hidden';
+        return () => { cible.style.overflow = precedent; };
+    }, [selectedExplanation]);
+
+    useEffect(() => {
+        if (error) {
+            setErreurFiltreDate(error?.response?.data?.error || error?.response?.data?.detail || '');
+        }
+    }, [error]);
 
     useEffect(() => {
         setCurrentPage(1);
@@ -234,6 +239,11 @@ function ListeEvent() {
                     onFilter={filtrerByDate}
                     onReset={resetDate}
                 />
+                {erreurFiltreDate && (
+                    <p className="text-xs text-red-400 bg-red-500/10 border border-red-500/30 p-2.5 rounded-lg">
+                        {erreurFiltreDate}
+                    </p>
+                )}
 
                 {/* Pills type */}
                 <div className="flex flex-wrap gap-2 items-center">

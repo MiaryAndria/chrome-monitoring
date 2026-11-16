@@ -18,10 +18,28 @@ function RamTab({ reports, device, deviceId, datetimeFrom, datetimeTo }) {
     const [somme, setSomme] = useState(null);
     const [sommeLoading, setSommeLoading] = useState(false);
 
+    const chargerLatest = async () => {
+        const maxTotalValue = await getRamMaxTotal(deviceId);
+        setMaxTotal(maxTotalValue);
+        const latestValue = await getRamLatest(deviceId);
+        setLatest(latestValue);
+    };
+
+    const chargerSomme = async (estAnnule) => {
+        try {
+            const data = await getRamSomme(deviceId, { date_debut: datetimeFrom, date_fin: datetimeTo });
+            if (!estAnnule()) setSomme(data);
+        } catch (e) {
+            if (!estAnnule()) console.error(e);
+        } finally {
+            if (!estAnnule()) setSommeLoading(false);
+        }
+    };
+
     useEffect(() => {
         if (!deviceId) return;
-        getRamMaxTotal(deviceId).then(setMaxTotal);
-        getRamLatest(deviceId).then(setLatest);
+        chargerLatest();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [deviceId]);
 
     useEffect(() => {
@@ -31,21 +49,14 @@ function RamTab({ reports, device, deviceId, datetimeFrom, datetimeTo }) {
         }
 
         let annule = false;
+        const estAnnule = () => annule;
         setSommeLoading(true);
-        getRamSomme(deviceId, { date_debut: datetimeFrom, date_fin: datetimeTo })
-            .then((data) => {
-                if (!annule) setSomme(data);
-            })
-            .catch((e) => {
-                if (!annule) console.error(e);
-            })
-            .finally(() => {
-                if (!annule) setSommeLoading(false);
-            });
+        chargerSomme(estAnnule);
 
         return () => {
             annule = true;
         };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [deviceId, datetimeFrom, datetimeTo]);
 
     const handleExport = async (format) => {

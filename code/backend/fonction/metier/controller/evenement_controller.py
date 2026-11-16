@@ -1,24 +1,22 @@
-import traceback
 from datetime import datetime
 from typing import List, Optional
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Query
 from fastapi.responses import StreamingResponse
 
+from backend.exceptions import NotFoundError
 from backend.fonction.metier.models.evenement import (
     EvenementsPageResponse,
     ResponseTypeEvenements,
     IAChatRequest,
 )
-
 from backend.fonction.metier.service.event_service import (
     get_events_page,
     get_type_evenement,
     get_duree_vie_evenement,
     ia_chat_stream,
 )
-
-from backend.utils.validation import is_valid_datetime_range
+from backend.utils.validation import valider_plage_datetime
 
 router = APIRouter()
 
@@ -34,53 +32,35 @@ def getListe(
     datetime_from: Optional[datetime] = None,
     datetime_to: Optional[datetime] = None,
 ):
-    if not is_valid_datetime_range(datetime_from, datetime_to):
-        raise HTTPException(
-            status_code=400,
-            detail="datetime_to doit être supérieur ou égal à datetime_from",
-        )
-    try:
-        return get_events_page(
-            page=page,
-            page_size=page_size,
-            type_evenement=type_evenement,
-            id_filiale=id_filiale,
-            filiale=filiale,
-            recherche=recherche,
-            datetime_from=datetime_from,
-            datetime_to=datetime_to,
-        )
-    except Exception as e:
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail=str(e))
+    valider_plage_datetime(datetime_from, datetime_to)
+    return get_events_page(
+        page=page,
+        page_size=page_size,
+        type_evenement=type_evenement,
+        id_filiale=id_filiale,
+        filiale=filiale,
+        recherche=recherche,
+        datetime_from=datetime_from,
+        datetime_to=datetime_to,
+    )
 
 
-@router.get("/liste/type",response_model=List[ResponseTypeEvenements])
+@router.get("/liste/type", response_model=List[ResponseTypeEvenements])
 def getListeType():
-    try:
-        type_evenement = get_type_evenement()
-        return type_evenement
-    except Exception as e:
-        traceback.print_exc()
-        raise HTTPException(status_code=500,detail=str(e))
+    return get_type_evenement()
 
 
 @router.get("/{event_id}/duree-vie")
 def getDureeVie(event_id: int):
-    try:
-        resultat = get_duree_vie_evenement(event_id)
-        if resultat is None:
-            raise HTTPException(status_code=404, detail="Événement introuvable")
-        return resultat
-    except HTTPException:
-        raise
-    except Exception as e:
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail=str(e))
+    resultat = get_duree_vie_evenement(event_id)
+    if resultat is None:
+        raise NotFoundError("Événement introuvable")
+    return resultat
+
 
 @router.post("/{event_id}/ia/chat/stream")
 def iaChatStream(event_id: int, payload: IAChatRequest):
     generateur = ia_chat_stream(event_id, [m.model_dump() for m in payload.messages])
     if generateur is None:
-        raise HTTPException(status_code=404, detail="Événement introuvable")
+        raise NotFoundError("Événement introuvable")
     return StreamingResponse(generateur, media_type="text/plain; charset=utf-8")

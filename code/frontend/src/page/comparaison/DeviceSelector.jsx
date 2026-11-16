@@ -55,10 +55,6 @@ function DeviceSelector({ maxSelection = 1, selection = [], onSelectionChange })
         }
     };
 
-    useEffect(() => {
-        chargerFiltres();
-    }, []);
-
     const { items: devices, total, totalPages, loading } = usePaginatedData(
         getListeDevice,
         currentPage,
@@ -71,10 +67,6 @@ function DeviceSelector({ maxSelection = 1, selection = [], onSelectionChange })
             recherche: debouncedSearch || undefined,
         }
     );
-
-    useEffect(() => {
-        setCurrentPage(1);
-    }, [filiale, statut, modele, utilisateurRecent, debouncedSearch]);
 
     const estSelectionne = (d) => selection.some((s) => s.id === d.id);
     const complet = selection.length >= maxSelection;
@@ -103,6 +95,14 @@ function DeviceSelector({ maxSelection = 1, selection = [], onSelectionChange })
         setSearch("");
         setCurrentPage(1);
     };
+ 
+    useEffect(() => {
+        chargerFiltres();
+    }, []);
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [filiale, statut, modele, utilisateurRecent, debouncedSearch]);
 
     return (
         <div className="space-y-4">

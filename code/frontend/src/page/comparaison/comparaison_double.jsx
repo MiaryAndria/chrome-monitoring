@@ -6,24 +6,12 @@ import SelectDropdown from "../component/SelectDropdown";
 import DeviceSelector from "./DeviceSelector";
 import ComparaisonResult from "./ComparaisonResult";
 import ComparaisonChart from "./ComparaisonChart";
-import { listeDeviceVersion, effectuerDoubleComparaison } from "../../fonction/comparaisonFonction";
+import { listeDeviceVersion, effectuerDoubleComparaison,toOptions } from "../../fonction/comparaisonFonction";
 import "../../css/liste.css";
 import "../../css/filiale.css";
 
 const BTN_PRIMAIRE =
     "px-4 py-2 text-sm font-semibold rounded-xl bg-cyan-500/15 text-cyan-300 border border-cyan-500/40 hover:bg-cyan-500/25 transition-all disabled:opacity-40 cursor-pointer";
-
-function toOptions(versions) {
-    const vus = new Set();
-    const options = [];
-    for (const v of versions || []) {
-        const valeur = v.chromeos_version;
-        if (!valeur || vus.has(valeur)) continue;
-        vus.add(valeur);
-        options.push({ value: valeur, label: valeur });
-    }
-    return options;
-}
 
 function ComparaisonDouble() {
     const navigate = useNavigate();
@@ -59,11 +47,6 @@ function ComparaisonDouble() {
         setErreur("");
     };
 
-    useEffect(() => {
-        chargerVersions();
-        reinitialiserResultat();
-    }, [idsKey]);
-
     const optionsA = toOptions(versionsParDevice[deviceA?.id]);
     const optionsB = toOptions(versionsParDevice[deviceB?.id]);
     const valeurA = versionA || (optionsA.length ? optionsA[optionsA.length - 1].value : "");
@@ -71,22 +54,26 @@ function ComparaisonDouble() {
 
     const comparer = async () => {
         setErreur("");
-        if (!deviceA || !deviceB) { setErreur("Sélectionnez deux appareils."); return; }
-        if (!valeurA || !valeurB) { setErreur("Choisissez une version pour chaque appareil."); return; }
         try {
             setChargement(true);
-            const res = await effectuerDoubleComparaison(deviceA.id, valeurA, deviceB.id, valeurB);
+            const res = await effectuerDoubleComparaison(deviceA?.id, valeurA, deviceB?.id, valeurB);
             setResultat(res?.resultat || null);
             setLabels({
-                a: `${deviceA.serial_number} · ${valeurA}`,
-                b: `${deviceB.serial_number} · ${valeurB}`,
+                a: `${deviceA?.serial_number} · ${valeurA}`,
+                b: `${deviceB?.serial_number} · ${valeurB}`,
             });
         } catch (e) {
-            setErreur(e?.response?.data?.detail || "Erreur lors de la comparaison.");
+            setErreur(e?.response?.data?.error || e?.response?.data?.detail || "Erreur lors de la comparaison.");
         } finally {
             setChargement(false);
         }
     };
+
+    useEffect(() => {
+        chargerVersions();
+        reinitialiserResultat();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [idsKey]);
 
     return (
         <PageLayout

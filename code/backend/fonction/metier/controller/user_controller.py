@@ -17,13 +17,7 @@ router = APIRouter()
 
 @router.post("/login", response_model=UserResponse)
 def login(data: UserLogin, response: Response):
-    try:
-        user = login_user(data.email, data.mdp)
-    except ValueError as erreur:
-        raise HTTPException(status_code=403, detail=str(erreur))
-
-    if user is None:
-        raise HTTPException(status_code=401, detail="Email ou mot de passe incorrect")
+    user = login_user(data.email, data.mdp)
 
     token = create_access_token(user[0], user[2], user[4])
     set_auth_cookie(response, token)
@@ -38,10 +32,7 @@ def logout(response: Response):
 
 @router.post("/signin", response_model=UserResponse)
 def signin(data: UserSignin, response: Response):
-    try:
-        user = signin_user(data.nom, data.email, data.mdp)
-    except ValueError as erreur:
-        raise HTTPException(status_code=400, detail=str(erreur))
+    user = signin_user(data.nom, data.email, data.mdp, data.confirm_mdp)
 
     token = create_access_token(user[0], user[2], user[3])
     set_auth_cookie(response, token)
@@ -70,32 +61,23 @@ def roles(current_user: dict = Depends(require_admin)):
 
 @router.put("/{id}/role", response_model=UserResponse)
 def update_role_user(id: int, data: UserRoleUpdate, current_user: dict = Depends(require_admin)):
-    try:
-        return update_role(id, data.id_role)
-    except ValueError as erreur:
-        raise HTTPException(status_code=400, detail=str(erreur))
+    return update_role(id, data.id_role)
+
 
 @router.post("/{id}/delete")
 def supprimer(id: int, current_user: dict = Depends(require_admin)):
-    try:
-        archiver_user(id)
-    except ValueError as erreur:
-        raise HTTPException(status_code=400, detail=str(erreur))
+    archiver_user(id)
     return {"message": "Utilisateur supprimé"}
 
-@router.get("/recent",response_model=List[UserRecentResponse])
+
+@router.get("/recent", response_model=List[UserRecentResponse])
 def liste_utilisateur_recent():
-    try:
-        return get_utilisateur_recent()
-    except ValueError as erreur:
-        raise HTTPException(status_code=500, detail=str(erreur))        
+    return get_utilisateur_recent()
+
 
 @router.post("/{id}/restaurer")
 def restaurer(id: int, current_user: dict = Depends(require_admin)):
-    try:
-        restaurer_user(id)
-    except ValueError as erreur:
-        raise HTTPException(status_code=400, detail=str(erreur))
+    restaurer_user(id)
     return {"message": "Utilisateur restauré"}
 
 

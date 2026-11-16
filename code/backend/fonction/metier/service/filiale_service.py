@@ -20,12 +20,13 @@ def _fetch_filiales_page(page=1, page_size=10, recherche=None):
     with lecture() as cur:
         if cur is None:
             return build_page([], 0, page, page_size)
-        rows = find_filiales_paginated(cur, page, page_size, recherche)
-        total = rows[0]["total"] if rows else 0
-        items = [
-            {"id": row["id"], "org_unit_path": row["org_unit_path"]}
-            for row in rows
-        ]
+        rows, total = find_filiales_paginated(cur, page, page_size, recherche)
+        items = []
+        for row in rows:
+            items.append({
+                "id": row["id"],
+                "org_unit_path": row["org_unit_path"],
+            })
         return build_page(items, total, page, page_size)
 
 

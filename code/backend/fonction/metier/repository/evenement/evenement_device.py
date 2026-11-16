@@ -117,11 +117,16 @@ def find_evenements_paginated(cur, page=1, page_size=10, type_evenement=None,
     offset = (page - 1) * page_size
 
     cur.execute(
+        f"SELECT COUNT(*) FROM v_evenements_avec_appareil {where}",
+        tuple(params),
+    )
+    total = cur.fetchone()[0]
+
+    cur.execute(
         f"""
         SELECT
             id, date_evenement, details, type_evenement, id_device,
-            device_id, serial_number, modele, id_filiale, filiale,
-            COUNT(*) OVER() AS total
+            device_id, serial_number, modele, id_filiale, filiale
         FROM v_evenements_avec_appareil
         {where}
         ORDER BY date_evenement DESC, id DESC
@@ -129,7 +134,7 @@ def find_evenements_paginated(cur, page=1, page_size=10, type_evenement=None,
         """,
         tuple(params + [page_size, offset])
     )
-    return _rows_to_dicts(cur)
+    return _rows_to_dicts(cur), total
 
 def delete_evenements_avant(cur, date_limite):
     cur.execute(

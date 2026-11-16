@@ -13,9 +13,15 @@ function StorageTab({ reports, device, deviceId, datetimeFrom, datetimeTo }) {
     const [modal, setModal] = useState(false);
     const [latest, setLatest] = useState(null);
 
+    const chargerLatest = async () => {
+        const data = await getDiskLatest(deviceId);
+        setLatest(data);
+    };
+
     useEffect(() => {
         if (!deviceId) return;
-        getDiskLatest(deviceId).then(setLatest);
+        chargerLatest();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [deviceId]);
 
     const handleExport = async (format) => {

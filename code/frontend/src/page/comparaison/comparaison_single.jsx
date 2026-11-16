@@ -6,24 +6,12 @@ import SelectDropdown from "../component/SelectDropdown";
 import DeviceSelector from "./DeviceSelector";
 import ComparaisonResult from "./ComparaisonResult";
 import ComparaisonChart from "./ComparaisonChart";
-import { listeDeviceVersion, effectuerComparaisonSimple } from "../../fonction/comparaisonFonction";
+import { listeDeviceVersion, effectuerComparaisonSimple,toOptions } from "../../fonction/comparaisonFonction";
 import "../../css/liste.css";
 import "../../css/filiale.css";
 
 const BTN_PRIMAIRE =
     "px-4 py-2 text-sm font-semibold rounded-xl bg-cyan-500/15 text-cyan-300 border border-cyan-500/40 hover:bg-cyan-500/25 transition-all disabled:opacity-40 cursor-pointer";
-
-function toOptions(versions) {
-    const vus = new Set();
-    const options = [];
-    for (const v of versions || []) {
-        const valeur = v.chromeos_version;
-        if (!valeur || vus.has(valeur)) continue;
-        vus.add(valeur);
-        options.push({ value: valeur, label: valeur });
-    }
-    return options;
-}
 
 function ComparaisonSingle() {
     const navigate = useNavigate();
@@ -62,29 +50,27 @@ function ComparaisonSingle() {
         }
     };
 
-    useEffect(() => {
-        chargerVersions();
-    }, [device?.id]);
-
     const comparer = async () => {
         setErreur("");
-        if (!device) { setErreur("Sélectionnez un appareil."); return; }
-        if (!versionA || !versionB) { setErreur("Choisissez deux versions."); return; }
-        if (versionA === versionB) { setErreur("Choisissez deux versions différentes."); return; }
         try {
             setChargement(true);
-            const res = await effectuerComparaisonSimple(device.id, versionA, versionB);
+            const res = await effectuerComparaisonSimple(device?.id, versionA, versionB);
             setResultat(res?.resultat || null);
             setLabels({
-                a: `${device.serial_number} · ${versionA}`,
-                b: `${device.serial_number} · ${versionB}`,
+                a: `${device?.serial_number} · ${versionA}`,
+                b: `${device?.serial_number} · ${versionB}`,
             });
         } catch (e) {
-            setErreur(e?.response?.data?.detail || "Erreur lors de la comparaison.");
+            setErreur(e?.response?.data?.error || e?.response?.data?.detail || "Erreur lors de la comparaison.");
         } finally {
             setChargement(false);
         }
     };
+
+    useEffect(() => {
+        chargerVersions();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [device?.id]);
 
     return (
         <PageLayout

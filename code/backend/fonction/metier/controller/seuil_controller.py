@@ -1,12 +1,14 @@
 from typing import List
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Query
 
+from backend.exceptions import NotFoundError
 from backend.fonction.metier.models.seuil import (
     SeuilCategorieResponse,
     SeuilResponse,
     SeuilData,
     SeuilPageResponse,
     SeuilTypeResponse,
+    SeuilLimiteUpdate,
 )
 from backend.fonction.metier.service.seuil_service import (
     InsertSeuil as insert_seuil_service,
@@ -21,6 +23,7 @@ from backend.fonction.metier.service.seuil_service import (
     getSeuilsArchivePage,
     getDetailSeuil,
     reStaurer as restore_seuil_service,
+    update_limite_seuil_type,
 )
 
 router = APIRouter()
@@ -28,108 +31,74 @@ router = APIRouter()
 
 @router.get("/liste", response_model=List[SeuilResponse])
 def get_liste():
-    try:
-        return getListeSeuil()
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    return getListeSeuil()
 
 
 @router.get("/liste/page", response_model=SeuilPageResponse)
 def get_liste_page(page: int = Query(1, ge=1), page_size: int = Query(10, ge=1, le=100), categorie: str | None = None):
-    try:
-        return getSeuilsPage(page=page, page_size=page_size, categorie=categorie)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    return getSeuilsPage(page=page, page_size=page_size, categorie=categorie)
 
 
 @router.get("/liste/archiver", response_model=List[SeuilResponse])
 def get_list_archive():
-    try:
-        return getListeArchiveSeuil()
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    return getListeArchiveSeuil()
 
 
 @router.get("/liste/archiver/page", response_model=SeuilPageResponse)
 def get_list_archive_page(page: int = Query(1, ge=1), page_size: int = Query(10, ge=1, le=100)):
-    try:
-        return getSeuilsArchivePage(page=page, page_size=page_size)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    return getSeuilsArchivePage(page=page, page_size=page_size)
 
 
 @router.get("/categorie/type", response_model=List[SeuilCategorieResponse])
 def get_liste_categorie():
-    try:
-        return get_liste_categorie_seuil()
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    return get_liste_categorie_seuil()
 
 
 @router.get("/type/{id_categorie}", response_model=List[SeuilTypeResponse])
 def get_liste_type(id_categorie: int):
-    try:
-        return get_liste_type_seuil_by_categorie(id_categorie)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    return get_liste_type_seuil_by_categorie(id_categorie)
+
+
+@router.put("/type/{id_type}/limite", response_model=SeuilTypeResponse)
+def update_limite_type(id_type: int, data: SeuilLimiteUpdate):
+    return update_limite_seuil_type(id_type, data.limite)
 
 
 @router.post("/create", status_code=201)
 def create_seuil(data: SeuilData):
-    try:
-        insert_seuil_service(data.id_type, data.valeur)
-        return {"message": "Seuil créé"}
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    insert_seuil_service(data.id_type, data.valeur)
+    return {"message": "Seuil créé"}
 
 
 @router.get("/{id}", response_model=SeuilResponse)
 def get_detail(id: int):
-    try:
-        return getDetailSeuil(id)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    detail = getDetailSeuil(id)
+    if detail is None:
+        raise NotFoundError("Seuil introuvable")
+    return detail
 
 
 @router.put("/{id}/update")
 def update_seuil(id: int, data: SeuilData):
-    try:
-        update_seuil_service(id, data.valeur, sens=data.sens)
-        return {"message": "Seuil mis à jour"}
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    update_seuil_service(id, data.valeur, sens=data.sens)
+    return {"message": "Seuil mis à jour"}
 
 
 @router.post("/{id}/delete", status_code=201)
 def delete_seuil(id: int):
-    try:
-        delete_seuil_service(id)
-        return {"message": "Seuil supprimé"}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    delete_seuil_service(id)
+    return {"message": "Seuil supprimé"}
 
 
 @router.post("/{id}/hard/delete")
 def hard_delete_seuil(id: int):
-    try:
-        supprime = hard_delete_seuil_service(id)
-        if not supprime:
-            raise HTTPException(status_code=404, detail="Seuil introuvable")
-        return {"message": "Seuil supprimé définitivement"}
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    supprime = hard_delete_seuil_service(id)
+    if not supprime:
+        raise NotFoundError("Seuil introuvable")
+    return {"message": "Seuil supprimé définitivement"}
 
 
 @router.post("/{id}/restaurer")
 def restore_seuil(id: int):
-    try:
-        restored_id = restore_seuil_service(id)
-        return {"message": "Seuil restauré", "id": restored_id}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    restored_id = restore_seuil_service(id)
+    return {"message": "Seuil restauré", "id": restored_id}

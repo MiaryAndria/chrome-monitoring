@@ -11,6 +11,7 @@ function ConfigurationCreate() {
     const [categories, setCategories] = useState([]);
     const [types, setTypes] = useState([]);
     const [idCategorie, setIdCategorie] = useState('');
+    const [error, setError] = useState(null);
     const [idType, setIdType] = useState('');
     const [valeur, setValeur] = useState('');
     const navigate = useNavigate();
@@ -37,12 +38,12 @@ function ConfigurationCreate() {
     };
 
     const creerConfiguration = async () => {
+        setError(null);
         try {
-            await createConfiguration(Number(idType), valeur);
+            await createConfiguration(idType ? Number(idType) : null, valeur);
             navigate('/liste/configuration');
         } catch (e) {
-            const msg = e?.response?.data?.detail || "Erreur lors de la création de la configuration.";
-            window.alert(msg);
+            setError(e?.response?.data?.error || e?.response?.data?.detail || "Erreur lors de la création de la configuration.");
         }
     };
 
@@ -99,6 +100,12 @@ function ConfigurationCreate() {
                             placeholder="Entrer valeur"
                         />
                     </div>
+
+                    {error && (
+                        <p className="text-xs text-red-400 bg-red-500/10 border border-red-500/30 p-2.5 rounded-lg">
+                            {error}
+                        </p>
+                    )}
 
                     <div className="config-form-actions">
                         <button onClick={() => navigate('/liste/configuration')} className="config-btn config-btn-ghost">

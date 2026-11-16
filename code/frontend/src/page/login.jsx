@@ -17,13 +17,14 @@ function Connexion() {
     const login = async (e) => {
         e.preventDefault();
         if (loading) return;
+        setError('');
         try {
             setLoading(true);
-            await Login(nom, password);
+            await Login(nom.trim(), password);
             navigate('/dashboard', { replace: true });
         } catch (e) {
             console.log(e);
-            setError(e.response?.data?.detail || "Identifiant ou mot de passe incorrect.");
+            setError(e.response?.data?.error || e.response?.data?.detail || "Erreur lors de la connexion.");
         } finally {
             setLoading(false);
         }

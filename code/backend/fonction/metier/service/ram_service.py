@@ -16,34 +16,28 @@ def get_max_total_ram(id_device, datetime_from=None, datetime_to=None):
         return get_max_total_ram_repository(cur, id_device, datetime_from, datetime_to)
 
 
-def _serialize_latest_ram(row):
-    if row is None:
-        return None
-
-    date_ram = row.get("date")
-    ram_total = row.get("ram_total")
-    ram_libre = row.get("ram_libre")
-    ram_utiliser = row.get("ram_utiliser")
-    if ram_utiliser is None and ram_total is not None and ram_libre is not None:
-        ram_utiliser = max(ram_total - ram_libre, 0)
-
-    return {
-        "id": row.get("id"),
-        "id_device": row.get("id_device"),
-        "ram_total": ram_total,
-        "ram_utiliser": ram_utiliser,
-        "ram_libre": ram_libre,
-        "utilisation_pct": usage_percent(ram_utiliser, ram_total),
-        "date": str(date_ram) if date_ram else None,
-    }
-
-
 def get_latest_ram(id_device):
     with lecture() as cur:
         if cur is None:
             return None
         row = get_latest_by_device_repository(cur, id_device)
-        return _serialize_latest_ram(row)
+        if row is None:
+            return None
+        date_ram = row.get("date")
+        ram_total = row.get("ram_total")
+        ram_libre = row.get("ram_libre")
+        ram_utiliser = row.get("ram_utiliser")
+        if ram_utiliser is None and ram_total is not None and ram_libre is not None:
+            ram_utiliser = max(ram_total - ram_libre, 0)
+        return {
+            "id": row.get("id"),
+            "id_device": row.get("id_device"),
+            "ram_total": ram_total,
+            "ram_utiliser": ram_utiliser,
+            "ram_libre": ram_libre,
+            "utilisation_pct": usage_percent(ram_utiliser, ram_total),
+            "date": str(date_ram) if date_ram else None,
+        }
 
 
 def get_ram_device_date(id_device, date_debut, date_fin):
@@ -71,10 +65,12 @@ def _group_by_day(mesures, date_debut, date_fin):
 
 def _build_date_summary(mesures, date_debut, date_fin):
     if date_debut.date() == date_fin.date():
-        detail = [
-            {"datetime": mesure["date"].isoformat(), "valeur": mesure["valeur"]}
-            for mesure in mesures
-        ]
+        detail = []
+        for mesure in mesures:
+            detail.append({
+                "datetime": mesure["date"].isoformat(),
+                "valeur": mesure["valeur"],
+            })
         return {"total": None, "same_day": True, "detail": detail}
     return {
         "total": sum(mesure["valeur"] for mesure in mesures),

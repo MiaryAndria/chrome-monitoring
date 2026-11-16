@@ -68,24 +68,6 @@ function ListeDevice() {
         }
     );
 
-    const deviceColumns = [
-        { header: "Modèle", accessor: "modele" },
-        { header: "N° Série", render: (d) => <span className="font-mono text-zinc-300">{d.serial_number}</span> },
-        { header: "Statut", render: (d) => <span className={`badge badge-sm ${getBadgeClass(d.id_status != null ? d.id_status : (d.status || d.nom_statut || 'UNKNOWN'))}`}>{d.status || d.nom_statut || 'UNKNOWN'}</span> },
-        { header: "Adresse IP", render: (d) => <span className="font-mono text-zinc-400">{d.ip_adress || 'N/A'}</span> },
-        { header: "OS", accessor: "chromeos_version" },
-        { header: "Assigné à", accessor: "utilisateur_email" },
-        {
-            header: "Actions", render: (d) => (
-                <div className="flex gap-2">
-                    <button onClick={() => navigate(`/device/${d.id || d.id_device}`)} className="px-3 py-1.5 text-xs font-semibold text-zinc-300 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 rounded-xl transition-all">
-                        Détails
-                    </button>
-                </div>
-            )
-        }
-    ];
-
     const getStatut = async () => {
         try {
             const data = await getListeStatut();
@@ -104,33 +86,61 @@ function ListeDevice() {
         }
     };
 
-    const getUtilisateurRecent = async()=>{
-        try{
+    const getUtilisateurRecent = async () => {
+        try {
             const data = await getListeUtilisateurRecent();
             setListeUtilisateurRecent(data);
-        }catch(e){
-            console.log(e)
+        } catch (e) {
+            console.log(e);
         }
     };
 
-    useEffect(() => {
-        getDeviceStats().then(setStats);
-    }, []);
+    const chargerStats = async () => {
+        const data = await getDeviceStats();
+        setStats(data);
+    };
+
+    const chargerModeles = async () => {
+        const data = await getModeles();
+        setModeles(data);
+    };
+
+    const deviceColumns = [
+        { header: "Modèle", accessor: "modele" },
+        { header: "N° Série", render: (d) => <span className="font-mono text-zinc-300">{d.serial_number}</span> },
+        { header: "Statut", render: (d) => <span className={`badge badge-sm ${getBadgeClass(d.id_status != null ? d.id_status : (d.status || d.nom_statut || 'UNKNOWN'))}`}>{d.status || d.nom_statut || 'UNKNOWN'}</span> },
+        { header: "Adresse IP", render: (d) => <span className="font-mono text-zinc-400">{d.ip_adress || 'N/A'}</span> },
+        { header: "OS", accessor: "chromeos_version" },
+        { header: "Assigné à", accessor: "utilisateur_email" },
+        {
+            header: "Actions", render: (d) => (
+                <div className="flex gap-2">
+                    <button onClick={() => navigate(`/device/${d.id || d.id_device}`)} className="px-3 py-1.5 text-xs font-semibold text-zinc-300 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 rounded-xl transition-all">
+                        Détails
+                    </button>
+                </div>
+            )
+        }
+    ];
 
     const filtresCharges = useRef(false);
+
+    useEffect(() => {
+        chargerStats();
+    }, []);
+
     useEffect(() => {
         if (!firstLoadDone || filtresCharges.current) return;
         filtresCharges.current = true;
         getFiliale();
         getStatut();
-        getModeles().then(setModeles);
+        chargerModeles();
         getUtilisateurRecent();
     }, [firstLoadDone]);
 
-    // Revenir à la page 1 quand un filtre change
     useEffect(() => {
         setCurrentPage(1);
-    }, [filiale, statut, search, modele, filterSearch, filterStatus, filterType,utilisateurRecent]);
+    }, [filiale, statut, search, modele, filterSearch, filterStatus, filterType, utilisateurRecent]);
 
     const filtresActifs = filiale !== "" || statut !== "" || search !== "" || modele !== "" || utilisateurRecent!="";
 

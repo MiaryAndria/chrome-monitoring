@@ -1,9 +1,9 @@
-import traceback
 from typing import List, Optional
 from datetime import datetime
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Query
 
+from backend.exceptions import ValidationError
 from backend.fonction.metier.models.filiale import (
     FilialeResponse,
     FilialePageResponse,
@@ -24,17 +24,14 @@ router = APIRouter()
 def getListeFiliale():
     filiales = get_all_filiales()
     if filiales is None:
-        raise HTTPException(
-            status_code=500,
-            detail="Impossible de récupérer la liste des filiales"
-        )
-    return [
-        {
+        raise ValidationError("Impossible de récupérer la liste des filiales")
+    result = []
+    for f in filiales:
+        result.append({
             "id": f[0],
             "org_unit_path": f[1],
-        }
-        for f in filiales
-    ]
+        })
+    return result
 
 
 @router.get("/liste/page", response_model=FilialePageResponse)
@@ -43,19 +40,12 @@ def getFilialesPage(
     page_size: int = Query(10, ge=1, le=100),
     recherche: Optional[str] = None,
 ):
-    try:
-        return get_filiales_page(page=page, page_size=page_size, recherche=recherche)
-    except Exception as e:
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail=str(e))
+    return get_filiales_page(page=page, page_size=page_size, recherche=recherche)
 
 
 @router.get("/{id_filiale}/stats")
 def getFilialeStats(id_filiale: int):
-    try:
-        return get_filiale_stats(id_filiale)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    return get_filiale_stats(id_filiale)
 
 
 @router.get("/{id_filiale}/devices", response_model=DevicePageResponse)
@@ -73,26 +63,17 @@ def getDevicesByFiliale(
     datetime_to: Optional[datetime] = None,
 ):
     if not is_valid_datetime_range(datetime_from, datetime_to):
-        raise HTTPException(
-            status_code=400,
-            detail="datetime_to doit être supérieur ou égal à datetime_from",
-        )
-    try:
-        return get_devices_by_filiale(
-            id_filiale,
-            page=page,
-            page_size=page_size,
-            id_statut=id_statut,
-            statut=statut,
-            type_appareil=type_appareil,
-            modele=modele,
-            recherche=recherche,
-            utilisateur_recent=utilisateur_recent,
-            datetime_from=datetime_from,
-            datetime_to=datetime_to,
-        )
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=str(e)
-        )
+        raise ValidationError("datetime_to doit être supérieur ou égal à datetime_from")
+    return get_devices_by_filiale(
+        id_filiale,
+        page=page,
+        page_size=page_size,
+        id_statut=id_statut,
+        statut=statut,
+        type_appareil=type_appareil,
+        modele=modele,
+        recherche=recherche,
+        utilisateur_recent=utilisateur_recent,
+        datetime_from=datetime_from,
+        datetime_to=datetime_to,
+    )

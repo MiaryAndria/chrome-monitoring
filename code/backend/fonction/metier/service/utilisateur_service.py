@@ -9,33 +9,20 @@ from backend.core.cache import cache_get, cache_set
 MAX_DEVICES_PAR_UTILISATEUR = 100
 
 
-def _utilisateur_to_dict(row):
-    return {
-        "id": row[0],
-        "email": row[1],
-        "nb_devices": row[2],
-        "derniere_observation": str(row[3]) if row[3] else None,
-        "filiales": list(row[4]) if row[4] else [],
-    }
-
-
-def _device_to_dict(row):
-    return {
-        "id": row[0],
-        "device_id": row[1],
-        "serial_number": row[2],
-        "modele": row[3],
-        "derniere_observation": str(row[4]) if row[4] else None,
-    }
-
-
 def _fetch_utilisateurs_recent_page(page, page_size, filiale, recherche):
     with lecture() as cur:
         if cur is None:
             return build_page([], 0, page, page_size)
-        rows = find_utilisateurs_recent_paginated(cur, page, page_size, filiale, recherche)
-        total = rows[0][5] if rows else 0
-        items = [_utilisateur_to_dict(r) for r in rows]
+        rows, total = find_utilisateurs_recent_paginated(cur, page, page_size, filiale, recherche)
+        items = []
+        for r in rows:
+            items.append({
+                "id": r[0],
+                "email": r[1],
+                "nb_devices": r[2],
+                "derniere_observation": str(r[3]) if r[3] else None,
+                "filiales": list(r[4]) if r[4] else [],
+            })
         return build_page(items, total, page, page_size)
 
 
@@ -59,5 +46,13 @@ def get_utilisateur_recent_devices(id_utilisateur, limit=MAX_DEVICES_PAR_UTILISA
         if cur is None:
             return []
         rows = get_devices_by_utilisateur_recent(cur, id_utilisateur, limit)
-        items = [_device_to_dict(r) for r in rows]
+        items = []
+        for r in rows:
+            items.append({
+                "id": r[0],
+                "device_id": r[1],
+                "serial_number": r[2],
+                "modele": r[3],
+                "derniere_observation": str(r[4]) if r[4] else None,
+            })
         return cache_set(cle, items)

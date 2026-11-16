@@ -76,55 +76,41 @@ def _date_evenement_utc(value):
     return str(value)
 
 
-def _serialize_evenement_row(row):
-    details = row.get("details") or {}
-    if isinstance(details, str):
-        try:
-            details = json.loads(details)
-        except Exception:
-            details = {}
-
-    date_evenement = row.get("date_evenement")
-
-    return {
-        "id": row.get("id"),
-        "date_evenement": _date_evenement_utc(date_evenement),
-        "type_evenement": row.get("type_evenement"),
-        "device_id": row.get("device_id"),
-        "serial_number": row.get("serial_number"),
-        "modele": row.get("modele"),
-        "filiale": row.get("filiale"),
-        "cause_class": details.get("cause_class"),
-        "cause_hint": details.get("cause_hint"),
-        "last_user": details.get("last_user"),
-        "incident_key": details.get("incident_key"),
-        "crash_seq": details.get("crash_seq"),
-        "raw_events": details.get("raw_events"),
-        "minutes_since_boot": details.get("minutes_since_boot"),
-    }
-
-
 def _fetch_events_page(page=1, page_size=10, type_evenement=None, id_filiale=None,
                        filiale=None, recherche=None, datetime_from=None,
                        datetime_to=None):
     with lecture() as cur:
         if cur is None:
             return build_page([], 0, page, page_size)
-        rows = find_evenements_paginated(
+        rows, total = find_evenements_paginated(
             cur, page, page_size, type_evenement, id_filiale, filiale,
             recherche, datetime_from, datetime_to
         )
-        total = rows[0]["total"] if rows else 0
-        # Page vide (au-dela de la derniere) : le COUNT(*) OVER() n'est plus dispo.
-        if not rows and page > 1:
-            sonde = find_evenements_paginated(
-                cur, 1, 1, type_evenement, id_filiale, filiale,
-                recherche, datetime_from, datetime_to
-            )
-            total = sonde[0]["total"] if sonde else 0
         items = []
         for row in rows:
-            items.append(_serialize_evenement_row(row))
+            details = row.get("details") or {}
+            if isinstance(details, str):
+                try:
+                    details = json.loads(details)
+                except Exception:
+                    details = {}
+            date_evenement = row.get("date_evenement")
+            items.append({
+                "id": row.get("id"),
+                "date_evenement": _date_evenement_utc(date_evenement),
+                "type_evenement": row.get("type_evenement"),
+                "device_id": row.get("device_id"),
+                "serial_number": row.get("serial_number"),
+                "modele": row.get("modele"),
+                "filiale": row.get("filiale"),
+                "cause_class": details.get("cause_class"),
+                "cause_hint": details.get("cause_hint"),
+                "last_user": details.get("last_user"),
+                "incident_key": details.get("incident_key"),
+                "crash_seq": details.get("crash_seq"),
+                "raw_events": details.get("raw_events"),
+                "minutes_since_boot": details.get("minutes_since_boot"),
+            })
         return build_page(items, total, page, page_size)
 
 

@@ -6,7 +6,3 @@ def insert_synchronisation_statut(cur, id_statut, id_synchronisation, date):
         """,
         (id_statut, id_synchronisation, date),
     )
-
-
-# Compatibilité avec l'ancien nom
-insert_synchronisaton_statut = insert_synchronisation_statut

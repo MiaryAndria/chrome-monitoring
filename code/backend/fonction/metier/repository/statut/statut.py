@@ -1,15 +1,5 @@
-from backend.fonction.metier.repository.statut.constants import IDS_STATUTS_DEVICE
-
 def get_liste_statut(cur):
-    cur.execute(
-        """
-        SELECT id, nom
-        FROM t_statut
-        WHERE id = ANY(%s)
-        ORDER BY id ASC
-        """,
-        (list(IDS_STATUTS_DEVICE),)
-    )
+    cur.execute("SELECT id, nom FROM v_statut_device ORDER BY id ASC")
     return cur.fetchall()
 
 
@@ -75,16 +65,19 @@ def get_liste_statut_all(cur):
 
 def find_statuts_paginated(cur, page=1, page_size=10):
     offset = (page - 1) * page_size
+    cur.execute("SELECT COUNT(*) FROM t_statut")
+    total = cur.fetchone()[0]
+
     cur.execute(
         """
-        SELECT id, nom, COUNT(*) OVER() AS total
+        SELECT id, nom
         FROM t_statut
         ORDER BY id ASC
         LIMIT %s OFFSET %s
         """,
         (page_size, offset)
     )
-    return cur.fetchall()
+    return cur.fetchall(), total
 
 
 def update_statut(cur, id_statut, nom):

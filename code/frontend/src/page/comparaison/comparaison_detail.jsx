@@ -22,15 +22,11 @@ function ComparaisonDetail() {
             const data = await getComparaisonDetail(id);
             setDetail(data || null);
         } catch (e) {
-            setErreur(e?.response?.data?.detail || "Comparaison introuvable.");
+            setErreur(e?.response?.data?.error || e?.response?.data?.detail || "Comparaison introuvable.");
         } finally {
             setChargement(false);
         }
     };
-
-    useEffect(() => {
-        chargerDetail();
-    }, [id]);
 
     const exporter = async (format) => {
         try {
@@ -43,10 +39,15 @@ function ComparaisonDetail() {
 
     const labels = detail
         ? {
-              a: `${detail.device_a || detail.id_device_a} · ${detail.version_a || "—"}`,
-              b: `${detail.device_b || detail.id_device_b} · ${detail.version_b || "—"}`,
-          }
+            a: `${detail.device_a || detail.id_device_a} · ${detail.version_a || "—"}`,
+            b: `${detail.device_b || detail.id_device_b} · ${detail.version_b || "—"}`,
+        }
         : { a: "A", b: "B" };
+
+    useEffect(() => {
+        chargerDetail();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [id]);
 
     return (
         <PageLayout

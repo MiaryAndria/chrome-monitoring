@@ -102,6 +102,24 @@ def find_users_paginated(cur, id_statut_supprime, page=1, page_size=10):
     offset = (page - 1) * page_size
     cur.execute(
         """
+        SELECT COUNT(*)
+        FROM t_user u
+        WHERE COALESCE(
+            (
+                SELECT us.id_statut
+                FROM t_user_statut us
+                WHERE us.id_user = u.id
+                ORDER BY us.date DESC, us.id DESC
+                LIMIT 1
+            ), -1
+        ) <> %s
+        """,
+        (id_statut_supprime,),
+    )
+    total = cur.fetchone()[0]
+
+    cur.execute(
+        """
         SELECT u.id, u.nom, u.email, u.id_role, r.role,
                (
                    SELECT us.date
@@ -109,8 +127,7 @@ def find_users_paginated(cur, id_statut_supprime, page=1, page_size=10):
                    WHERE us.id_user = u.id
                    ORDER BY us.date DESC, us.id DESC
                    LIMIT 1
-               ) AS date,
-               COUNT(*) OVER() AS total
+               ) AS date
         FROM t_user u
         JOIN t_role r ON r.id = u.id_role
         WHERE COALESCE(
@@ -127,11 +144,27 @@ def find_users_paginated(cur, id_statut_supprime, page=1, page_size=10):
         """,
         (id_statut_supprime, page_size, offset),
     )
-    return cur.fetchall()
+    return cur.fetchall(), total
 
 
 def find_users_archived_paginated(cur, id_statut_supprime, page=1, page_size=10):
     offset = (page - 1) * page_size
+    cur.execute(
+        """
+        SELECT COUNT(*)
+        FROM t_user u
+        WHERE (
+            SELECT us.id_statut
+            FROM t_user_statut us
+            WHERE us.id_user = u.id
+            ORDER BY us.date DESC, us.id DESC
+            LIMIT 1
+        ) = %s
+        """,
+        (id_statut_supprime,),
+    )
+    total = cur.fetchone()[0]
+
     cur.execute(
         """
         SELECT u.id, u.nom, u.email, u.id_role, r.role,
@@ -141,8 +174,7 @@ def find_users_archived_paginated(cur, id_statut_supprime, page=1, page_size=10)
                    WHERE us.id_user = u.id
                    ORDER BY us.date DESC, us.id DESC
                    LIMIT 1
-               ) AS date,
-               COUNT(*) OVER() AS total
+               ) AS date
         FROM t_user u
         JOIN t_role r ON r.id = u.id_role
         WHERE (
@@ -157,7 +189,7 @@ def find_users_archived_paginated(cur, id_statut_supprime, page=1, page_size=10)
         """,
         (id_statut_supprime, page_size, offset),
     )
-    return cur.fetchall()
+    return cur.fetchall(), total
 
 
 def insert_user_statut(cur, id_user, id_statut):

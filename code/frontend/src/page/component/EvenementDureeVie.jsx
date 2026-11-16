@@ -7,22 +7,28 @@ function EvenementDureeVie({ eventId }) {
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(false);
 
+    const charger = async (estAnnule) => {
+        setLoading(true);
+        try {
+            const resultat = await getDureeVieEvenement(eventId);
+            if (!estAnnule()) setData(resultat);
+        } catch (e) {
+            console.error(e);
+        } finally {
+            if (!estAnnule()) setLoading(false);
+        }
+    };
+
     useEffect(() => {
         if (!eventId) return;
         let annule = false;
-
-        setLoading(true);
-        getDureeVieEvenement(eventId)
-            .then((resultat) => {
-                if (!annule) setData(resultat);
-            })
-            .finally(() => {
-                if (!annule) setLoading(false);
-            });
+        const estAnnule = () => annule;
+        charger(estAnnule);
 
         return () => {
             annule = true;
         };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [eventId]);
 
     if (loading) {

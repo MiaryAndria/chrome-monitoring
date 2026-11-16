@@ -62,6 +62,12 @@ export const updateSeuil = async (id, idType, valeur, sens) => {
     });
 };
 
+export const updateLimiteTypeSeuil = async (idType, limite) => {
+    return await api_service.put(`seuil/type/${idType}/limite`, {
+        limite: limite
+    });
+};
+
 export const deleteSeuil = async (id) => {
     try {
         return await api_service.post(`seuil/${id}/delete`);

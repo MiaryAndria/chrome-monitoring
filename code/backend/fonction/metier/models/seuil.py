@@ -3,8 +3,8 @@ from typing import List
 from datetime import datetime
 
 class SeuilData(BaseModel):
-    id_type:int
-    valeur: int
+    id_type: int | None = None
+    valeur: int | None = None
     sens: str | None = None
     
 
@@ -16,6 +16,11 @@ class SeuilResponse(BaseModel):
     valeur: int
     date: datetime | None = None
     sens: str | None = None
+    limite: int | None = None
+    unite: str | None = None
+
+
+class SeuilLimiteUpdate(BaseModel):
     limite: int | None = None
 
 
@@ -32,7 +37,8 @@ class SeuilCategorieResponse(BaseModel):
     categorie : str
     
 class SeuilTypeResponse(BaseModel):
-    id:int
-    type:str
+    id: int
+    type: str
     limite: int | None = None
+    unite: str | None = None
 

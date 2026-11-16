@@ -1,9 +1,9 @@
 from typing import List, Optional
 from datetime import datetime
 
-from fastapi import APIRouter, HTTPException, Query
-import traceback
+from fastapi import APIRouter, Query
 
+from backend.exceptions import NotFoundError
 from backend.fonction.metier.service.imprimante_service import (
     get_imprimante,
     get_imprimante_detail,
@@ -15,7 +15,7 @@ from backend.fonction.metier.models.imprimante import (
     ImprimanteDetailResponse,
     ImprimantePageResponse,
 )
-from backend.utils.validation import is_valid_datetime_range
+from backend.utils.validation import valider_plage_datetime
 
 router = APIRouter()
 
@@ -29,43 +29,25 @@ def getImprimantes(
     datetime_from: Optional[datetime] = None,
     datetime_to: Optional[datetime] = None,
 ):
-    if not is_valid_datetime_range(datetime_from, datetime_to):
-        raise HTTPException(
-            status_code=400,
-            detail="datetime_to doit être supérieur ou égal à datetime_from",
-        )
-    try:
-        return get_imprimantes_page(
-            page=page,
-            page_size=page_size,
-            recherche=recherche,
-            vendor=vendor,
-            datetime_from=datetime_from,
-            datetime_to=datetime_to,
-        )
-    except Exception as e:
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail=str(e))
+    valider_plage_datetime(datetime_from, datetime_to)
+    return get_imprimantes_page(
+        page=page,
+        page_size=page_size,
+        recherche=recherche,
+        vendor=vendor,
+        datetime_from=datetime_from,
+        datetime_to=datetime_to,
+    )
 
 
 @router.get("/vendors", response_model=List[str])
 def getVendors():
-    try:
-        return get_vendors()
-    except Exception as e:
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail=str(e))
+    return get_vendors()
 
 
 @router.get("/{id}", response_model=ImprimanteDetailResponse)
 def getImprimanteDetail(id: int):
-    try:
-        result = get_imprimante_detail(id)
-        if result is None:
-            raise HTTPException(status_code=404, detail="Imprimante introuvable")
-        return result
-    except HTTPException:
-        raise
-    except Exception as e:
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail=str(e))
+    result = get_imprimante_detail(id)
+    if result is None:
+        raise NotFoundError("Imprimante introuvable")
+    return result

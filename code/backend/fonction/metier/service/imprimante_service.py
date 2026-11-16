@@ -9,6 +9,7 @@ from backend.fonction.metier.repository.imprimante import (
 )
 from backend.utils.pagination import build_page
 from backend.core.cache import cache_get, cache_set
+from backend.exceptions import AppError
 
 
 def get_imprimante():
@@ -16,10 +17,16 @@ def get_imprimante():
         if cur is None:
             return []
         rows = get_liste_imprimante(cur)
-        return [
-            {"id": r[0], "vid": r[1], "pid": r[2], "vendor": r[3], "nom": r[4]}
-            for r in rows
-        ]
+        result = []
+        for r in rows:
+            result.append({
+                "id": r[0],
+                "vid": r[1],
+                "pid": r[2],
+                "vendor": r[3],
+                "nom": r[4],
+            })
+        return result
 
 def get_vendors():
     with lecture() as cur:
@@ -31,7 +38,7 @@ def get_vendors():
 def get_imprimante_detail(id_imprimante: int):
     with lecture() as cur:
         if cur is None:
-            raise Exception("Connexion à la base impossible")
+            raise AppError("Connexion à la base impossible", status_code=503)
 
         r = get_imprimante_by_id(cur, id_imprimante)
         if r is None:
@@ -56,20 +63,18 @@ def _fetch_imprimantes_page(page=1, page_size=10, recherche=None, vendor=None,
     with lecture() as cur:
         if cur is None:
             return build_page([], 0, page, page_size)
-        rows = find_imprimantes_paginated(
+        rows, total = find_imprimantes_paginated(
             cur, page, page_size, recherche, vendor, datetime_from, datetime_to
         )
-        total = rows[0]["total"] if rows else 0
-        items = [
-            {
+        items = []
+        for row in rows:
+            items.append({
                 "id": row["id"],
                 "vid": row["vid"],
                 "pid": row["pid"],
                 "vendor": row["vendor"],
                 "nom": row["nom"],
-            }
-            for row in rows
-        ]
+            })
         return build_page(items, total, page, page_size)
 
 

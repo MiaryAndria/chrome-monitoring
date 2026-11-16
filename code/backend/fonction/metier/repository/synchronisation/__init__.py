@@ -6,6 +6,3 @@ from .synchronisation_historique import (
 )
 
 from .synchronisation_statut import insert_synchronisation_statut
-
-# Compatibilité avec ancien nom de fonction
-insert_synchronisaton_statut = insert_synchronisation_statut

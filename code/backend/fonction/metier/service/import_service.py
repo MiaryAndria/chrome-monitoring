@@ -14,17 +14,23 @@ from backend.fonction.conn.transaction import transaction
 from backend.google_api.devices import get_credential, get_devices, get_telemetry_devices
 from backend.google_api.print import extract_printers_from_telemetry
 from backend.google_api.event import fetch_crash_sources, build_crash_incidents
-from backend.fonction.metier.repository.devices import (insert_device,update_device,insert_device_cpu,get_last_cpu_for_device,
-    update_device_ram_total,get_device_by_device_id,insert_device_filiale,insert_device_utilisateur_recent,
-    insert_device_utilisateur,get_or_create_type_appareil,get_map_devices,
-    get_last_version,insert_device_version
+from backend.fonction.metier.repository.devices import (
+    insert_device,
+    update_device,
+    update_device_ram_total,
+    get_device_by_device_id,
+    insert_device_filiale,
+    insert_device_utilisateur_recent,
+    insert_device_utilisateur,
+    get_or_create_type_appareil,
+    get_map_devices,
+    get_last_version,
+    insert_device_version,
 )
 from backend.fonction.metier.repository.filiale import get_or_create_filiale
-from backend.fonction.metier.repository.cpu import get_or_create_cpu
-from backend.fonction.metier.repository.disk import get_or_create_disk
-from backend.fonction.metier.repository.disk.disk_device import insert_disk_device
-from backend.fonction.metier.repository.statut import insert_device_statut
-from backend.fonction.metier.repository.statut.constants import STATUT_GOOGLE_VERS_ID
+from backend.fonction.metier.repository.cpu import get_or_create_cpu, insert_cpu_device
+from backend.fonction.metier.repository.disk import get_or_create_disk, insert_disk_device
+from backend.fonction.metier.repository.statut import insert_device_statut, STATUT_GOOGLE_VERS_ID
 from backend.fonction.metier.repository.rapport import (create_type_rapport,create_rapport_device,
     get_liste_type_rapport,insert_rapport_lot,
     init_default_types_rapport,
@@ -40,11 +46,10 @@ from backend.fonction.metier.repository.reseau import (
     get_or_create_reseau,insert_into_reseau_filiale,
     get_by_device_and_reseau,insert_device_reseau,
 )
+from backend.fonction.metier.repository.devices import get_utilisateur_recent_by_device
+from backend.fonction.metier.repository.ram import insert_into_device_ram
 from backend.utils.format_valeur import _to_int, format_bytes
 from backend.utils.format_date import parse_date_safe, parse_google_datetime
-from backend.fonction.metier.repository.devices.device_utilisateur_recent import get_utilisateur_recent_by_device
-from backend.fonction.metier.repository.ram.ram import insert_into_device_ram
-from backend.fonction.metier.repository.cpu.device_cpu import insert_cpu_device
 from backend.core.cache import cache_invalidate_prefix
 
 

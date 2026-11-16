@@ -9,36 +9,48 @@ from backend.fonction.metier.repository.statut import (
 )
 from backend.core.cache import cache_get, cache_set, cache_invalidate_prefix
 from backend.utils.pagination import build_page
-
-
-def _statut_to_dict(row):
-    return {
-        "id": row[0],
-        "nom": row[1],
-    }
+from backend.exceptions import ValidationError, NotFoundError, ConflictError
 
 
 def getListeStatut():
     with lecture() as cur:
         if cur is None:
             return []
-        return [_statut_to_dict(l) for l in get_liste_statut(cur)]
+        rows = get_liste_statut(cur)
+        result = []
+        for l in rows:
+            result.append({
+                "id": l[0],
+                "nom": l[1],
+            })
+        return result
 
 
 def getListeStatutAll():
     with lecture() as cur:
         if cur is None:
             return []
-        return [_statut_to_dict(l) for l in get_liste_statut_all(cur)]
+        rows = get_liste_statut_all(cur)
+        result = []
+        for l in rows:
+            result.append({
+                "id": l[0],
+                "nom": l[1],
+            })
+        return result
 
 
 def _fetch_statuts_page(page=1, page_size=10):
     with lecture() as cur:
         if cur is None:
             return build_page([], 0, page, page_size)
-        rows = find_statuts_paginated(cur, page, page_size)
-        total = rows[0][2] if rows else 0
-        items = [_statut_to_dict(r) for r in rows]
+        rows, total = find_statuts_paginated(cur, page, page_size)
+        items = []
+        for r in rows:
+            items.append({
+                "id": r[0],
+                "nom": r[1],
+            })
         return build_page(items, total, page, page_size)
 
 
@@ -58,29 +70,29 @@ def getDetailStatut(id_statut):
         row = get_statut_by_id(cur, id_statut)
         if row is None:
             return None
-        return _statut_to_dict(row)
+        result = []
+        result.append({
+            "id": row[0],
+            "nom": row[1],
+        })
+        return result
 
 
 def UpdateStatut(id_statut, nom):
     nom = (nom or "").strip()
     if not nom:
-        raise ValueError("Le nom du statut est obligatoire")
+        raise ValidationError("Le nom du statut est obligatoire")
 
-    try:
-        with transaction() as cur:
-            if cur is None:
-                raise ValueError("Erreur de connexion à la base de données")
-            existant = get_statut_by_name(cur, nom)
-            if existant is not None and existant[0] != id_statut:
-                raise ValueError("Ce nom de statut existe déjà")
+    with transaction() as cur:
+        if cur is None:
+            raise ValidationError("Erreur de connexion à la base de données")
+        existant = get_statut_by_name(cur, nom)
+        if existant is not None and existant[0] != id_statut:
+            raise ConflictError("Ce nom de statut existe déjà")
 
-            updated_id = update_statut(cur, id_statut, nom)
-            if updated_id is None:
-                raise ValueError("Statut introuvable")
-    except ValueError:
-        raise
-    except Exception:
-        raise ValueError("Impossible de mettre à jour le statut")
+        updated_id = update_statut(cur, id_statut, nom)
+        if updated_id is None:
+            raise NotFoundError("Statut introuvable")
 
     cache_invalidate_prefix("statuts:")
     cache_invalidate_prefix("devices:")
