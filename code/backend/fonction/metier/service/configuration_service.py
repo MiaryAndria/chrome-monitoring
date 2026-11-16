@@ -125,16 +125,14 @@ def getDetailConfiguration(id_configuration):
         row = get_configuration_by_id(cur, id_configuration)
         if row is None:
             return None
-        result = []
-        result.append({
+        return {
             "id": row[0],
             "id_type": row[1],
             "cle": row[2],
             "categorie": row[3],
             "valeur": row[4],
             "date": row[5],
-        })
-        return result
+        }
 
 
 def InsertConfiguration(id_type, valeur):

@@ -14,6 +14,8 @@ from .seuil import (
     verifier_seuil_type_existe,
     get_type_seuil_by_categorie,
     get_type_seuil_info,
+    get_type_seuil_by_id,
+    update_limite_type_seuil,
     get_categorie_seuil,
     get_regles_seuil,
     update_sens_seuil,

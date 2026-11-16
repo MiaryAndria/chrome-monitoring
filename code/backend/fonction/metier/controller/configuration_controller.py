@@ -65,7 +65,10 @@ def create_configuration(data: ConfigurationData):
 
 @router.get("/{id}", response_model=ConfigurationResponse)
 def get_detail(id: int):
-    return getDetailConfiguration(id)
+    detail = getDetailConfiguration(id)
+    if detail is None:
+        raise NotFoundError("Configuration introuvable")
+    return detail
 
 
 @router.put("/{id}/update")

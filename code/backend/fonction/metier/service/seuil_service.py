@@ -141,7 +141,7 @@ def getDetailSeuil(id_seuil):
         row = get_seuil_by_id(cur, id_seuil)
         if row is None:
             return None
-        return [_map_seuil_row(row)] 
+        return _map_seuil_row(row) 
 
 
 def InsertSeuil(id_type, valeur):
