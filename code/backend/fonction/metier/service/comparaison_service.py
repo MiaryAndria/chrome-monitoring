@@ -123,8 +123,7 @@ def get_comparaison_detail(id):
         row = get_comparaison_by_id(cur, id)
         if row is None:
             return None
-        result = []
-        result.append({
+        return{
             "id": row[0],
             "id_device_a": row[1],
             "id_device_b": row[2],
@@ -137,8 +136,7 @@ def get_comparaison_detail(id):
             "resultat": row[7],
             "version_a": row[8],
             "version_b": row[9],
-        })
-        return result
+        }
 
 
 def _extraire_specs(device, cpu_info):
