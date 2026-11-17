@@ -71,7 +71,7 @@ function Inscription() {
                                 className="login-input"
                                 value={email}
                                 onChange={(e) => { setEmail(e.target.value); setError(''); }}
-                                placeholder="Saisissez votre adresse e-mail"
+                                placeholder="utilisateur@gmail.com"
                                 autoComplete="email"
                             />
                         </div>
