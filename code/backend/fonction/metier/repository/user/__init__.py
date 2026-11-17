@@ -12,4 +12,6 @@ from .user import (
     find_users_archived_paginated,
     insert_user_statut,
     get_liste_utilisateur_recent,
+    get_user_auth_by_id,
+    update_user_mdp
 )
