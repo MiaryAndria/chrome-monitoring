@@ -207,15 +207,18 @@ def archiver_user(id_user):
         insert_user_statut(cur, id_user, ID_STATUT_SUPPRIMER)
         return True
 
-def update_user_password(id_user, new_pwd, old_pwd):
+def update_user_password(id_user, new_pwd, old_pwd, confirm_mdp=""):
     new_pwd = new_pwd or ""
     old_pwd = old_pwd or ""
+    confirm_mdp = confirm_mdp or ""
 
     champs_manquants = []
     if not old_pwd.strip():
         champs_manquants.append("ancien mot de passe")
     if not new_pwd.strip():
         champs_manquants.append("nouveau mot de passe")
+    if not confirm_mdp.strip():
+        champs_manquants.append("confirmation du nouveau mot de passe")
 
     if champs_manquants:
         if len(champs_manquants) == 1:
@@ -224,6 +227,8 @@ def update_user_password(id_user, new_pwd, old_pwd):
 
     if len(new_pwd) < 6:
         raise ValidationError("Le nouveau mot de passe doit contenir au moins 6 caractères.")
+    if new_pwd != confirm_mdp:
+        raise ValidationError("La confirmation du nouveau mot de passe ne correspond pas.")
 
     with transaction() as cur:
         if cur is None:

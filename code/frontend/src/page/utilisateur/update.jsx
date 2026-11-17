@@ -32,26 +32,9 @@ function UpdatePassword() {
         setError('');
         setSuccess('');
 
-        if (!ancien || !nouveau || !confirmation) {
-            setError('Tous les champs sont obligatoires.');
-            return;
-        }
-        if (nouveau !== confirmation) {
-            setError('La confirmation du nouveau mot de passe ne correspond pas.');
-            return;
-        }
-        if (nouveau.length < 6) {
-            setError('Le nouveau mot de passe doit contenir au moins 6 caractères.');
-            return;
-        }
-        if (!me?.id) {
-            setError('Utilisateur non identifié.');
-            return;
-        }
-
         try {
             setLoading(true);
-            await updateUserPassword(me.id, ancien, nouveau);
+            await updateUserPassword(me?.id, ancien, nouveau, confirmation);
             setSuccess('Mot de passe mis à jour avec succès.');
             setAncien('');
             setNouveau('');
@@ -78,6 +61,7 @@ function UpdatePassword() {
                                 type={showAncien ? 'text' : 'password'}
                                 value={ancien}
                                 onChange={(e) => setAncien(e.target.value)}
+                                placeholder="Saisissez votre mot de passe actuel"
                                 className="w-full px-4 py-2.5 rounded-xl bg-zinc-900/60 border border-white/10 text-zinc-200 text-sm placeholder-zinc-500 focus:outline-none focus:border-cyan-400/50 pr-10"
                                 autoComplete="current-password"
                             />
@@ -99,6 +83,7 @@ function UpdatePassword() {
                                 type={showNouveau ? 'text' : 'password'}
                                 value={nouveau}
                                 onChange={(e) => setNouveau(e.target.value)}
+                                placeholder="Saisissez un nouveau mot de passe (6 caractères min.)"
                                 className="w-full px-4 py-2.5 rounded-xl bg-zinc-900/60 border border-white/10 text-zinc-200 text-sm placeholder-zinc-500 focus:outline-none focus:border-cyan-400/50 pr-10"
                                 autoComplete="new-password"
                             />
@@ -119,6 +104,7 @@ function UpdatePassword() {
                             type="password"
                             value={confirmation}
                             onChange={(e) => setConfirmation(e.target.value)}
+                            placeholder="Confirmez le nouveau mot de passe"
                             className="w-full px-4 py-2.5 rounded-xl bg-zinc-900/60 border border-white/10 text-zinc-200 text-sm placeholder-zinc-500 focus:outline-none focus:border-cyan-400/50"
                             autoComplete="new-password"
                         />

@@ -24,8 +24,9 @@ class UserRecentResponse(BaseModel):
     email:str
 
 class UserPasswordUpdate(BaseModel):
-    mdp : str =""
-    old_pwd : str =""
+    old_pwd: str = ""
+    mdp: str = ""
+    confirm_mdp: str = ""
     
 
 class UserResponse(BaseModel):

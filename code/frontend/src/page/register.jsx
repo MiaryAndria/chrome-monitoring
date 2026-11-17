@@ -56,7 +56,7 @@ function Inscription() {
                                 className="login-input"
                                 value={nom}
                                 onChange={(e) => { setNom(e.target.value); setError(''); }}
-                                placeholder="Nom complet"
+                                placeholder="Saisissez votre nom complet"
                                 autoComplete="name"
                             />
                         </div>
@@ -71,7 +71,7 @@ function Inscription() {
                                 className="login-input"
                                 value={email}
                                 onChange={(e) => { setEmail(e.target.value); setError(''); }}
-                                placeholder="utilisateur@gmail.com"
+                                placeholder="Saisissez votre adresse e-mail"
                                 autoComplete="email"
                             />
                         </div>
@@ -86,7 +86,7 @@ function Inscription() {
                                 className="login-input"
                                 value={password}
                                 onChange={(e) => { setPassword(e.target.value); setError(''); }}
-                                placeholder="••••••••"
+                                placeholder="Saisissez un mot de passe (6 caractères min.)"
                                 autoComplete="new-password"
                             />
                         </div>
@@ -101,7 +101,7 @@ function Inscription() {
                                 className="login-input"
                                 value={confirm}
                                 onChange={(e) => { setConfirm(e.target.value); setError(''); }}
-                                placeholder="••••••••"
+                                placeholder="Confirmez votre mot de passe"
                                 autoComplete="new-password"
                             />
                         </div>

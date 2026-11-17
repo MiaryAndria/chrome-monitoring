@@ -56,7 +56,7 @@ function Connexion() {
                                 className="login-input"
                                 value={nom}
                                 onChange={(e) => { setNom(e.target.value); setError(''); }}
-                                placeholder="utilisateur@gmail.com"
+                                placeholder="Saisissez votre adresse e-mail"
                                 autoComplete="username"
                             />
                         </div>
@@ -72,7 +72,7 @@ function Connexion() {
                                 style={{ paddingRight: '2.75rem' }}
                                 value={password}
                                 onChange={(e) => { setPassword(e.target.value); setError(''); }}
-                                placeholder="••••••••"
+                                placeholder="Saisissez votre mot de passe"
                                 autoComplete="current-password"
                             />
                             <button

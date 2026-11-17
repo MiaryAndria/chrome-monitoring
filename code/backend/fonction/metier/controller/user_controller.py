@@ -68,7 +68,7 @@ def update_role_user(id: int, data: UserRoleUpdate, current_user: dict = Depends
 def update_password_user(id: int, data: UserPasswordUpdate, current_user: dict = Depends(get_current_user)):
     if current_user.get("id") != id and current_user.get("id_role") != 1:
         raise ForbiddenError("Accès refusé")
-    update_user_password(id, data.mdp, data.old_pwd)
+    update_user_password(id, data.mdp, data.old_pwd, data.confirm_mdp)
     return {"message": "Mot de passe mis à jour"}
 
 
