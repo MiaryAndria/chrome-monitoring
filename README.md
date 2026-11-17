@@ -168,7 +168,104 @@ La synchronisation et les appels Google reposent sur des credentials OAuth plac�
 
 L’assistant IA utilise **Google Gemini** via une **clé API** (`GEMINI_API_KEY`) configurée dans `code/.env` (et `GEMINI_MODEL` pour le modèle). Elle est lue par le backend au runtime (voir `code/backend/fonction/metier/service/ia_common.py`).
 
-- **Obtenir / renouveler une clé** et la mettre dans `.env` : suivre le guide **[doc/guide_gemini_api.md](doc/guide_gemini_api.md)** (création dans Google AI Studio, mise à jour de `code/.env`, redémarrage du backend, handover).
+- **Obtenir / renouveler une clé** et la mettre dans `.env` : voici guide 
+---
+
+## 1. Prérequis
+
+- Un compte Google.
+- Accès à [Google AI Studio](https://aistudio.google.com/) (création/gestion de clés API) ou à la [Google Cloud Console](https://console.cloud.google.com/) selon la configuration du projet Google associé.
+- Accès au fichier `code/.env` du projet (non versionné). Utiliser `code/.env.example` comme modèle.
+
+---
+
+## 2. Obtenir ou recréer une clé API Gemini
+
+1. **Ouvrir Google AI Studio**  
+   - Aller sur [https://aistudio.google.com/](https://aistudio.google.com/) et se connecter avec le compte Google prévu pour le projet.
+
+2. **Accéder à la gestion des clés API**  
+   - Menu **Get API key** / **Obtenir une clé API** (libellé pouvant varier selon l’interface).
+   - Choisir le projet Google Cloud associé, ou en créer un si nécessaire.
+
+3. **Créer une nouvelle clé**  
+   - Cliquer sur **Create API key** / **Créer une clé API**.
+   - Copier immédiatement la clé générée : elle ne pourra pas toujours être ré-affichée intégralement ensuite.
+
+4. **(Optionnel mais recommandé) Sécuriser la clé**  
+   - Dans Google Cloud Console > *APIs & Services* > *Credentials*, restreindre la clé (API autorisées, restrictions d’usage) selon la politique de l’organisation.
+   - Vérifier que l’API Generative Language / Gemini utilisée est activée pour le projet et que la facturation/quota est conforme à l’usage.
+
+> **Si l’ancienne clé a été exposée ou ne fonctionne plus** : révoquer/supprimer l’ancienne clé dans la console, en créer une nouvelle, puis mettre à jour `code/.env` (voir ci-dessous) et redémarrer le backend.
+
+---
+
+## 3. Renseigner la clé dans `code/.env`
+
+1. Depuis la racine du projet, créer le fichier d’environnement si besoin :
+   ```bash
+   cp code/.env.example code/.env
+   ```
+   (Windows PowerShell : `Copy-Item code\.env.example code\.env`)
+
+2. Ouvrir `code/.env` et renseigner au minimum :
+   ```env
+   # Assistant IA (Gemini)
+   GEMINI_API_KEY=votre_nouvelle_cle_api
+   GEMINI_MODEL=gemini-3.5-flash-lite
+   ```
+   - `GEMINI_API_KEY` : coller la clé copiée depuis AI Studio (sans guillemets, sans espaces).
+   - `GEMINI_MODEL` : modèle utilisé par l’assistant (laisser la valeur par défaut du projet sauf besoin spécifique et compatibilité vérifiée).
+
+3. **Ne jamais commiter `code/.env` ni partager la clé** (dépôt Git, captures, tickets publics). Le fichier `.env` est ignoré par Git ; partager uniquement la structure via `code/.env.example`.
+
+4. **Redémarrer le backend** après modification : la clé est lue au premier usage et le client IA est mis en cache en mémoire dans le processus. Un changement de clé dans `.env` nécessite un redémarrage de `uvicorn` (et du worker si utilisé) pour être pris en compte.
+
+---
+
+## 4. Prise en main par une autre personne (handover)
+
+Pour qu’un nouveau mainteneur fasse fonctionner l’assistant IA :
+
+1. Récupérer les accès au **compte/projet Google** qui porte la clé (ou créer une clé sur son propre projet, selon l’organisation).
+2. Créer sa propre clé API (étape 2) — **ne pas réutiliser une clé reçue par canal non sécurisé**.
+3. Copier `code/.env.example` vers `code/.env` et renseigner `GEMINI_API_KEY`, `GEMINI_MODEL`, ainsi que les autres variables requises (base de données, JWT, Google Admin/télémétrie, etc.).
+4. Installer les dépendances backend (`pip install -r doc/requirements.txt` depuis `code/` ou selon le README) : le client Gemini repose notamment sur `google-genai`.
+5. Lancer le backend et tester la fonctionnalité de messagerie/assistant IA depuis le frontend.
+
+---
+
+## 5. La clé peut-elle “expirer” ou cesser de fonctionner ?
+
+- Une **clé API** n’a généralement pas d’expiration courte comme un *access token* OAuth, mais elle peut **devenir inutilisable** si :
+  - elle est **révoquée, supprimée ou régénérée** ;
+  - le **projet Google** est désactivé ou mal configuré ;
+  - la **facturation, le quota ou le free tier** est dépassé/bloqué ;
+  - des **restrictions** de clé empêchent l’appel (API, référent, etc.).
+- Dans ces cas, les appels IA échouent (erreurs typiques 401/403/429 selon le motif). Il faut alors vérifier la clé/projet/quotas dans AI Studio ou Google Cloud Console et, si nécessaire, créer une nouvelle clé et mettre à jour `code/.env`.
+- Ce mécanisme est **différent** des jetons OAuth Google (ex. accès Google Admin/Directory du projet, gérés via `credential/` et refresh token), qui expirent et se renouvellent automatiquement selon le flux configuré.
+
+---
+
+## 6. Dépannage rapide
+
+| Symptôme | Pistes |
+|---|---|
+| `GEMINI_API_KEY manquante dans le fichier .env` | Vérifier que `code/.env` existe, contient `GEMINI_API_KEY=...`, et que le backend est lancé depuis le bon contexte (le projet charge `.env` au démarrage du module IA). Redémarrer le backend. |
+| Erreur 401/403 de l’API Gemini | Clé invalide/révoquée, API non activée, restrictions ou projet/facturation. Régénérer la clé et vérifier la console Google. |
+| Erreur 429 / quota | Quota ou limite de débit atteint ; attendre, augmenter le quota ou ajuster le plan/facturation. |
+| Changement de clé sans effet | Redémarrer le backend (client IA en cache en mémoire) et vérifier qu’il n’y a pas de doublon/override de variable d’environnement. |
+| Réponse IA vide ou erreur modèle | Vérifier `GEMINI_MODEL` (modèle disponible pour votre clé/projet) et les logs backend. |
+
+---
+
+## 7. Références dans le projet
+
+- Variables : `code/.env.example` (`GEMINI_API_KEY`, `GEMINI_MODEL`)
+- Chargement/usage : `code/backend/fonction/metier/service/ia_common.py`
+- Dépendance : `google-genai` (voir `doc/requirements.txt`)
+- Documentation générale : `README.md` (section Assistant IA / configuration)
+
 - **La clé peut-elle “ne plus marcher” ?** Une clé API n’expire pas comme un token de session court, mais peut devenir invalide (révoquée, quota/facturation, restrictions, projet désactivé). Voir le guide pour le diagnostic.
 - **Remarque** : la clé n’est pas gérée depuis l’écran de configuration applicative (stockée en variables d’environnement) ; un changement nécessite une mise à jour de `code/.env` et un redémarrage du backend.
 
