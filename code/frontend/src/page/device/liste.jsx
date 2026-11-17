@@ -32,6 +32,10 @@ function ListeDevice() {
     const [selectedDevice, setSelectedDevice] = useState(null);
     const [copiedSN, setCopiedSN] = useState(null);
     const [viewMode, setViewMode] = useState('grid');
+    const [allDevices, setAllDevices] = useState([]);
+    const [tablePage, setTablePage] = useState(1);
+    const [loadingAll, setLoadingAll] = useState(false);
+    const tablePageSize = 10;
 
     // Filtre filiale
     const [listeFiliales, setListeFiliales] = useState([]);
@@ -53,20 +57,35 @@ function ListeDevice() {
     const [modele, setModele] = useState("");
     const [stats, setStats] = useState({ total: 0, actifs: 0 });
 
+    const filtresDevice = {
+        id_statut: statut || (listeStatuts.find((s) => s.nom === filterStatus)?.id) || undefined,
+        statut: !statut && filterStatus ? filterStatus : undefined,
+        filiale: filiale || undefined,
+        type_appareil: filterType || undefined,
+        modele: modele || undefined,
+        recherche: debouncedSearch || filterSearch || undefined,
+        utilisateur_recent: utilisateurRecent || undefined,
+    };
+
     const { items: device, total, totalPages, loading, firstLoadDone } = usePaginatedData(
         getListeDevice,
         currentPage,
         pageSize,
-        {
-            id_statut: statut || (listeStatuts.find((s) => s.nom === filterStatus)?.id) || undefined,
-            statut: !statut && filterStatus ? filterStatus : undefined,
-            filiale: filiale || undefined,
-            type_appareil: filterType || undefined,
-            modele: modele || undefined,
-            recherche: debouncedSearch || filterSearch || undefined,
-            utilisateur_recent : utilisateurRecent || undefined
-        }
+        filtresDevice
     );
+
+    const chargerTousLesDevices = async () => {
+        setLoadingAll(true);
+        try {
+            const data = await getListeDevice({ page: 1, page_size: 10000, ...filtresDevice });
+            setAllDevices(data?.items || []);
+        } catch (e) {
+            console.log(e);
+            setAllDevices([]);
+        } finally {
+            setLoadingAll(false);
+        }
+    };
 
     const getStatut = async () => {
         try {
@@ -140,9 +159,17 @@ function ListeDevice() {
 
     useEffect(() => {
         setCurrentPage(1);
-    }, [filiale, statut, search, modele, filterSearch, filterStatus, filterType, utilisateurRecent]);
+        setTablePage(1);
+    }, [filiale, statut, search, modele, filterSearch, filterStatus, filterType, utilisateurRecent, debouncedSearch]);
 
-    const filtresActifs = filiale !== "" || statut !== "" || search !== "" || modele !== "" || utilisateurRecent!="";
+    useEffect(() => {
+        if (viewMode === 'table') {
+            chargerTousLesDevices();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [viewMode, filiale, statut, search, modele, filterSearch, filterStatus, filterType, utilisateurRecent, debouncedSearch, listeStatuts]);
+
+    const filtresActifs = filiale !== "" || statut !== "" || search !== "" || modele !== "" || utilisateurRecent !== "";
 
     const reinitialiserFiltres = () => {
         setUtilisateurRecent("");
@@ -151,7 +178,13 @@ function ListeDevice() {
         setSearch("");
         setModele("");
         setCurrentPage(1);
+        setTablePage(1);
     };
+
+    const tableTotal = allDevices.length;
+    const tableTotalPages = Math.max(1, Math.ceil(tableTotal / tablePageSize));
+    const tablePageCourante = Math.min(tablePage, tableTotalPages);
+    const tableDevices = allDevices.slice((tablePageCourante - 1) * tablePageSize, tablePageCourante * tablePageSize);
 
     const handleCopySN = (serialNumber) => {
         if (!serialNumber) return;
@@ -239,7 +272,19 @@ function ListeDevice() {
             </div>
 
             <div>
-                {loading && device.length === 0 ? (
+                {viewMode === 'table' ? (
+                    loadingAll && allDevices.length === 0 ? (
+                        <DeviceListSkeleton viewMode={viewMode} />
+                    ) : allDevices.length === 0 ? (
+                        <EmptyState
+                            icon={Laptop}
+                            title="Aucun appareil trouvé"
+                            subtitle={filterSearch || filterStatus || filterType || filtresActifs ? "Modifiez vos filtres" : "Aucune donnée disponible"}
+                        />
+                    ) : (
+                        <GenericTable columns={deviceColumns} data={tableDevices} />
+                    )
+                ) : loading && device.length === 0 ? (
                     <DeviceListSkeleton viewMode={viewMode} />
                 ) : device.length === 0 ? (
                     <EmptyState
@@ -247,8 +292,6 @@ function ListeDevice() {
                         title="Aucun appareil trouvé"
                         subtitle={filterSearch || filterStatus || filterType || filtresActifs ? "Modifiez vos filtres" : "Aucune donnée disponible"}
                     />
-                ) : viewMode === 'table' ? (
-                    <GenericTable columns={deviceColumns} data={device} />
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                         {device.map((d) => {
@@ -346,24 +389,37 @@ function ListeDevice() {
                 )}
             </div>
 
-            {loading && device.length > 0 && (
+            {viewMode !== 'table' && loading && device.length > 0 && (
                 <div className="mt-4">
                     <TableSkeleton rows={2} />
                 </div>
             )}
 
-            <Pagination
-                page={currentPage}
-                pageSize={pageSize}
-                totalPages={totalPages}
-                total={total}
-                loading={loading}
-                onPageChange={setCurrentPage}
-                onPageSizeChange={(size) => {
-                    setPageSize(size);
-                    setCurrentPage(1);
-                }}
-            />
+            {viewMode === 'table' ? (
+                allDevices.length > 0 && (
+                    <Pagination
+                        page={tablePageCourante}
+                        pageSize={tablePageSize}
+                        totalPages={tableTotalPages}
+                        total={tableTotal}
+                        loading={loadingAll}
+                        onPageChange={setTablePage}
+                    />
+                )
+            ) : (
+                <Pagination
+                    page={currentPage}
+                    pageSize={pageSize}
+                    totalPages={totalPages}
+                    total={total}
+                    loading={loading}
+                    onPageChange={setCurrentPage}
+                    onPageSizeChange={(size) => {
+                        setPageSize(size);
+                        setCurrentPage(1);
+                    }}
+                />
+            )}
 
             {selectedDevice && (
                 <div className="modal-overlay" onClick={() => setSelectedDevice(null)}>

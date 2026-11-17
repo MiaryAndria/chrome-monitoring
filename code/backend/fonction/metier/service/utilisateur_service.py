@@ -1,5 +1,5 @@
 from backend.fonction.conn.transaction import lecture
-from backend.fonction.metier.repository.utilisateur_google import (
+from backend.fonction.metier.repository import (
     find_utilisateurs_recent_paginated,
     get_devices_by_utilisateur_recent,
 )
@@ -56,3 +56,5 @@ def get_utilisateur_recent_devices(id_utilisateur, limit=MAX_DEVICES_PAR_UTILISA
                 "derniere_observation": str(r[4]) if r[4] else None,
             })
         return cache_set(cle, items)
+
+    

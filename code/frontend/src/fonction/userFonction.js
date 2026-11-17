@@ -85,3 +85,8 @@ export const restaurerUtilisateur = async (id) => {
     return null;
   }
 };
+
+export const updateUserPassword = async (id, old_pwd, mdp) => {
+  const response = await api_service.put(`/user/${id}/update/password`, { old_pwd, mdp });
+  return response.data;
+};

@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
     Activity, Building2, Laptop, Printer, Bell, BarChart3,
-    Settings, ChevronDown, RotateCcw, LogOut, Gauge, Tags, Copy, Check, Users, User, Download, X, FileSpreadsheet
+    Settings, ChevronDown, RotateCcw, LogOut, Gauge, Tags, Copy, Check, Users, User, Download, X, FileSpreadsheet, KeyRound
 } from 'lucide-react';
 import { resetData } from '../fonction/importResetFonction';
 import { Logout, GetMe } from "../fonction/userFonction";
@@ -577,9 +577,31 @@ export default function Navbar() {
                                     <span className="text-[10px] text-zinc-500">{new Date().toLocaleDateString('fr-FR')}</span>
                                 </div>
 
+                                <div className="config-dropdown-divider" />
+                                <button
+                                    onClick={() => { setOpenMenu(null); toggleModal(); }}
+                                    disabled={loading}
+                                    className="config-dropdown-item"
+                                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: '0.5rem', width: '100%', textAlign: 'left' }}
+                                >
+                                    <FileSpreadsheet className="w-4 h-4" />
+                                    <span>Exporter des données</span>
+                                </button>
+
+                                <div className="config-dropdown-divider" />
+                                <button
+                                    onClick={() => { setOpenMenu(null); navigate('/profil/mot-de-passe'); }}
+                                    disabled={loading}
+                                    className="config-dropdown-item"
+                                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: '0.5rem', width: '100%', textAlign: 'left' }}
+                                >
+                                    <KeyRound className="w-4 h-4" />
+                                    <span>Changer mot de passe</span>
+                                </button>
+
                                 {isAdmin && (
                                     <>
-
+                                        <div className="config-dropdown-divider" />
                                         <NavLink
                                             to="/liste/utilisateur"
                                             onClick={() => setOpenMenu(null)}
@@ -598,17 +620,6 @@ export default function Navbar() {
                                         >
                                             <RotateCcw className="w-4 h-4" />
                                             Réinitialiser données
-                                        </button>
-
-                                        <div className="config-dropdown-divider" />
-                                        <button
-                                            onClick={() => { setOpenMenu(null); toggleModal(); }}
-                                            disabled={loading}
-                                            className="config-dropdown-item"
-                                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: '0.5rem', width: '100%', textAlign: 'left' }}
-                                        >
-                                            <FileSpreadsheet className="w-4 h-4" />
-                                            <span>Exporter des données</span>
                                         </button>
                                     </>
                                 )}

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Bot } from "lucide-react";
+import { MessageCircle } from "lucide-react";
 import IAChatModal from "../page/component/IAChatModal";
 
 export default function AIAssistantButton() {
@@ -10,11 +10,10 @@ export default function AIAssistantButton() {
             <button
                 type="button"
                 onClick={() => setOpen(true)}
-                className="fixed bottom-6 right-6 z-40 flex items-center gap-2 rounded-full bg-gradient-to-r from-cyan-500 to-blue-600 text-white px-4 py-3 text-sm font-semibold shadow-[0_0_25px_rgba(6,182,212,0.45)] hover:scale-105 active:scale-95 transition-transform cursor-pointer"
-                aria-label="Ouvrir l'assistant IA"
+                className="fixed bottom-6 right-6 z-40 flex items-center justify-center rounded-full bg-gradient-to-r from-cyan-500 to-blue-600 text-white p-4 shadow-[0_0_25px_rgba(6,182,212,0.45)] hover:scale-105 active:scale-95 transition-transform cursor-pointer"
+                aria-label="Ouvrir la messagerie"
             >
-                <Bot className="w-5 h-5" />
-                <span className="hidden sm:inline">Assistant IA</span>
+                <MessageCircle className="w-6 h-6" />
             </button>
 
             {open && <IAChatModal onClose={() => setOpen(false)} />}

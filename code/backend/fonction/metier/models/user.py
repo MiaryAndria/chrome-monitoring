@@ -23,6 +23,10 @@ class UserRecentResponse(BaseModel):
     id :int 
     email:str
 
+class UserPasswordUpdate(BaseModel):
+    mdp : str =""
+    old_pwd : str =""
+    
 
 class UserResponse(BaseModel):
     id: int

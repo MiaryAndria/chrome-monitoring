@@ -30,19 +30,38 @@ function ListeImprimante() {
     const [vendors, setVendors] = useState([]);
     const [vendor, setVendor] = useState("");
     const [erreurFiltreDate, setErreurFiltreDate] = useState('');
+    const [allImprimantes, setAllImprimantes] = useState([]);
+    const [tablePage, setTablePage] = useState(1);
+    const [loadingAll, setLoadingAll] = useState(false);
+    const tablePageSize = 10;
     const navigate = useNavigate();
+
+    const filtresImprimante = {
+        recherche: debouncedSearch || undefined,
+        vendor: vendor || undefined,
+        datetime_from: datetimeFrom || undefined,
+        datetime_to: datetimeTo || undefined,
+    };
 
     const { items: imprimantes, total, totalPages, loading, error } = usePaginatedData(
         getImprimantes,
         currentPage,
         pageSize,
-        {
-            recherche: debouncedSearch || undefined,
-            vendor: vendor || undefined,
-            datetime_from: datetimeFrom || undefined,
-            datetime_to: datetimeTo || undefined,
-        }
+        filtresImprimante
     );
+
+    const chargerToutesLesImprimantes = async () => {
+        setLoadingAll(true);
+        try {
+            const data = await getImprimantes({ page: 1, page_size: 10000, ...filtresImprimante });
+            setAllImprimantes(data?.items || []);
+        } catch (e) {
+            console.log(e);
+            setAllImprimantes([]);
+        } finally {
+            setLoadingAll(false);
+        }
+    };
 
     const imprimanteColumns = [
         { header: "Fabricant", render: (imp) => <span className="font-bold text-zinc-100">{imp.vendor || '-'}</span> },
@@ -92,7 +111,20 @@ function ListeImprimante() {
 
     useEffect(() => {
         setCurrentPage(1);
-    }, [search, vendor, datetimeFrom, datetimeTo]);
+        setTablePage(1);
+    }, [search, vendor, datetimeFrom, datetimeTo, debouncedSearch]);
+
+    useEffect(() => {
+        if (viewMode === 'table') {
+            chargerToutesLesImprimantes();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [viewMode, search, vendor, datetimeFrom, datetimeTo, debouncedSearch]);
+
+    const tableTotal = allImprimantes.length;
+    const tableTotalPages = Math.max(1, Math.ceil(tableTotal / tablePageSize));
+    const tablePageCourante = Math.min(tablePage, tableTotalPages);
+    const tableImprimantes = allImprimantes.slice((tablePageCourante - 1) * tablePageSize, tablePageCourante * tablePageSize);
 
     return (
         <PageLayout
@@ -143,7 +175,53 @@ function ListeImprimante() {
                     </div>
 
                     {/* Contenu */}
-                    {loading && imprimantes.length === 0 ? (
+                    {viewMode === 'table' ? (
+                        loadingAll && allImprimantes.length === 0 ? (
+                            <PrinterListSkeleton viewMode={viewMode} />
+                        ) : allImprimantes.length === 0 ? (
+                            <EmptyState
+                                icon={Printer}
+                                title="Aucune imprimante trouvée"
+                                subtitle={search || vendor ? "Modifiez vos filtres" : "Aucune donnée disponible"}
+                            />
+                        ) : (
+                            <>
+                                <div className="section-header flex justify-between items-center">
+                                    <div>
+                                        <h2 className="section-title">Modèles détectés</h2>
+                                        <span className="section-count">
+                                            {tableTotal} modèle{tableTotal > 1 ? "s" : ""} — Page {tablePageCourante}/{tableTotalPages}
+                                        </span>
+                                    </div>
+                                    <div className="flex bg-zinc-900 rounded-lg p-1 border border-white/10">
+                                        <button
+                                            onClick={() => setViewMode('grid')}
+                                            className={`p-1.5 rounded-md transition-colors ${viewMode === 'grid' ? 'bg-cyan-500/20 text-cyan-400' : 'text-zinc-500 hover:text-zinc-300'}`}
+                                            title="Vue en grille"
+                                        >
+                                            <LayoutGrid className="w-4 h-4" />
+                                        </button>
+                                        <button
+                                            onClick={() => setViewMode('table')}
+                                            className={`p-1.5 rounded-md transition-colors ${viewMode === 'table' ? 'bg-cyan-500/20 text-cyan-400' : 'text-zinc-500 hover:text-zinc-300'}`}
+                                            title="Vue en tableau"
+                                        >
+                                            <List className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                </div>
+                                <GenericTable columns={imprimanteColumns} data={tableImprimantes} onRowClick={(imp) => navigate(`/imprimante/${imp.id}`)} />
+                                <Pagination
+                                    page={tablePageCourante}
+                                    pageSize={tablePageSize}
+                                    totalPages={tableTotalPages}
+                                    total={tableTotal}
+                                    loading={loadingAll}
+                                    onPageChange={setTablePage}
+                                />
+                            </>
+                        )
+                    ) : loading && imprimantes.length === 0 ? (
                         <PrinterListSkeleton viewMode={viewMode} />
                     ) : error ? (
                         <EmptyState icon={Printer} title="Impossible de charger les imprimantes." />
@@ -163,14 +241,14 @@ function ListeImprimante() {
                                     </span>
                                 </div>
                                 <div className="flex bg-zinc-900 rounded-lg p-1 border border-white/10">
-                                    <button 
+                                    <button
                                         onClick={() => setViewMode('grid')}
                                         className={`p-1.5 rounded-md transition-colors ${viewMode === 'grid' ? 'bg-cyan-500/20 text-cyan-400' : 'text-zinc-500 hover:text-zinc-300'}`}
                                         title="Vue en grille"
                                     >
                                         <LayoutGrid className="w-4 h-4" />
                                     </button>
-                                    <button 
+                                    <button
                                         onClick={() => setViewMode('table')}
                                         className={`p-1.5 rounded-md transition-colors ${viewMode === 'table' ? 'bg-cyan-500/20 text-cyan-400' : 'text-zinc-500 hover:text-zinc-300'}`}
                                         title="Vue en tableau"
@@ -180,22 +258,18 @@ function ListeImprimante() {
                                 </div>
                             </div>
 
-                            {viewMode === 'table' ? (
-                                <GenericTable columns={imprimanteColumns} data={imprimantes}onRowClick={(imp) => navigate(`/imprimante/${imp.id}`)} />
-                            ) : (
-                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-                                    {imprimantes.map((imp, idx) => (
-                                        <ImprimanteCard key={imp.id ?? idx}imp={imp}onClick={() => navigate(`/imprimante/${imp.id}`)}/>
-                                    ))}
-                                </div>
-                            )}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+                                {imprimantes.map((imp, idx) => (
+                                    <ImprimanteCard key={imp.id ?? idx} imp={imp} onClick={() => navigate(`/imprimante/${imp.id}`)} />
+                                ))}
+                            </div>
 
-                            {/* Pagination */}
                             <Pagination
                                 page={currentPage}
                                 pageSize={pageSize}
                                 totalPages={totalPages}
                                 total={total}
+                                loading={loading}
                                 onPageChange={setCurrentPage}
                                 onPageSizeChange={(size) => {
                                     setPageSize(size);

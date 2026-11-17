@@ -47,6 +47,18 @@ function ListeEvent() {
     const [pageSize, setPageSize] = useState(10);
     const [viewMode, setViewMode] = useState('grid');
     const [openEventId, setOpenEventId] = useState(null);
+    const [allEvenements, setAllEvenements] = useState([]);
+    const [tablePage, setTablePage] = useState(1);
+    const [loadingAll, setLoadingAll] = useState(false);
+    const tablePageSize = 10;
+
+    const filtresEvent = {
+        recherche: debouncedSearch || undefined,
+        type_evenement: typeEvenement !== "TOUS" ? typeEvenement : undefined,
+        filiale: filiale || undefined,
+        datetime_from: datetimeDebutApplique || undefined,
+        datetime_to: datetimeFinApplique || undefined,
+    };
 
     const {
         items: evenements,
@@ -58,14 +70,21 @@ function ListeEvent() {
         getEvenements,
         currentPage,
         pageSize,
-        {
-            recherche: debouncedSearch || undefined,
-            type_evenement: typeEvenement !== "TOUS" ? typeEvenement : undefined,
-            filiale: filiale || undefined,
-            datetime_from: datetimeDebutApplique || undefined,
-            datetime_to: datetimeFinApplique || undefined,
-        }
+        filtresEvent
     );
+
+    const chargerTousLesEvenements = async () => {
+        setLoadingAll(true);
+        try {
+            const data = await getEvenements({ page: 1, page_size: 10000, ...filtresEvent });
+            setAllEvenements(data?.items || []);
+        } catch (e) {
+            console.log(e);
+            setAllEvenements([]);
+        } finally {
+            setLoadingAll(false);
+        }
+    };
 
     const eventColumns = [
         { header: "Date", render: (ev) => <span className="text-zinc-400 text-xs font-mono">{formatDateTime(ev.date_evenement)}</span> },
@@ -157,8 +176,21 @@ function ListeEvent() {
 
     useEffect(() => {
         setCurrentPage(1);
+        setTablePage(1);
         setOpenEventId(null);
-    }, [search, typeEvenement, filiale, datetimeDebutApplique, datetimeFinApplique]);
+    }, [search, typeEvenement, filiale, datetimeDebutApplique, datetimeFinApplique, debouncedSearch]);
+
+    useEffect(() => {
+        if (viewMode === 'table') {
+            chargerTousLesEvenements();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [viewMode, search, typeEvenement, filiale, datetimeDebutApplique, datetimeFinApplique, debouncedSearch]);
+
+    const tableTotal = allEvenements.length;
+    const tableTotalPages = Math.max(1, Math.ceil(tableTotal / tablePageSize));
+    const tablePageCourante = Math.min(tablePage, tableTotalPages);
+    const tableEvenements = allEvenements.slice((tablePageCourante - 1) * tablePageSize, tablePageCourante * tablePageSize);
 
     return (
         <PageLayout
@@ -282,7 +314,42 @@ function ListeEvent() {
             </div>
 
             {/* Contenu */}
-            {loading && evenements.length === 0 ? (
+            {viewMode === 'table' ? (
+                loadingAll && allEvenements.length === 0 ? (
+                    <EventListSkeleton viewMode={viewMode} />
+                ) : allEvenements.length === 0 ? (
+                    <EmptyState
+                        icon={Bell}
+                        title="Aucun événement trouvé"
+                        subtitle={filtresActifs ? "Modifiez vos filtres" : "Aucune donnée enregistrée"}
+                    />
+                ) : (
+                    <>
+                        <div className="section-header flex justify-between items-center">
+                            <div>
+                                <h2 className="section-title">Incidents détectés</h2>
+                                <span className="section-count">
+                                    {tableTotal} événement{tableTotal > 1 ? "s" : ""} — Page {tablePageCourante}/{tableTotalPages}
+                                </span>
+                            </div>
+                        </div>
+                        <GenericTable columns={eventColumns} data={tableEvenements} />
+                        {openEventId !== null && (
+                            <div className="mt-4">
+                                <EvenementDureeVie eventId={openEventId} />
+                            </div>
+                        )}
+                        <Pagination
+                            page={tablePageCourante}
+                            pageSize={tablePageSize}
+                            totalPages={tableTotalPages}
+                            total={tableTotal}
+                            loading={loadingAll}
+                            onPageChange={setTablePage}
+                        />
+                    </>
+                )
+            ) : loading && evenements.length === 0 ? (
                 <EventListSkeleton viewMode={viewMode} />
             ) : error ? (
                 <EmptyState icon={AlertTriangle} title="Impossible de charger les événements." />
@@ -296,38 +363,24 @@ function ListeEvent() {
                 <>
                     <div className="section-header flex justify-between items-center">
                         <div>
-                            <h2 className="section-title">
-                                Incidents détectés
-                            </h2>
+                            <h2 className="section-title">Incidents détectés</h2>
                             <span className="section-count">
                                 {total} événement{total > 1 ? "s" : ""} — Page {currentPage}/{totalPages}
                             </span>
                         </div>
                     </div>
 
-                    {viewMode === 'table' ? (
-                        <>
-                            <GenericTable columns={eventColumns} data={evenements} />
-                            {openEventId !== null && (
-                                <div className="mt-4">
-                                    <EvenementDureeVie eventId={openEventId} />
-                                </div>
-                            )}
-                        </>
-                    ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                            {evenements.map((ev, idx) => (
-                                <EventCard
-                                    key={ev.id ?? idx}
-                                    ev={ev}
-                                    isOpen={openEventId === ev.id}
-                                    onToggle={() => setOpenEventId(prev => prev === ev.id ? null : ev.id)}
-                                />
-                            ))}
-                        </div>
-                    )}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                        {evenements.map((ev, idx) => (
+                            <EventCard
+                                key={ev.id ?? idx}
+                                ev={ev}
+                                isOpen={openEventId === ev.id}
+                                onToggle={() => setOpenEventId(prev => prev === ev.id ? null : ev.id)}
+                            />
+                        ))}
+                    </div>
 
-                    {/* Modal d'explication */}
                     {selectedExplanation && createPortal(
                         <div className="modal-overlay"
                             style={{ animation: "fadeIn 200ms ease-out" }}
@@ -382,7 +435,6 @@ function ListeEvent() {
                         </div>
                     )}
 
-                    {/* Pagination */}
                     <Pagination
                         page={currentPage}
                         pageSize={pageSize}

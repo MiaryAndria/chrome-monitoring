@@ -33,16 +33,35 @@ function ListeUtilisateursEntreprise() {
     const [selectedUser, setSelectedUser] = useState(null);
     const [devicesByUser, setDevicesByUser] = useState({});
     const [loadingDevices, setLoadingDevices] = useState(false);
+    const [allUtilisateurs, setAllUtilisateurs] = useState([]);
+    const [tablePage, setTablePage] = useState(1);
+    const [loadingAll, setLoadingAll] = useState(false);
+    const tablePageSize = 10;
+
+    const filtresUtilisateurs = {
+        filiale: filiale || undefined,
+        recherche: debouncedSearch || undefined,
+    };
 
     const { items: utilisateurs, total, totalPages, loading, error, firstLoadDone } = usePaginatedData(
         getUtilisateursRecentPage,
         currentPage,
         pageSize,
-        {
-            filiale: filiale || undefined,
-            recherche: debouncedSearch || undefined,
-        }
+        filtresUtilisateurs
     );
+
+    const chargerTousLesUtilisateurs = async () => {
+        setLoadingAll(true);
+        try {
+            const data = await getUtilisateursRecentPage({ page: 1, page_size: 10000, ...filtresUtilisateurs });
+            setAllUtilisateurs(data?.items || []);
+        } catch (e) {
+            console.log(e);
+            setAllUtilisateurs([]);
+        } finally {
+            setLoadingAll(false);
+        }
+    };
 
     const chargerFiliales = async () => {
         const data = await getListeFiliale();
@@ -56,13 +75,33 @@ function ListeUtilisateursEntreprise() {
         chargerFiliales();
     }, [firstLoadDone]);
 
+    useEffect(() => {
+        setCurrentPage(1);
+        setTablePage(1);
+    }, [filiale, search, debouncedSearch]);
+
+    useEffect(() => {
+        if (viewMode === "table") {
+            chargerTousLesUtilisateurs();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [viewMode, filiale, search, debouncedSearch]);
+
     const filtresActifs = filiale !== "" || search !== "";
 
     const reinitialiserFiltres = () => {
         setFiliale("");
         setSearch("");
         setCurrentPage(1);
+        setTablePage(1);
     };
+
+    const tableTotal = allUtilisateurs.length;
+    const tableTotalPages = Math.max(1, Math.ceil(tableTotal / tablePageSize));
+    const tablePageCourante = Math.min(tablePage, tableTotalPages);
+    const tableUtilisateurs = allUtilisateurs.slice((tablePageCourante - 1) * tablePageSize, tablePageCourante * tablePageSize);
+    const utilisateursAffiches = viewMode === "table" ? tableUtilisateurs : utilisateurs;
+    const totalAffiche = viewMode === "table" ? tableTotal : total;
 
     const ouvrirDevices = async (user) => {
         setSelectedUser(user);
@@ -152,16 +191,42 @@ function ListeUtilisateursEntreprise() {
                 </div>
             </div>
 
-            {loading && utilisateurs.length === 0 ? (
-                viewMode === "table" ? (
+            {viewMode === "table" ? (
+                loadingAll && allUtilisateurs.length === 0 ? (
                     <TableSkeleton />
+                ) : allUtilisateurs.length === 0 ? (
+                    <EmptyState
+                        icon={Users}
+                        title="Aucun utilisateur trouvé"
+                        subtitle={filtresActifs ? "Modifiez vos filtres" : "Aucune donnée enregistrée"}
+                    />
                 ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                        {Array.from({ length: 8 }).map((_, i) => (
-                            <Skeleton key={i} className="h-44" />
-                        ))}
-                    </div>
+                    <>
+                        <div className="section-header flex justify-between items-center">
+                            <div>
+                                <h2 className="section-title">Utilisateurs récents</h2>
+                                <span className="section-count">
+                                    {tableTotal} utilisateur{tableTotal > 1 ? "s" : ""} — Page {tablePageCourante}/{tableTotalPages}
+                                </span>
+                            </div>
+                        </div>
+                        <GenericTable columns={columns} data={tableUtilisateurs} />
+                        <Pagination
+                            page={tablePageCourante}
+                            pageSize={tablePageSize}
+                            totalPages={tableTotalPages}
+                            total={tableTotal}
+                            loading={loadingAll}
+                            onPageChange={setTablePage}
+                        />
+                    </>
                 )
+            ) : loading && utilisateurs.length === 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    {Array.from({ length: 8 }).map((_, i) => (
+                        <Skeleton key={i} className="h-44" />
+                    ))}
+                </div>
             ) : error ? (
                 <EmptyState icon={Users} title="Impossible de charger les utilisateurs." />
             ) : total === 0 ? (
@@ -180,49 +245,43 @@ function ListeUtilisateursEntreprise() {
                             </span>
                         </div>
                     </div>
-
-                    {viewMode === "table" ? (
-                        <GenericTable columns={columns} data={utilisateurs} />
-                    ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                            {utilisateurs.map((u) => (
-                                <div key={u.id} className="device-card group bg-cyan-500/5 border-cyan-500/30">
-                                    <div className="relative z-10">
-                                        <div className="flex items-center gap-3 mb-3">
-                                            <div className="p-2.5 rounded-xl bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
-                                                <Users className="w-5 h-5" />
-                                            </div>
-                                            <div className="min-w-0">
-                                                <p className="text-sm font-bold text-zinc-100 truncate" title={u.email}>{u.email}</p>
-                                                <p className="text-[10px] text-zinc-500">{u.nb_devices} appareil(s)</p>
-                                            </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                        {utilisateurs.map((u) => (
+                            <div key={u.id} className="device-card group bg-cyan-500/5 border-cyan-500/30">
+                                <div className="relative z-10">
+                                    <div className="flex items-center gap-3 mb-3">
+                                        <div className="p-2.5 rounded-xl bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+                                            <Users className="w-5 h-5" />
                                         </div>
-
-                                        <div className="flex flex-wrap gap-1 mb-3 min-h-[22px]">
-                                            {(u.filiales || []).slice(0, 3).map((f) => (
-                                                <span key={f} className="px-2 py-0.5 rounded text-[10px] bg-purple-500/10 text-purple-300 border border-purple-500/20">
-                                                    {filialeCourte(f)}
-                                                </span>
-                                            ))}
+                                        <div className="min-w-0">
+                                            <p className="text-sm font-bold text-zinc-100 truncate" title={u.email}>{u.email}</p>
+                                            <p className="text-[10px] text-zinc-500">{u.nb_devices} appareil(s)</p>
                                         </div>
-
-                                        <p className="text-[10px] text-zinc-500 mb-4">
-                                            Dernière activité : {formatDateTime(u.derniere_observation)}
-                                        </p>
-
-                                        <button
-                                            onClick={() => ouvrirDevices(u)}
-                                            className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-cyan-300 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 transition-all"
-                                        >
-                                            Voir ses appareils
-                                            <ChevronRight className="w-4 h-4" />
-                                        </button>
                                     </div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
 
+                                    <div className="flex flex-wrap gap-1 mb-3 min-h-[22px]">
+                                        {(u.filiales || []).slice(0, 3).map((f) => (
+                                            <span key={f} className="px-2 py-0.5 rounded text-[10px] bg-purple-500/10 text-purple-300 border border-purple-500/20">
+                                                {filialeCourte(f)}
+                                            </span>
+                                        ))}
+                                    </div>
+
+                                    <p className="text-[10px] text-zinc-500 mb-4">
+                                        Dernière activité : {formatDateTime(u.derniere_observation)}
+                                    </p>
+
+                                    <button
+                                        onClick={() => ouvrirDevices(u)}
+                                        className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-cyan-300 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 transition-all"
+                                    >
+                                        Voir ses appareils
+                                        <ChevronRight className="w-4 h-4" />
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
                     <Pagination
                         page={currentPage}
                         pageSize={pageSize}

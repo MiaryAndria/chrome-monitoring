@@ -78,6 +78,32 @@ def get_nom_role_by_user_id(cur, id_user):
     return {"nom": row[0], "id_role": row[1]}
 
 
+def get_user_auth_by_id(cur, id_user):
+    cur.execute(
+        """
+        SELECT id, nom, email, mdp, id_role
+        FROM t_user
+        WHERE id = %s
+        """,
+        (id_user,),
+    )
+    return cur.fetchone()
+
+
+def update_user_mdp(cur, id_user, mdp_hache):
+    cur.execute(
+        """
+        UPDATE t_user
+        SET mdp = %s
+        WHERE id = %s
+        RETURNING id
+        """,
+        (mdp_hache, id_user),
+    )
+    row = cur.fetchone()
+    return row[0] if row else None
+
+
 def get_user_archived(cur, id_user, id_statut_supprime):
     cur.execute(
         """

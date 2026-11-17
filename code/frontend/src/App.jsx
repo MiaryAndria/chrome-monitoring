@@ -32,6 +32,7 @@ import ListeDeviceAlerteResolue from './page/alerte/device/resolue'
 import ListeUtilisateur from './page/utilisateur/liste'
 import ArchivedUtilisateur from './page/utilisateur/archived'
 import ListeUtilisateursEntreprise from './page/entreprise/utilisateurs'
+import UpdatePassword from './page/utilisateur/update'
 function App() {
   return (
     <main className="main-content">
@@ -60,6 +61,7 @@ function App() {
             <Route path="/comparaison/detail/:id" element={<ComparaisonDetail />} />
             <Route path="/alerte/device" element={<ListeDeviceAlerte />} />
             <Route path="/alerte/device/resolue" element={<ListeDeviceAlerteResolue />} />
+            <Route path="/profil/mot-de-passe" element={<UpdatePassword />} />
 
             {/* Réservé aux administrateurs : configuration & seuil */}
             <Route element={<AdminRoute />}>

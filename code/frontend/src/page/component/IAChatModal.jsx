@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Bot, Send, X, Loader2, Sparkles, Paperclip } from "lucide-react";
+import { MessageCircle, Send, X, Loader2, Sparkles, Paperclip } from "lucide-react";
 import { IAChatStreamEvenement } from "../../fonction/iaEvenementFonction";
 import { IAChatGlobalStream } from "../../fonction/iaGlobalFonction";
 import MarkdownLite from "./MarkdownLite";
@@ -277,8 +277,8 @@ function IAChatModal({ ev = null, onClose }) {
                 <div className="p-4 border-b border-white/5 bg-white/5 flex items-start justify-between gap-4">
                     <div className="min-w-0">
                         <h3 className="text-sm font-bold text-zinc-100 flex items-center gap-2">
-                            <Bot className="w-4 h-4 text-cyan-400" />
-                            {general ? "Assistant IA" : "Assistant IA — Diagnostic"}
+                            <MessageCircle className="w-4 h-4 text-cyan-400" />
+                            {general ? "Messagerie" : "Messagerie — Diagnostic"}
                         </h3>
                         <p className="text-[11px] text-zinc-500 mt-1 truncate">
                             {general

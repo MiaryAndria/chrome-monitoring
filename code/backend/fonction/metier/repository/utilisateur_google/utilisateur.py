@@ -1,5 +1,4 @@
 
-
 def get_utilisateur_by_id(cur, id):
 
     cur.execute("""
