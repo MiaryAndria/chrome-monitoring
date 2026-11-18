@@ -13,6 +13,16 @@ function StatCardSkeleton() {
 function DashboardSkeleton() {
     return (
         <div className="space-y-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {Array.from({ length: 2 }).map((_, index) => (
+                    <div key={index} className="device-card">
+                        <Skeleton className="w-10 h-10 mb-3" />
+                        <Skeleton className="h-7 w-16 mb-2" />
+                        <Skeleton className="h-3 w-24" />
+                    </div>
+                ))}
+            </div>
+
             <div>
                 <Skeleton className="h-5 w-48 mb-4" />
                 <div className="device-card">
@@ -23,19 +33,6 @@ function DashboardSkeleton() {
                             <StatCardSkeleton key={index} />
                         ))}
                     </div>
-                </div>
-            </div>
-
-            <div>
-                <Skeleton className="h-5 w-40 mb-4" />
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {Array.from({ length: 4 }).map((_, index) => (
-                        <div key={index} className="device-card">
-                            <Skeleton className="w-10 h-10 mb-3" />
-                            <Skeleton className="h-7 w-16 mb-2" />
-                            <Skeleton className="h-3 w-24" />
-                        </div>
-                    ))}
                 </div>
             </div>
 

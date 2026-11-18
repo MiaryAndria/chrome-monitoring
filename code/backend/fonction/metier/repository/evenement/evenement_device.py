@@ -219,7 +219,14 @@ def get_evenement_detail_by_id(cur, event_id):
             d.device_id,
             d.serial_number,
             d.modele,
-            f.org_unit_path AS filiale
+            f.org_unit_path AS filiale,
+            (
+                SELECT s.id_statut
+                FROM t_evenement_statut s
+                WHERE s.id_evenement = ed.id
+                ORDER BY s.date DESC NULLS LAST, s.id DESC
+                LIMIT 1
+            ) AS id_statut
         FROM t_evenement_device ed
         LEFT JOIN t_type_evenement te ON te.id = ed.id_type_evenement
         LEFT JOIN t_device d          ON d.id  = ed.id_device
@@ -236,6 +243,6 @@ def get_evenement_detail_by_id(cur, event_id):
 
     colonnes = [
         "id", "date_evenement", "details", "type_evenement",
-        "id_device", "device_id", "serial_number", "modele", "filiale",
+        "id_device", "device_id", "serial_number", "modele", "filiale", "id_statut",
     ]
     return dict(zip(colonnes, row))

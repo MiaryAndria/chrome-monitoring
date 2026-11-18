@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Server, Laptop, Bell, BellRing, Printer, Zap, Cpu, Monitor, CheckCircle2, X, Building2, Users, UserCheck, Activity } from 'lucide-react';
+import { Server, Laptop, Bell, BellRing, Printer, Zap, Cpu, Monitor, CheckCircle2, X, Building2, UserCheck } from 'lucide-react';
 import { getDashboardSummary, getStatusStyle } from "../fonction/deviceFonction";
 import DashboardSkeleton from "../components/skeletons/DashboardSkeleton";
 import '../css/liste.css';
@@ -62,8 +62,6 @@ function Dashboard() {
     // Indicateurs parc & utilisateurs
     const nbFiliales = summary?.nb_filiales || 0;
     const nbUtilisateursRecents = summary?.nb_utilisateurs_recents || 0;
-    const nbUtilisateurs = summary?.nb_utilisateurs || 0;
-    const nbIncidents = summary?.nb_incidents || 0;
 
 
     return (
@@ -102,6 +100,50 @@ function Dashboard() {
                         <DashboardSkeleton />
                     ) : (
                         <div className="space-y-8">
+
+                            {/* Section Parc & utilisateurs */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div
+                                    className="device-card group bg-cyan-500/5 border-cyan-500/30 cursor-pointer"
+                                    onClick={() => navigate("/filiale")}
+                                    style={{
+                                        '--card-glow': 'radial-gradient(circle at top right, rgba(6, 182, 212, 0.08), transparent 70%)',
+                                        '--card-border-hover': 'rgba(6, 182, 212, 0.5)',
+                                        '--card-shadow': 'rgba(6, 182, 212, 0.2)'
+                                    }}
+                                >
+                                    <div className="relative z-10">
+                                        <div className="flex justify-between items-start mb-3">
+                                            <div className="p-2.5 bg-white/5 rounded-xl text-cyan-400 border border-cyan-500/20">
+                                                <Building2 className="w-5 h-5" />
+                                            </div>
+                                        </div>
+                                        <div className="text-3xl font-bold text-zinc-100 mb-1">{nbFiliales}</div>
+                                        <div className="text-sm font-medium text-zinc-400">Filiales</div>
+                                    </div>
+                                </div>
+
+                                <div
+                                    className="device-card group bg-violet-500/5 border-violet-500/30 cursor-pointer"
+                                    onClick={() => navigate("/entreprise/utilisateurs")}
+                                    style={{
+                                        '--card-glow': 'radial-gradient(circle at top right, rgba(139, 92, 246, 0.08), transparent 70%)',
+                                        '--card-border-hover': 'rgba(139, 92, 246, 0.5)',
+                                        '--card-shadow': 'rgba(139, 92, 246, 0.2)'
+                                    }}
+                                >
+                                    <div className="relative z-10">
+                                        <div className="flex justify-between items-start mb-3">
+                                            <div className="p-2.5 bg-white/5 rounded-xl text-violet-400 border border-violet-500/20">
+                                                <UserCheck className="w-5 h-5" />
+                                            </div>
+                                        </div>
+                                        <div className="text-3xl font-bold text-zinc-100 mb-1">{nbUtilisateursRecents}</div>
+                                        <div className="text-sm font-medium text-zinc-400">Utilisateurs récents</div>
+                                        <p className="text-[11px] text-zinc-500 mt-1">Distincts sur les appareils</p>
+                                    </div>
+                                </div>
+                            </div>
 
                             {/* Section Appareils */}
                             <div>
@@ -175,91 +217,6 @@ function Dashboard() {
                                                 </div>
                                             </>
                                         )}
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Section Parc & utilisateurs */}
-                            <div>
-                                <div className="section-header">
-                                    <h2 className="section-title">Parc & utilisateurs</h2>
-                                </div>
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                    <div
-                                        className="device-card group bg-cyan-500/5 border-cyan-500/30 cursor-pointer"
-                                        onClick={() => navigate("/filiale")}
-                                        style={{
-                                            '--card-glow': 'radial-gradient(circle at top right, rgba(6, 182, 212, 0.08), transparent 70%)',
-                                            '--card-border-hover': 'rgba(6, 182, 212, 0.5)',
-                                            '--card-shadow': 'rgba(6, 182, 212, 0.2)'
-                                        }}
-                                    >
-                                        <div className="relative z-10">
-                                            <div className="flex justify-between items-start mb-3">
-                                                <div className="p-2.5 bg-white/5 rounded-xl text-cyan-400 border border-cyan-500/20">
-                                                    <Building2 className="w-5 h-5" />
-                                                </div>
-                                            </div>
-                                            <div className="text-3xl font-bold text-zinc-100 mb-1">{nbFiliales}</div>
-                                            <div className="text-sm font-medium text-zinc-400">Filiales</div>
-                                        </div>
-                                    </div>
-
-                                    <div className="device-card group bg-violet-500/5 border-violet-500/30"
-                                        style={{
-                                            '--card-glow': 'radial-gradient(circle at top right, rgba(139, 92, 246, 0.08), transparent 70%)',
-                                            '--card-border-hover': 'rgba(139, 92, 246, 0.5)',
-                                            '--card-shadow': 'rgba(139, 92, 246, 0.2)'
-                                        }}
-                                    >
-                                        <div className="relative z-10">
-                                            <div className="flex justify-between items-start mb-3">
-                                                <div className="p-2.5 bg-white/5 rounded-xl text-violet-400 border border-violet-500/20">
-                                                    <UserCheck className="w-5 h-5" />
-                                                </div>
-                                            </div>
-                                            <div className="text-3xl font-bold text-zinc-100 mb-1">{nbUtilisateursRecents}</div>
-                                            <div className="text-sm font-medium text-zinc-400">Utilisateurs récents</div>
-                                            <p className="text-[11px] text-zinc-500 mt-1">Distincts sur les appareils</p>
-                                        </div>
-                                    </div>
-
-                                    <div className="device-card group bg-emerald-500/5 border-emerald-500/30"
-                                        style={{
-                                            '--card-glow': 'radial-gradient(circle at top right, rgba(16, 185, 129, 0.08), transparent 70%)',
-                                            '--card-border-hover': 'rgba(16, 185, 129, 0.5)',
-                                            '--card-shadow': 'rgba(16, 185, 129, 0.2)'
-                                        }}
-                                    >
-                                        <div className="relative z-10">
-                                            <div className="flex justify-between items-start mb-3">
-                                                <div className="p-2.5 bg-white/5 rounded-xl text-emerald-400 border border-emerald-500/20">
-                                                    <Users className="w-5 h-5" />
-                                                </div>
-                                            </div>
-                                            <div className="text-3xl font-bold text-zinc-100 mb-1">{nbUtilisateurs}</div>
-                                            <div className="text-sm font-medium text-zinc-400">Utilisateurs</div>
-                                            <p className="text-[11px] text-zinc-500 mt-1">Total enregistrés</p>
-                                        </div>
-                                    </div>
-
-                                    <div className="device-card group bg-orange-500/5 border-orange-500/30"
-                                        style={{
-                                            '--card-glow': 'radial-gradient(circle at top right, rgba(249, 115, 22, 0.08), transparent 70%)',
-                                            '--card-border-hover': 'rgba(249, 115, 22, 0.5)',
-                                            '--card-shadow': 'rgba(249, 115, 22, 0.2)'
-                                        }}
-                                    >
-                                        <div className="relative z-10">
-                                            <div className="flex justify-between items-start mb-3">
-                                                <div className="p-2.5 bg-white/5 rounded-xl text-orange-400 border border-orange-500/20">
-                                                    <Activity className="w-5 h-5" />
-                                                </div>
-                                            </div>
-                                            <div className="text-3xl font-bold text-zinc-100 mb-1">{nbIncidents}</div>
-                                            <div className="text-sm font-medium text-zinc-400">Incidents distincts</div>
-                                            <p className="text-[11px] text-zinc-500 mt-1">Clés d'incident uniques</p>
-                                        </div>
                                     </div>
                                 </div>
                             </div>

@@ -49,6 +49,7 @@ function DetailEvenement() {
                 setNonTrouve(true);
             } else {
                 setEv(data);
+                setResolue(Number(data.id_statut) === 15);
             }
         } finally {
             setLoading(false);
@@ -239,13 +240,19 @@ function DetailEvenement() {
                             >
                                 {iaOpen ? "Masquer l'IA" : "Demander à l'IA"}
                             </button>
-                            <button
-                                onClick={handleMarquerResolu}
-                                disabled={resolueEnCours || resolue}
-                                className="flex-1 min-w-[180px] px-4 py-3 rounded-xl bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/25 transition-colors text-xs font-semibold flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
-                            >
-                                {resolue ? "Résolu ✓" : resolueEnCours ? "Résolution…" : "Marquer comme résolu"}
-                            </button>
+                            {resolue ? (
+                                <span className="flex-1 min-w-[180px] px-4 py-3 rounded-xl bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 text-xs font-semibold flex items-center justify-center gap-2">
+                                    Marqué comme résolu
+                                </span>
+                            ) : (
+                                <button
+                                    onClick={handleMarquerResolu}
+                                    disabled={resolueEnCours}
+                                    className="flex-1 min-w-[180px] px-4 py-3 rounded-xl bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/25 transition-colors text-xs font-semibold flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                                >
+                                    {resolueEnCours ? "Résolution…" : "Marquer comme résolu"}
+                                </button>
+                            )}
                         </div>
                     </div>
                 </div>
