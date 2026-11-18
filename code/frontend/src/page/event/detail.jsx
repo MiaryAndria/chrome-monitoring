@@ -240,11 +240,7 @@ function DetailEvenement() {
                             >
                                 {iaOpen ? "Masquer l'IA" : "Demander à l'IA"}
                             </button>
-                            {resolue ? (
-                                <span className="flex-1 min-w-[180px] px-4 py-3 rounded-xl bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 text-xs font-semibold flex items-center justify-center gap-2">
-                                    Marqué comme résolu
-                                </span>
-                            ) : (
+                            {!resolue && (
                                 <button
                                     onClick={handleMarquerResolu}
                                     disabled={resolueEnCours}
