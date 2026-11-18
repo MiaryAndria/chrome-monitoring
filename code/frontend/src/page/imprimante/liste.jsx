@@ -20,6 +20,7 @@ function ListeImprimante() {
     const debouncedSearch = useDebounce(search, 300);
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
+    const [showAll, setShowAll] = useState(false);
     const [viewMode, setViewMode] = useState('grid');
     const [dateDebut, setDateDebut] = useState('');
     const [heureDebut, setHeureDebut] = useState('00:00');
@@ -30,8 +31,6 @@ function ListeImprimante() {
     const [vendors, setVendors] = useState([]);
     const [vendor, setVendor] = useState("");
     const [erreurFiltreDate, setErreurFiltreDate] = useState('');
-    const [allImprimantes, setAllImprimantes] = useState([]);
-    const [loadingAll, setLoadingAll] = useState(false);
     const [reloadKey, setReloadKey] = useState(0);
     const navigate = useNavigate();
 
@@ -45,23 +44,10 @@ function ListeImprimante() {
 
     const { items: imprimantes, total, totalPages, loading, error } = usePaginatedData(
         getImprimantes,
-        currentPage,
-        pageSize,
+        showAll ? 1 : currentPage,
+        showAll ? 10000 : pageSize,
         filtresImprimante
     );
-
-    const chargerToutesLesImprimantes = async () => {
-        setLoadingAll(true);
-        try {
-            const data = await getImprimantes({ page: 1, page_size: 10000, ...filtresImprimante });
-            setAllImprimantes(data?.items || []);
-        } catch (e) {
-            console.log(e);
-            setAllImprimantes([]);
-        } finally {
-            setLoadingAll(false);
-        }
-    };
 
     const imprimanteColumns = [
         { header: "Fabricant", render: (imp) => <span className="font-bold text-zinc-100">{imp.vendor || '-'}</span> },
@@ -112,15 +98,6 @@ function ListeImprimante() {
     useEffect(() => {
         setCurrentPage(1);
     }, [search, vendor, datetimeFrom, datetimeTo, debouncedSearch]);
-
-    useEffect(() => {
-        if (viewMode === 'table') {
-            chargerToutesLesImprimantes();
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [viewMode, search, vendor, datetimeFrom, datetimeTo, debouncedSearch, reloadKey]);
-
-    const tableTotal = allImprimantes.length;
 
     const actualiser = () => {
         setReloadKey((k) => k + 1);
@@ -175,50 +152,7 @@ function ListeImprimante() {
                     </div>
 
                     {/* Contenu */}
-                    {viewMode === 'table' ? (
-                        loadingAll && allImprimantes.length === 0 ? (
-                            <PrinterListSkeleton viewMode={viewMode} />
-                        ) : allImprimantes.length === 0 ? (
-                            <EmptyState
-                                icon={Printer}
-                                title="Aucune imprimante trouvée"
-                                subtitle={search || vendor ? "Aucun modèle ne correspond aux filtres actifs." : "Aucune donnée disponible."}
-                                action={
-                                    <button onClick={actualiser} className="px-4 py-2 text-xs font-semibold rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 hover:bg-amber-500/20 hover:border-amber-500/50 transition-all cursor-pointer">
-                                        Actualiser
-                                    </button>
-                                }
-                            />
-                        ) : (
-                            <>
-                                <div className="section-header flex justify-between items-center">
-                                    <div>
-                                        <h2 className="section-title">Modèles détectés</h2>
-                                        <span className="section-count">
-                                            {tableTotal} modèle{tableTotal > 1 ? "s" : ""}
-                                        </span>
-                                    </div>
-                                    <div className="flex bg-zinc-900 rounded-lg p-1 border border-white/10">
-                                        <button
-                                            onClick={() => setViewMode('grid')}
-                                            className={`p-1.5 rounded-md transition-colors ${viewMode === 'grid' ? 'bg-cyan-500/20 text-cyan-400' : 'text-zinc-500 hover:text-zinc-300'}`}
-                                            title="Vue en grille"
-                                        >
-                                            <LayoutGrid className="w-4 h-4" />
-                                        </button>
-                                        <button
-                                            onClick={() => setViewMode('table')}
-                                            className={`p-1.5 rounded-md transition-colors ${viewMode === 'table' ? 'bg-cyan-500/20 text-cyan-400' : 'text-zinc-500 hover:text-zinc-300'}`}
-                                            title="Vue en tableau"
-                                        >
-                                            <List className="w-4 h-4" />
-                                        </button>
-                                    </div>
-                                </div>
-                                <GenericTable columns={imprimanteColumns} data={allImprimantes} onRowClick={(imp) => navigate(`/imprimante/${imp.id}`)} />
-                            </>
-                        )
-                    ) : loading && imprimantes.length === 0 ? (
+                    {loading && imprimantes.length === 0 ? (
                         <PrinterListSkeleton viewMode={viewMode} />
                     ) : error ? (
                         <EmptyState icon={Printer} title="Impossible de charger les imprimantes." />
@@ -234,7 +168,7 @@ function ListeImprimante() {
                                 <div>
                                     <h2 className="section-title">Modèles détectés</h2>
                                     <span className="section-count">
-                                        {total} modèle{total > 1 ? "s" : ""} — Page {currentPage}/{totalPages}
+                                        {total} modèle{total > 1 ? "s" : ""}{!showAll ? ` — Page ${currentPage}/${totalPages}` : ""}
                                     </span>
                                 </div>
                                 <div className="flex bg-zinc-900 rounded-lg p-1 border border-white/10">
@@ -255,26 +189,35 @@ function ListeImprimante() {
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-                                {imprimantes.map((imp, idx) => (
-                                    <ImprimanteCard key={imp.id ?? idx} imp={imp} onClick={() => navigate(`/imprimante/${imp.id}`)} />
-                                ))}
-                            </div>
+                            {viewMode === 'table' ? (
+                                <GenericTable columns={imprimanteColumns} data={imprimantes} onRowClick={(imp) => navigate(`/imprimante/${imp.id}`)} />
+                            ) : (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+                                    {imprimantes.map((imp, idx) => (
+                                        <ImprimanteCard key={imp.id ?? idx} imp={imp} onClick={() => navigate(`/imprimante/${imp.id}`)} />
+                                    ))}
+                                </div>
+                            )}
 
-                            {viewMode !== 'table' && (
-                                <Pagination
-                                    page={currentPage}
-                                    pageSize={pageSize}
-                                    totalPages={totalPages}
-                                    total={total}
-                                    loading={loading}
-                                    onPageChange={setCurrentPage}
-                                    onPageSizeChange={(size) => {
+                            <Pagination
+                                page={currentPage}
+                                pageSize={pageSize}
+                                totalPages={totalPages}
+                                total={total}
+                                loading={loading}
+                                showAll={showAll}
+                                onPageChange={setCurrentPage}
+                                onPageSizeChange={(size) => {
+                                    if (size === 'all') {
+                                        setShowAll(true);
+                                        setCurrentPage(1);
+                                    } else {
+                                        setShowAll(false);
                                         setPageSize(size);
                                         setCurrentPage(1);
-                                    }}
-                                />
-                            )}
+                                    }
+                                }}
+                            />
                         </>
                     )}
             </PageLayout>

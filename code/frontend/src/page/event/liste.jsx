@@ -46,9 +46,8 @@ function ListeEvent() {
     const [selectedExplanation, setSelectedExplanation] = useState(null);
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
+    const [showAll, setShowAll] = useState(false);
     const [viewMode, setViewMode] = useState('grid');
-    const [allEvenements, setAllEvenements] = useState([]);
-    const [loadingAll, setLoadingAll] = useState(false);
     const [reloadKey, setReloadKey] = useState(0);
 
     const filtresEvent = {
@@ -69,23 +68,10 @@ function ListeEvent() {
         error,
     } = usePaginatedData(
         getEvenements,
-        currentPage,
-        pageSize,
+        showAll ? 1 : currentPage,
+        showAll ? 10000 : pageSize,
         filtresEvent
     );
-
-    const chargerTousLesEvenements = async () => {
-        setLoadingAll(true);
-        try {
-            const data = await getEvenements({ page: 1, page_size: 10000, ...filtresEvent });
-            setAllEvenements(data?.items || []);
-        } catch (e) {
-            console.log(e);
-            setAllEvenements([]);
-        } finally {
-            setLoadingAll(false);
-        }
-    };
 
     const eventColumns = [
         { header: "Date", render: (ev) => <span className="text-zinc-400 text-xs font-mono">{formatDateTime(ev.date_evenement)}</span> },
@@ -180,14 +166,6 @@ function ListeEvent() {
         setCurrentPage(1);
     }, [search, typeEvenement, filiale, utilisateurRecent, datetimeDebutApplique, datetimeFinApplique, debouncedSearch]);
 
-    useEffect(() => {
-        if (viewMode === 'table') {
-            chargerTousLesEvenements();
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [viewMode, search, typeEvenement, filiale, utilisateurRecent, datetimeDebutApplique, datetimeFinApplique, debouncedSearch, reloadKey]);
-
-    const tableTotal = allEvenements.length;
 
     const actualiser = () => {
         setReloadKey((k) => k + 1);
@@ -334,37 +312,7 @@ function ListeEvent() {
             </div>
 
             {/* Contenu */}
-            {viewMode === 'table' ? (
-                loadingAll && allEvenements.length === 0 ? (
-                    <EventListSkeleton viewMode={viewMode} />
-                ) : allEvenements.length === 0 ? (
-                    <EmptyState
-                        icon={Bell}
-                        title="Aucun événement trouvé"
-                        subtitle={filtresActifs ? "Aucun événement ne correspond aux filtres actifs." : "Aucune donnée enregistrée."}
-                        action={
-                            <div className="flex items-center justify-center gap-2">
-                                <button onClick={actualiser} className="px-4 py-2 text-xs font-semibold rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 hover:bg-cyan-500/20 hover:border-cyan-500/50 transition-all cursor-pointer">
-                                    Actualiser
-                                </button>
-                                <ResetFiltreButton actif={filtresActifs} onClick={reinitialiserFiltres} />
-                            </div>
-                        }
-                    />
-                ) : (
-                    <>
-                        <div className="section-header flex justify-between items-center">
-                            <div>
-                                <h2 className="section-title">Incidents détectés</h2>
-                                <span className="section-count">
-                                    {tableTotal} événement{tableTotal > 1 ? "s" : ""}
-                                </span>
-                            </div>
-                        </div>
-                        <GenericTable columns={eventColumns} data={allEvenements} />
-                    </>
-                )
-            ) : loading && evenements.length === 0 ? (
+            {loading && evenements.length === 0 ? (
                 <EventListSkeleton viewMode={viewMode} />
             ) : error ? (
                 <EmptyState icon={AlertTriangle} title="Impossible de charger les événements." />
@@ -372,7 +320,15 @@ function ListeEvent() {
                 <EmptyState
                     icon={Bell}
                     title="Aucun événement trouvé"
-                    subtitle={filtresActifs ? "Modifiez vos filtres" : "Aucune donnée enregistrée"}
+                    subtitle={filtresActifs ? "Aucun événement ne correspond aux filtres actifs." : "Aucune donnée enregistrée."}
+                    action={
+                        <div className="flex items-center justify-center gap-2">
+                            <button onClick={actualiser} className="px-4 py-2 text-xs font-semibold rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 hover:bg-cyan-500/20 hover:border-cyan-500/50 transition-all cursor-pointer">
+                                Actualiser
+                            </button>
+                            <ResetFiltreButton actif={filtresActifs} onClick={reinitialiserFiltres} />
+                        </div>
+                    }
                 />
             ) : (
                 <>
@@ -380,19 +336,23 @@ function ListeEvent() {
                         <div>
                             <h2 className="section-title">Incidents détectés</h2>
                             <span className="section-count">
-                                {total} événement{total > 1 ? "s" : ""} — Page {currentPage}/{totalPages}
+                                {total} événement{total > 1 ? "s" : ""}{!showAll ? ` — Page ${currentPage}/${totalPages}` : ""}
                             </span>
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                        {evenements.map((ev, idx) => (
-                            <EventCard
-                                key={ev.id ?? idx}
-                                ev={ev}
-                            />
-                        ))}
-                    </div>
+                    {viewMode === 'table' ? (
+                        <GenericTable columns={eventColumns} data={evenements} />
+                    ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                            {evenements.map((ev, idx) => (
+                                <EventCard
+                                    key={ev.id ?? idx}
+                                    ev={ev}
+                                />
+                            ))}
+                        </div>
+                    )}
 
                     {selectedExplanation && createPortal(
                         <div className="modal-overlay"
@@ -448,20 +408,25 @@ function ListeEvent() {
                         </div>
                     )}
 
-                    {viewMode !== 'table' && (
-                        <Pagination
-                            page={currentPage}
-                            pageSize={pageSize}
-                            totalPages={totalPages}
-                            total={total}
-                            loading={loading}
-                            onPageChange={setCurrentPage}
-                            onPageSizeChange={(size) => {
+                    <Pagination
+                        page={currentPage}
+                        pageSize={pageSize}
+                        totalPages={totalPages}
+                        total={total}
+                        loading={loading}
+                        showAll={showAll}
+                        onPageChange={setCurrentPage}
+                        onPageSizeChange={(size) => {
+                            if (size === 'all') {
+                                setShowAll(true);
+                                setCurrentPage(1);
+                            } else {
+                                setShowAll(false);
                                 setPageSize(size);
                                 setCurrentPage(1);
-                            }}
-                        />
-                    )}
+                            }
+                        }}
+                    />
                 </>
             )}
         </PageLayout>

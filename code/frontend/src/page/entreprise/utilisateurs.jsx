@@ -28,13 +28,12 @@ function ListeUtilisateursEntreprise() {
     const [search, setSearch] = useState("");
     const debouncedSearch = useDebounce(search, 300);
     const [currentPage, setCurrentPage] = useState(1);
-    const [pageSize, setPageSize] = useState(12);
+    const [pageSize, setPageSize] = useState(10);
+    const [showAll, setShowAll] = useState(false);
     const [viewMode, setViewMode] = useState("grid");
     const [selectedUser, setSelectedUser] = useState(null);
     const [devicesByUser, setDevicesByUser] = useState({});
     const [loadingDevices, setLoadingDevices] = useState(false);
-    const [allUtilisateurs, setAllUtilisateurs] = useState([]);
-    const [loadingAll, setLoadingAll] = useState(false);
     const [reloadKey, setReloadKey] = useState(0);
 
     const filtresUtilisateurs = {
@@ -45,23 +44,10 @@ function ListeUtilisateursEntreprise() {
 
     const { items: utilisateurs, total, totalPages, loading, error, firstLoadDone } = usePaginatedData(
         getUtilisateursRecentPage,
-        currentPage,
-        pageSize,
+        showAll ? 1 : currentPage,
+        showAll ? 10000 : pageSize,
         filtresUtilisateurs
     );
-
-    const chargerTousLesUtilisateurs = async () => {
-        setLoadingAll(true);
-        try {
-            const data = await getUtilisateursRecentPage({ page: 1, page_size: 10000, ...filtresUtilisateurs });
-            setAllUtilisateurs(data?.items || []);
-        } catch (e) {
-            console.log(e);
-            setAllUtilisateurs([]);
-        } finally {
-            setLoadingAll(false);
-        }
-    };
 
     const chargerFiliales = async () => {
         const data = await getListeFiliale();
@@ -79,13 +65,6 @@ function ListeUtilisateursEntreprise() {
         setCurrentPage(1);
     }, [filiale, search, debouncedSearch]);
 
-    useEffect(() => {
-        if (viewMode === "table") {
-            chargerTousLesUtilisateurs();
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [viewMode, filiale, search, debouncedSearch, reloadKey]);
-
     const filtresActifs = filiale !== "" || search !== "";
 
     const reinitialiserFiltres = () => {
@@ -93,8 +72,6 @@ function ListeUtilisateursEntreprise() {
         setSearch("");
         setCurrentPage(1);
     };
-
-    const tableTotal = allUtilisateurs.length;
 
     const actualiser = () => {
         setReloadKey((k) => k + 1);
@@ -188,34 +165,14 @@ function ListeUtilisateursEntreprise() {
                 </div>
             </div>
 
-            {viewMode === "table" ? (
-                loadingAll && allUtilisateurs.length === 0 ? (
-                    <TableSkeleton />
-                ) : allUtilisateurs.length === 0 ? (
-                    <EmptyState
-                        icon={Users}
-                        title="Aucun utilisateur trouvé"
-                        subtitle={filtresActifs ? "Modifiez vos filtres" : "Aucune donnée enregistrée"}
-                    />
-                ) : (
-                    <>
-                        <div className="section-header flex justify-between items-center">
-                            <div>
-                                <h2 className="section-title">Utilisateurs récents</h2>
-                                <span className="section-count">
-                                    {tableTotal} utilisateur{tableTotal > 1 ? "s" : ""}
-                                </span>
-                            </div>
-                        </div>
-                        <GenericTable columns={columns} data={allUtilisateurs} />
-                    </>
+            {loading && utilisateurs.length === 0 ? (
+                viewMode === "table" ? <TableSkeleton /> : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                        {Array.from({ length: 8 }).map((_, i) => (
+                            <Skeleton key={i} className="h-44" />
+                        ))}
+                    </div>
                 )
-            ) : loading && utilisateurs.length === 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                    {Array.from({ length: 8 }).map((_, i) => (
-                        <Skeleton key={i} className="h-44" />
-                    ))}
-                </div>
             ) : error ? (
                 <EmptyState icon={Users} title="Impossible de charger les utilisateurs." />
             ) : total === 0 ? (
@@ -230,57 +187,68 @@ function ListeUtilisateursEntreprise() {
                         <div>
                             <h2 className="section-title">Utilisateurs récents</h2>
                             <span className="section-count">
-                                {total} utilisateur{total > 1 ? "s" : ""} — Page {currentPage}/{totalPages}
+                                {total} utilisateur{total > 1 ? "s" : ""}{!showAll ? ` — Page ${currentPage}/${totalPages}` : ""}
                             </span>
                         </div>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                        {utilisateurs.map((u) => (
-                            <div key={u.id} className="device-card group bg-cyan-500/5 border-cyan-500/30">
-                                <div className="relative z-10">
-                                    <div className="flex items-center gap-3 mb-3">
-                                        <div className="p-2.5 rounded-xl bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
-                                            <Users className="w-5 h-5" />
+                    {viewMode === "table" ? (
+                        <GenericTable columns={columns} data={utilisateurs} />
+                    ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                            {utilisateurs.map((u) => (
+                                <div key={u.id} className="device-card group bg-cyan-500/5 border-cyan-500/30">
+                                    <div className="relative z-10">
+                                        <div className="flex items-center gap-3 mb-3">
+                                            <div className="p-2.5 rounded-xl bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+                                                <Users className="w-5 h-5" />
+                                            </div>
+                                            <div className="min-w-0">
+                                                <p className="text-sm font-bold text-zinc-100 truncate" title={u.email}>{u.email}</p>
+                                                <p className="text-[10px] text-zinc-500">{u.nb_devices} appareil(s)</p>
+                                            </div>
                                         </div>
-                                        <div className="min-w-0">
-                                            <p className="text-sm font-bold text-zinc-100 truncate" title={u.email}>{u.email}</p>
-                                            <p className="text-[10px] text-zinc-500">{u.nb_devices} appareil(s)</p>
+
+                                        <div className="flex flex-wrap gap-1 mb-3 min-h-[22px]">
+                                            {(u.filiales || []).slice(0, 3).map((f) => (
+                                                <span key={f} className="px-2 py-0.5 rounded text-[10px] bg-purple-500/10 text-purple-300 border border-purple-500/20">
+                                                    {filialeCourte(f)}
+                                                </span>
+                                            ))}
                                         </div>
+
+                                        <p className="text-[10px] text-zinc-500 mb-4">
+                                            Dernière activité : {formatDateTime(u.derniere_observation)}
+                                        </p>
+
+                                        <button
+                                            onClick={() => ouvrirDevices(u)}
+                                            className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-cyan-300 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 transition-all"
+                                        >
+                                            Voir ses appareils
+                                            <ChevronRight className="w-4 h-4" />
+                                        </button>
                                     </div>
-
-                                    <div className="flex flex-wrap gap-1 mb-3 min-h-[22px]">
-                                        {(u.filiales || []).slice(0, 3).map((f) => (
-                                            <span key={f} className="px-2 py-0.5 rounded text-[10px] bg-purple-500/10 text-purple-300 border border-purple-500/20">
-                                                {filialeCourte(f)}
-                                            </span>
-                                        ))}
-                                    </div>
-
-                                    <p className="text-[10px] text-zinc-500 mb-4">
-                                        Dernière activité : {formatDateTime(u.derniere_observation)}
-                                    </p>
-
-                                    <button
-                                        onClick={() => ouvrirDevices(u)}
-                                        className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-cyan-300 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 transition-all"
-                                    >
-                                        Voir ses appareils
-                                        <ChevronRight className="w-4 h-4" />
-                                    </button>
                                 </div>
-                            </div>
-                        ))}
-                    </div>
+                            ))}
+                        </div>
+                    )}
                     <Pagination
                         page={currentPage}
                         pageSize={pageSize}
                         totalPages={totalPages}
                         total={total}
                         loading={loading}
+                        showAll={showAll}
                         onPageChange={setCurrentPage}
                         onPageSizeChange={(size) => {
-                            setPageSize(size);
-                            setCurrentPage(1);
+                            if (size === 'all') {
+                                setShowAll(true);
+                                setCurrentPage(1);
+                            } else {
+                                setShowAll(false);
+                                setPageSize(size);
+                                setCurrentPage(1);
+                            }
                         }}
                     />
                 </>

@@ -26,6 +26,7 @@ function ListeEventResolue() {
     const [search, setSearch] = useState('');
     const debouncedSearch = useDebounce(search, 300);
     const [pageSize, setPageSize] = useState(10);
+    const [showAll, setShowAll] = useState(false);
     const [type, setType] = useState([]);
     const [TypeFiltered, setTypeFiltered] = useState('');
     const [listeFiliales, setListeFiliales] = useState([]);
@@ -40,8 +41,6 @@ function ListeEventResolue() {
     const [filiale, setFiliale] = useState('');
     const [utilisateurRecent, setUtilisateurRecent] = useState('');
     const [viewMode, setViewMode] = useState('grid');
-    const [allEvenements, setAllEvenements] = useState([]);
-    const [loadingAll, setLoadingAll] = useState(false);
 
     const filtresEvent = {
         recherche: debouncedSearch || undefined,
@@ -55,23 +54,10 @@ function ListeEventResolue() {
 
     const { items: evenements, total, totalPages, loading, error } = usePaginatedData(
         getEvenementsResolues,
-        page,
-        pageSize,
+        showAll ? 1 : page,
+        showAll ? 10000 : pageSize,
         filtresEvent
     );
-
-    const chargerTousLesEvenements = async () => {
-        setLoadingAll(true);
-        try {
-            const data = await getEvenementsResolues({ page: 1, page_size: 10000, ...filtresEvent });
-            setAllEvenements(data?.items || []);
-        } catch (e) {
-            console.error(e);
-            setAllEvenements([]);
-        } finally {
-            setLoadingAll(false);
-        }
-    };
 
     const chargerReferences = async () => {
         try {
@@ -178,14 +164,6 @@ function ListeEventResolue() {
         setPage(1);
     }, [search, TypeFiltered, filiale, utilisateurRecent, datetimeDebutApplique, datetimeFinApplique, debouncedSearch]);
 
-    useEffect(() => {
-        if (viewMode === 'table') {
-            chargerTousLesEvenements();
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [viewMode, search, TypeFiltered, filiale, utilisateurRecent, datetimeDebutApplique, datetimeFinApplique, debouncedSearch, reloadKey]);
-
-    const tableTotal = allEvenements.length;
 
     return (
         <PageLayout
@@ -279,56 +257,29 @@ function ListeEventResolue() {
                     </div>
                 </div>
 
-                {viewMode === 'table' ? (
-                    loadingAll && allEvenements.length === 0 ? (
-                        <EventListSkeleton viewMode={viewMode} />
-                    ) : allEvenements.length === 0 ? (
-                        <EmptyState
-                            icon={CheckCircle2}
-                            title={error ? "Impossible de charger les événements résolus" : "Aucun événement résolu trouvé"}
-                            subtitle={error
-                                ? "Une erreur est survenue lors du chargement."
-                                : (filtresActifs ? "Aucun résultat pour ces filtres." : "Aucun événement n'a encore été marqué résolu.")}
-                            action={
-                                <div className="flex flex-wrap justify-center gap-2">
-                                    {filtresActifs && (
-                                        <button type="button" onClick={reinitialiserFiltres} className="config-btn config-btn-ghost text-xs">
-                                            Réinitialiser les filtres
-                                        </button>
-                                    )}
-                                    <button type="button" onClick={actualiser} className="config-btn config-btn-primary text-xs flex items-center gap-1.5">
-                                        <RefreshCw className="w-3.5 h-3.5" /> Actualiser
-                                    </button>
-                                </div>
-                            }
-                        />
-                    ) : (
-                        <>
-                            <div className="section-header">
-                                <div>
-                                    <h2 className="section-title">Liste des événements résolus</h2>
-                                    <span className="section-count">
-                                        {tableTotal} événement{tableTotal > 1 ? "s" : ""}
-                                    </span>
-                                </div>
-                            </div>
-                            <GenericTable columns={columns} data={allEvenements} />
-                        </>
-                    )
-                ) : loading && evenements.length === 0 ? (
+                {loading && evenements.length === 0 ? (
                     <EventListSkeleton viewMode={viewMode} />
                 ) : error ? (
                     <EmptyState icon={AlertTriangle} title="Impossible de charger les événements résolus." />
                 ) : total === 0 ? (
                     <EmptyState
                         icon={CheckCircle2}
-                        title="Aucun événement résolu trouvé"
-                        subtitle={filtresActifs ? "Aucun résultat pour ces filtres." : "Aucun événement n'a encore été marqué résolu."}
-                        action={filtresActifs ? (
-                            <button type="button" onClick={reinitialiserFiltres} className="config-btn config-btn-ghost text-xs">
-                                Réinitialiser les filtres
-                            </button>
-                        ) : null}
+                        title={error ? "Impossible de charger les événements résolus" : "Aucun événement résolu trouvé"}
+                        subtitle={error
+                            ? "Une erreur est survenue lors du chargement."
+                            : (filtresActifs ? "Aucun résultat pour ces filtres." : "Aucun événement n'a encore été marqué résolu.")}
+                        action={
+                            <div className="flex flex-wrap justify-center gap-2">
+                                {filtresActifs && (
+                                    <button type="button" onClick={reinitialiserFiltres} className="config-btn config-btn-ghost text-xs">
+                                        Réinitialiser les filtres
+                                    </button>
+                                )}
+                                <button type="button" onClick={actualiser} className="config-btn config-btn-primary text-xs flex items-center gap-1.5">
+                                    <RefreshCw className="w-3.5 h-3.5" /> Actualiser
+                                </button>
+                            </div>
+                        }
                     />
                 ) : (
                     <>
@@ -336,16 +287,20 @@ function ListeEventResolue() {
                             <div>
                                 <h2 className="section-title">Événements résolus</h2>
                                 <span className="section-count">
-                                    {total} événement{total > 1 ? "s" : ""} — Page {page}/{totalPages}
+                                    {total} événement{total > 1 ? "s" : ""}{!showAll ? ` — Page ${page}/${totalPages}` : ""}
                                 </span>
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                            {evenements.map((ev, idx) => (
-                                <EventCard key={ev.id ?? idx} ev={ev} />
-                            ))}
-                        </div>
+                        {viewMode === 'table' ? (
+                            <GenericTable columns={columns} data={evenements} />
+                        ) : (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                                {evenements.map((ev, idx) => (
+                                    <EventCard key={ev.id ?? idx} ev={ev} />
+                                ))}
+                            </div>
+                        )}
 
                         {loading && evenements.length > 0 && (
                             <div className="mt-4">
@@ -359,8 +314,18 @@ function ListeEventResolue() {
                             totalPages={totalPages}
                             total={total}
                             loading={loading}
+                            showAll={showAll}
                             onPageChange={setPage}
-                            onPageSizeChange={(size) => { setPageSize(size); setPage(1); }}
+                            onPageSizeChange={(size) => {
+                                if (size === 'all') {
+                                    setShowAll(true);
+                                    setPage(1);
+                                } else {
+                                    setShowAll(false);
+                                    setPageSize(size);
+                                    setPage(1);
+                                }
+                            }}
                         />
                     </>
                 )}

@@ -25,6 +25,7 @@ import { getListeUtilisateurRecent } from "../../fonction/userFonction";
 function DeviceSelector({ maxSelection = 1, selection = [], onSelectionChange }) {
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
+    const [showAll, setShowAll] = useState(false);
 
     const [search, setSearch] = useState("");
     const debouncedSearch = useDebounce(search, 300);
@@ -57,8 +58,8 @@ function DeviceSelector({ maxSelection = 1, selection = [], onSelectionChange })
 
     const { items: devices, total, totalPages, loading } = usePaginatedData(
         getListeDevice,
-        currentPage,
-        pageSize,
+        showAll ? 1 : currentPage,
+        showAll ? 10000 : pageSize,
         {
             filiale: filiale || undefined,
             id_statut: statut || undefined,
@@ -209,10 +210,17 @@ function DeviceSelector({ maxSelection = 1, selection = [], onSelectionChange })
                 totalPages={totalPages}
                 total={total}
                 loading={loading}
+                showAll={showAll}
                 onPageChange={setCurrentPage}
                 onPageSizeChange={(size) => {
-                    setPageSize(size);
-                    setCurrentPage(1);
+                    if (size === 'all') {
+                        setShowAll(true);
+                        setCurrentPage(1);
+                    } else {
+                        setShowAll(false);
+                        setPageSize(size);
+                        setCurrentPage(1);
+                    }
                 }}
             />
         </div>

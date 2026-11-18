@@ -22,6 +22,7 @@ function ListeDeviceAlerteResolue() {
     const [search, setSearch] = useState('');
     const debouncedSearch = useDebounce(search, 300);
     const [pageSize, setPageSize] = useState(10);
+    const [showAll, setShowAll] = useState(false);
     const [type, setType] = useState([]);
     const [stats, setStats] = useState({});
     const [TypeFiltered, setTypeFiltered] = useState('');
@@ -37,8 +38,8 @@ function ListeDeviceAlerteResolue() {
     const [utilisateurRecent, setUtilisateurRecent] = useState('');
     const { items: liste, total, totalPages, loading, error } = usePaginatedData(
         getListeAlerteResoluePage,
-        page,
-        pageSize,
+        showAll ? 1 : page,
+        showAll ? 10000 : pageSize,
         { date_debut: datetimeDebutApplique || undefined, date_fin: datetimeFinApplique || undefined, type: TypeFiltered || undefined, search: debouncedSearch || undefined, filiale: filiale || undefined, utilisateur_recent: utilisateurRecent || undefined, refresh: reloadKey }
     );
 
@@ -392,8 +393,18 @@ function ListeDeviceAlerteResolue() {
                 totalPages={totalPages}
                 total={total}
                 loading={loading}
+                showAll={showAll}
                 onPageChange={setPage}
-                onPageSizeChange={(size) => { setPageSize(size); setPage(1); }}
+                onPageSizeChange={(size) => {
+                    if (size === 'all') {
+                        setShowAll(true);
+                        setPage(1);
+                    } else {
+                        setShowAll(false);
+                        setPageSize(size);
+                        setPage(1);
+                    }
+                }}
             />
         </PageLayout>
 

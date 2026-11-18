@@ -27,47 +27,24 @@ function ListeFiliale() {
     const [viewMode, setViewMode] = useState('grid');
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
+    const [showAll, setShowAll] = useState(false);
     const [search, setSearch] = useState("");
     const debouncedSearch = useDebounce(search, 300);
     const navigate = useNavigate();
-    const [allFiliales, setAllFiliales] = useState([]);
-    const [loadingAll, setLoadingAll] = useState(false);
     const [reloadKey, setReloadKey] = useState(0);
 
     const filtresFiliale = { recherche: debouncedSearch || undefined, reload: reloadKey };
 
     const { items: filiales, total, totalPages, loading } = usePaginatedData(
         getListeFilialePage,
-        currentPage,
-        pageSize,
+        showAll ? 1 : currentPage,
+        showAll ? 10000 : pageSize,
         filtresFiliale
     );
-
-    const chargerToutesLesFiliales = async () => {
-        setLoadingAll(true);
-        try {
-            const data = await getListeFilialePage({ page: 1, page_size: 10000, ...filtresFiliale });
-            setAllFiliales(data?.items || []);
-        } catch (e) {
-            console.log(e);
-            setAllFiliales([]);
-        } finally {
-            setLoadingAll(false);
-        }
-    };
 
     useEffect(() => {
         setCurrentPage(1);
     }, [search, debouncedSearch]);
-
-    useEffect(() => {
-        if (viewMode === 'table') {
-            chargerToutesLesFiliales();
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [viewMode, search, debouncedSearch, reloadKey]);
-
-    const tableTotal = allFiliales.length;
 
     const actualiser = () => {
         setReloadKey((k) => k + 1);
@@ -126,86 +103,81 @@ function ListeFiliale() {
                             </div>
                         </div>
 
-                        {viewMode === 'table' ? (
-                            loadingAll && allFiliales.length === 0 ? (
-                                <CardGridSkeleton />
-                            ) : allFiliales.length === 0 ? (
-                                <div className="empty-state">
-                                    <Building2 className="empty-state-icon" />
-                                    <p className="empty-state-title">Aucune filiale trouvée.</p>
-                                    <p className="empty-state-subtitle">{search ? "Modifiez votre recherche" : "Lancez une synchronisation pour importer les données."}</p>
-                                </div>
-                            ) : (
-                                <>
-                                    <GenericTable columns={filialeColumns} data={allFiliales} />
-                                </>
-                            )
-                        ) : loading && filiales.length === 0 ? (
+                        {loading && filiales.length === 0 ? (
                             <CardGridSkeleton />
                         ) : filiales.length === 0 ? (
                             <div className="empty-state">
                                 <Building2 className="empty-state-icon" />
                                 <p className="empty-state-title">Aucune filiale trouvée.</p>
-                                <p className="empty-state-subtitle">Lancez une synchronisation pour importer les données.</p>
+                                <p className="empty-state-subtitle">{search ? "Modifiez votre recherche" : "Lancez une synchronisation pour importer les données."}</p>
                             </div>
                         ) : (
                             <>
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                                    {filiales.map((f, index) => {
-                                        const variant = CARD_VARIANTS[index % CARD_VARIANTS.length];
-                                        const label = getOrgLabel(f.org_unit_path);
-                                        const depth = getOrgDepth(f.org_unit_path);
+                                {viewMode === 'table' ? (
+                                    <GenericTable columns={filialeColumns} data={filiales} />
+                                ) : (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                                        {filiales.map((f, index) => {
+                                            const variant = CARD_VARIANTS[index % CARD_VARIANTS.length];
+                                            const label = getOrgLabel(f.org_unit_path);
+                                            const depth = getOrgDepth(f.org_unit_path);
 
-                                        return (
-                                            <div
-                                                key={f.id}
-                                                className={`filiale-card filiale-card--${variant}`}
-                                                onClick={() => navigate(`/filiale/${f.id}/devices`)}
-                                            >
-                                                <div className="filiale-card-glow"></div>
+                                            return (
+                                                <div
+                                                    key={f.id}
+                                                    className={`filiale-card filiale-card--${variant}`}
+                                                    onClick={() => navigate(`/filiale/${f.id}/devices`)}
+                                                >
+                                                    <div className="filiale-card-glow"></div>
 
-                                                <div className="filiale-card-icon">
-                                                    <Building2 className="filiale-card-icon-svg" />
-                                                </div>
+                                                    <div className="filiale-card-icon">
+                                                        <Building2 className="filiale-card-icon-svg" />
+                                                    </div>
 
-                                                <div className="filiale-card-content">
-                                                    <h3 className="filiale-card-title" title={f.org_unit_path}>
-                                                        {label}
-                                                    </h3>
-                                                    <p className="filiale-card-path" title={f.org_unit_path}>
-                                                        {f.org_unit_path}
-                                                    </p>
-                                                    {depth > 1 && (
-                                                        <span className="filiale-depth-badge">Niveau {depth}</span>
-                                                    )}
-                                                </div>
+                                                    <div className="filiale-card-content">
+                                                        <h3 className="filiale-card-title" title={f.org_unit_path}>
+                                                            {label}
+                                                        </h3>
+                                                        <p className="filiale-card-path" title={f.org_unit_path}>
+                                                            {f.org_unit_path}
+                                                        </p>
+                                                        {depth > 1 && (
+                                                            <span className="filiale-depth-badge">Niveau {depth}</span>
+                                                        )}
+                                                    </div>
 
-                                                <div className="filiale-card-footer">
-                                                    <span className="filiale-card-id">
-                                                        <Server className="w-3 h-3" /> ID #{f.id}
-                                                    </span>
-                                                    <div className="filiale-see-btn">
-                                                        Voir devices <ChevronRight className="w-3.5 h-3.5" />
+                                                    <div className="filiale-card-footer">
+                                                        <span className="filiale-card-id">
+                                                            <Server className="w-3 h-3" /> ID #{f.id}
+                                                        </span>
+                                                        <div className="filiale-see-btn">
+                                                            Voir devices <ChevronRight className="w-3.5 h-3.5" />
+                                                        </div>
                                                     </div>
                                                 </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                                {viewMode !== 'table' && (
-                                    <Pagination
-                                        page={currentPage}
-                                        pageSize={pageSize}
-                                        totalPages={totalPages}
-                                        total={total}
-                                        loading={loading}
-                                        onPageChange={setCurrentPage}
-                                        onPageSizeChange={(size) => {
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                                <Pagination
+                                    page={currentPage}
+                                    pageSize={pageSize}
+                                    totalPages={totalPages}
+                                    total={total}
+                                    loading={loading}
+                                    showAll={showAll}
+                                    onPageChange={setCurrentPage}
+                                    onPageSizeChange={(size) => {
+                                        if (size === 'all') {
+                                            setShowAll(true);
+                                            setCurrentPage(1);
+                                        } else {
+                                            setShowAll(false);
                                             setPageSize(size);
                                             setCurrentPage(1);
-                                        }}
-                                    />
-                                )}
+                                        }
+                                    }}
+                                />
                             </>
                         )}
                     </div>

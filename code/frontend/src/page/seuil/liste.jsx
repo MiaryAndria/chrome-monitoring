@@ -15,6 +15,7 @@ function SeuilListe() {
     const navigate = useNavigate();
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
+    const [showAll, setShowAll] = useState(false);
     const [refresh, setRefresh] = useState(0);
     const [categorie, setCategorie] = useState('');
     const [categories, setCategories] = useState([]);
@@ -22,8 +23,8 @@ function SeuilListe() {
 
     const { items: seuils, total, totalPages, loading } = usePaginatedData(
         getListeSeuilPage,
-        currentPage,
-        pageSize,
+        showAll ? 1 : currentPage,
+        showAll ? 10000 : pageSize,
         { refresh, categorie: categorie || undefined }
     );
 
@@ -134,10 +135,17 @@ function SeuilListe() {
                             totalPages={totalPages}
                             total={total}
                             loading={loading}
+                            showAll={showAll}
                             onPageChange={setCurrentPage}
                             onPageSizeChange={(size) => {
-                                setPageSize(size);
-                                setCurrentPage(1);
+                                if (size === 'all') {
+                                    setShowAll(true);
+                                    setCurrentPage(1);
+                                } else {
+                                    setShowAll(false);
+                                    setPageSize(size);
+                                    setCurrentPage(1);
+                                }
                             }}
                         />
                     </>

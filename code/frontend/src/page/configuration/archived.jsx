@@ -12,12 +12,13 @@ import '../../css/configuration.css';
 function ArchivedConfiguration() {
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
+    const [showAll, setShowAll] = useState(false);
     const [refresh, setRefresh] = useState(0);
 
     const { items: conf, total, totalPages, loading } = usePaginatedData(
         getListeArchiverPage,
-        currentPage,
-        pageSize,
+        showAll ? 1 : currentPage,
+        showAll ? 10000 : pageSize,
         { refresh }
     );
 
@@ -103,10 +104,17 @@ function ArchivedConfiguration() {
                             totalPages={totalPages}
                             total={total}
                             loading={loading}
+                            showAll={showAll}
                             onPageChange={setCurrentPage}
                             onPageSizeChange={(size) => {
-                                setPageSize(size);
-                                setCurrentPage(1);
+                                if (size === 'all') {
+                                    setShowAll(true);
+                                    setCurrentPage(1);
+                                } else {
+                                    setShowAll(false);
+                                    setPageSize(size);
+                                    setCurrentPage(1);
+                                }
                             }}
                         />
                     </>

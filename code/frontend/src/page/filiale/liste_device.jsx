@@ -27,6 +27,7 @@ function ListeDeviceFiliale() {
     const [filialeInfo, setFilialeInfo] = useState(null);
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
+    const [showAll, setShowAll] = useState(false);
     const [activeCount, setActiveCount] = useState(0);
     const [filialeTotal, setFilialeTotal] = useState(0);
     const [selectedDevice, setSelectedDevice] = useState(null);
@@ -42,8 +43,8 @@ function ListeDeviceFiliale() {
 
     const { items: devices, total, totalPages, loading, firstLoadDone } = usePaginatedData(
         fetchDevices,
-        currentPage,
-        pageSize,
+        showAll ? 1 : currentPage,
+        showAll ? 10000 : pageSize,
         {
             id_statut: statut || undefined,
             modele: modele || undefined,
@@ -319,10 +320,17 @@ function ListeDeviceFiliale() {
                         totalPages={totalPages}
                         total={total}
                         loading={loading}
+                        showAll={showAll}
                         onPageChange={setCurrentPage}
                         onPageSizeChange={(size) => {
-                            setPageSize(size);
-                            setCurrentPage(1);
+                            if (size === 'all') {
+                                setShowAll(true);
+                                setCurrentPage(1);
+                            } else {
+                                setShowAll(false);
+                                setPageSize(size);
+                                setCurrentPage(1);
+                            }
                         }}
                     />
                 </div>
