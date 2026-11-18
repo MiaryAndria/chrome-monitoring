@@ -37,7 +37,7 @@ def getListeFiliale():
 @router.get("/liste/page", response_model=FilialePageResponse)
 def getFilialesPage(
     page: int = Query(1, ge=1),
-    page_size: int = Query(10, ge=1, le=100),
+    page_size: int = Query(10, ge=1, le=10000),
     recherche: Optional[str] = None,
 ):
     return get_filiales_page(page=page, page_size=page_size, recherche=recherche)
@@ -52,7 +52,7 @@ def getFilialeStats(id_filiale: int):
 def getDevicesByFiliale(
     id_filiale: int,
     page: int = Query(1, ge=1),
-    page_size: int = Query(10, ge=1, le=100),
+    page_size: int = Query(10, ge=1, le=10000),
     id_statut: Optional[int] = None,
     statut: Optional[str] = None,
     type_appareil: Optional[str] = None,

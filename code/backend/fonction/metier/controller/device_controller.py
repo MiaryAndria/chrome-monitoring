@@ -19,7 +19,7 @@ router = APIRouter()
 @router.get("/liste", response_model=DevicePageResponse)
 def getListe(
     page: int = Query(1, ge=1),
-    page_size: int = Query(10, ge=1, le=100),
+    page_size: int = Query(10, ge=1, le=10000),
     id_filiale: Optional[int] = None,
     filiale: Optional[str] = None,
     id_statut: Optional[int] = None,

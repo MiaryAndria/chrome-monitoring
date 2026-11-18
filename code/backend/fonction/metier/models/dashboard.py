@@ -18,3 +18,6 @@ class DashboardSummaryResponse(BaseModel):
     total_alerte: int
     alerte_active: int
     alerte_resolue: int
+    nb_filiales: int = 0
+    nb_utilisateurs_recents: int = 0
+    nb_utilisateurs: int = 0

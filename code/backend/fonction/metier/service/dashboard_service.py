@@ -21,6 +21,9 @@ SUMMARY_VIDE = {
     "total_alerte": 0,
     "alerte_active": 0,
     "alerte_resolue": 0,
+    "nb_filiales": 0,
+    "nb_utilisateurs_recents": 0,
+    "nb_utilisateurs": 0,
 }
 
 

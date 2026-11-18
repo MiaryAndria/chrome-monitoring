@@ -17,8 +17,6 @@ import '../../css/liste.css';
 import '../../css/filiale.css';
 import { getListeDevice, getBadgeClass, getListeStatut, getModeles, getDeviceStats } from "../../fonction/deviceFonction";
 import { getListeFiliale } from "../../fonction/filialeFonction";
-import { getListeUtilisateurRecent } from "../../fonction/userFonction";
-import UtilisateurDropDown from "../component/UtilisateurDropDown";
 
 function ListeDevice() {
     const navigate = useNavigate();
@@ -33,9 +31,8 @@ function ListeDevice() {
     const [copiedSN, setCopiedSN] = useState(null);
     const [viewMode, setViewMode] = useState('grid');
     const [allDevices, setAllDevices] = useState([]);
-    const [tablePage, setTablePage] = useState(1);
     const [loadingAll, setLoadingAll] = useState(false);
-    const tablePageSize = 10;
+    const [reloadKey, setReloadKey] = useState(0);
 
     // Filtre filiale
     const [listeFiliales, setListeFiliales] = useState([]);
@@ -49,7 +46,6 @@ function ListeDevice() {
     const [search, setSearch] = useState("");
     const debouncedSearch = useDebounce(search, 300);
 
-    const [listeUtilisateurRecent, setListeUtilisateurRecent] = useState([]);
     const [utilisateurRecent, setUtilisateurRecent] = useState("");
 
     // Filtre modèle
@@ -65,6 +61,7 @@ function ListeDevice() {
         modele: modele || undefined,
         recherche: debouncedSearch || filterSearch || undefined,
         utilisateur_recent: utilisateurRecent || undefined,
+        reload: reloadKey,
     };
 
     const { items: device, total, totalPages, loading, firstLoadDone } = usePaginatedData(
@@ -105,14 +102,6 @@ function ListeDevice() {
         }
     };
 
-    const getUtilisateurRecent = async () => {
-        try {
-            const data = await getListeUtilisateurRecent();
-            setListeUtilisateurRecent(data);
-        } catch (e) {
-            console.log(e);
-        }
-    };
 
     const chargerStats = async () => {
         const data = await getDeviceStats();
@@ -154,12 +143,10 @@ function ListeDevice() {
         getFiliale();
         getStatut();
         chargerModeles();
-        getUtilisateurRecent();
     }, [firstLoadDone]);
 
     useEffect(() => {
         setCurrentPage(1);
-        setTablePage(1);
     }, [filiale, statut, search, modele, filterSearch, filterStatus, filterType, utilisateurRecent, debouncedSearch]);
 
     useEffect(() => {
@@ -167,7 +154,7 @@ function ListeDevice() {
             chargerTousLesDevices();
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [viewMode, filiale, statut, search, modele, filterSearch, filterStatus, filterType, utilisateurRecent, debouncedSearch, listeStatuts]);
+    }, [viewMode, filiale, statut, search, modele, filterSearch, filterStatus, filterType, utilisateurRecent, debouncedSearch, listeStatuts, reloadKey]);
 
     const filtresActifs = filiale !== "" || statut !== "" || search !== "" || modele !== "" || utilisateurRecent !== "";
 
@@ -178,13 +165,11 @@ function ListeDevice() {
         setSearch("");
         setModele("");
         setCurrentPage(1);
-        setTablePage(1);
     };
 
-    const tableTotal = allDevices.length;
-    const tableTotalPages = Math.max(1, Math.ceil(tableTotal / tablePageSize));
-    const tablePageCourante = Math.min(tablePage, tableTotalPages);
-    const tableDevices = allDevices.slice((tablePageCourante - 1) * tablePageSize, tablePageCourante * tablePageSize);
+    const actualiser = () => {
+        setReloadKey((k) => k + 1);
+    };
 
     const handleCopySN = (serialNumber) => {
         if (!serialNumber) return;
@@ -261,11 +246,16 @@ function ListeDevice() {
                     />
 
                     <span className="text-[10px] text-zinc-500 uppercase font-semibold tracking-wider ml-2">Utilisateur récent :</span>
-                    <UtilisateurDropDown
-                        listeUtilisateurRecent={listeUtilisateurRecent}
-                        utilisateurRecent={utilisateurRecent}
-                        setUtilisateurRecent={setUtilisateurRecent}
-                    />
+                    <div className="relative w-64">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+                        <input
+                            type="text"
+                            placeholder="Rechercher un utilisateur (email)..."
+                            value={utilisateurRecent}
+                            onChange={(e) => setUtilisateurRecent(e.target.value)}
+                            className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-zinc-900/60 border border-white/10 text-zinc-200 text-sm placeholder-zinc-500 focus:outline-none focus:border-cyan-400/50"
+                        />
+                    </div>
 
                     <ResetFiltreButton actif={filtresActifs} onClick={reinitialiserFiltres} />
                 </div>
@@ -279,10 +269,18 @@ function ListeDevice() {
                         <EmptyState
                             icon={Laptop}
                             title="Aucun appareil trouvé"
-                            subtitle={filterSearch || filterStatus || filterType || filtresActifs ? "Modifiez vos filtres" : "Aucune donnée disponible"}
+                            subtitle={filterSearch || filterStatus || filterType || filtresActifs ? "Aucun appareil ne correspond aux filtres actifs." : "Aucune donnée disponible."}
+                            action={
+                                <div className="flex items-center justify-center gap-2">
+                                    <button onClick={actualiser} className="px-4 py-2 text-xs font-semibold rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 hover:bg-cyan-500/20 hover:border-cyan-500/50 transition-all cursor-pointer">
+                                        Actualiser
+                                    </button>
+                                    <ResetFiltreButton actif={filtresActifs} onClick={reinitialiserFiltres} />
+                                </div>
+                            }
                         />
                     ) : (
-                        <GenericTable columns={deviceColumns} data={tableDevices} />
+                            <GenericTable columns={deviceColumns} data={allDevices} />
                     )
                 ) : loading && device.length === 0 ? (
                     <DeviceListSkeleton viewMode={viewMode} />
@@ -290,7 +288,15 @@ function ListeDevice() {
                     <EmptyState
                         icon={Laptop}
                         title="Aucun appareil trouvé"
-                        subtitle={filterSearch || filterStatus || filterType || filtresActifs ? "Modifiez vos filtres" : "Aucune donnée disponible"}
+                        subtitle={filterSearch || filterStatus || filterType || filtresActifs ? "Aucun appareil ne correspond aux filtres actifs." : "Aucune donnée disponible."}
+                        action={
+                            <div className="flex items-center justify-center gap-2">
+                                <button onClick={actualiser} className="px-4 py-2 text-xs font-semibold rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 hover:bg-cyan-500/20 hover:border-cyan-500/50 transition-all cursor-pointer">
+                                    Actualiser
+                                </button>
+                                <ResetFiltreButton actif={filtresActifs} onClick={reinitialiserFiltres} />
+                            </div>
+                        }
                     />
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -372,7 +378,7 @@ function ListeDevice() {
                                                 onClick={() => setSelectedDevice(d)}
                                                 className="px-3 py-1.5 text-xs font-semibold text-cyan-400 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 hover:border-cyan-500/50 rounded-xl transition-all flex items-center gap-1 cursor-pointer shadow-sm"
                                             >
-                                                Voir tout
+                                                Voir utilisateurs récents 
                                             </button>
                                             <button
                                                 onClick={() => navigate(`/device/${d.id || d.id_device}`)}
@@ -395,18 +401,7 @@ function ListeDevice() {
                 </div>
             )}
 
-            {viewMode === 'table' ? (
-                allDevices.length > 0 && (
-                    <Pagination
-                        page={tablePageCourante}
-                        pageSize={tablePageSize}
-                        totalPages={tableTotalPages}
-                        total={tableTotal}
-                        loading={loadingAll}
-                        onPageChange={setTablePage}
-                    />
-                )
-            ) : (
+            {viewMode !== 'table' && (
                 <Pagination
                     page={currentPage}
                     pageSize={pageSize}

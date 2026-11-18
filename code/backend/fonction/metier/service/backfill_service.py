@@ -9,7 +9,6 @@ from backend.fonction.metier.repository.rapport import (
 )
 from backend.fonction.metier.repository.ram import insert_into_device_ram
 from backend.fonction.metier.repository.disk import get_or_create_disk, insert_disk_device
-from backend.fonction.metier.repository.evenement import create_evenement_device
 from backend.utils.format_valeur import _to_int, format_bytes
 from backend.utils.format_date import parse_date_safe
 

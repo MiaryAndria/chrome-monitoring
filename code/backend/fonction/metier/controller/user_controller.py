@@ -45,12 +45,12 @@ def liste(current_user: dict = Depends(require_admin)):
 
 
 @router.get("/liste/page", response_model=UserPageResponse)
-def liste_page(page: int = Query(1, ge=1), page_size: int = Query(10, ge=1, le=100), current_user: dict = Depends(require_admin)):
+def liste_page(page: int = Query(1, ge=1), page_size: int = Query(10, ge=1, le=10000), current_user: dict = Depends(require_admin)):
     return getUsersPage(page=page, page_size=page_size)
 
 
 @router.get("/liste/archiver/page", response_model=UserPageResponse)
-def liste_archive_page(page: int = Query(1, ge=1), page_size: int = Query(10, ge=1, le=100), current_user: dict = Depends(require_admin)):
+def liste_archive_page(page: int = Query(1, ge=1), page_size: int = Query(10, ge=1, le=10000), current_user: dict = Depends(require_admin)):
     return getUsersArchivePage(page=page, page_size=page_size)
 
 

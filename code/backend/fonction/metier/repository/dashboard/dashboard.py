@@ -4,7 +4,8 @@ def get_summary(cur):
         SELECT nb_total_appareils, nb_actifs, nb_indisponibles,
                nb_anomalie, nb_reparation, nb_crashs, nb_incidents,
                nb_imprimantes, repartition_statuts, repartition_types,
-               repartition_evenements, total_alerte, alerte_active, alerte_resolue
+               repartition_evenements, total_alerte, alerte_active, alerte_resolue,
+               nb_filiales, nb_utilisateurs_recents, nb_utilisateurs
         FROM v_tableau_de_bord_resume
         """
     )
@@ -27,4 +28,7 @@ def get_summary(cur):
         "total_alerte": row[11] if row[11] is not None else 0,
         "alerte_active": row[12] if row[12] is not None else 0,
         "alerte_resolue": row[13] if row[13] is not None else 0,
+        "nb_filiales": row[14] if row[14] is not None else 0,
+        "nb_utilisateurs_recents": row[15] if row[15] is not None else 0,
+        "nb_utilisateurs": row[16] if row[16] is not None else 0,
     }

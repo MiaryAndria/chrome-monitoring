@@ -31,11 +31,10 @@ function ListeFiliale() {
     const debouncedSearch = useDebounce(search, 300);
     const navigate = useNavigate();
     const [allFiliales, setAllFiliales] = useState([]);
-    const [tablePage, setTablePage] = useState(1);
     const [loadingAll, setLoadingAll] = useState(false);
-    const tablePageSize = 10;
+    const [reloadKey, setReloadKey] = useState(0);
 
-    const filtresFiliale = { recherche: debouncedSearch || undefined };
+    const filtresFiliale = { recherche: debouncedSearch || undefined, reload: reloadKey };
 
     const { items: filiales, total, totalPages, loading } = usePaginatedData(
         getListeFilialePage,
@@ -59,7 +58,6 @@ function ListeFiliale() {
 
     useEffect(() => {
         setCurrentPage(1);
-        setTablePage(1);
     }, [search, debouncedSearch]);
 
     useEffect(() => {
@@ -67,12 +65,13 @@ function ListeFiliale() {
             chargerToutesLesFiliales();
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [viewMode, search, debouncedSearch]);
+    }, [viewMode, search, debouncedSearch, reloadKey]);
 
     const tableTotal = allFiliales.length;
-    const tableTotalPages = Math.max(1, Math.ceil(tableTotal / tablePageSize));
-    const tablePageCourante = Math.min(tablePage, tableTotalPages);
-    const tableFiliales = allFiliales.slice((tablePageCourante - 1) * tablePageSize, tablePageCourante * tablePageSize);
+
+    const actualiser = () => {
+        setReloadKey((k) => k + 1);
+    };
 
     const filialeColumns = [
         { header: "ID", accessor: "id" },
@@ -138,15 +137,7 @@ function ListeFiliale() {
                                 </div>
                             ) : (
                                 <>
-                                    <GenericTable columns={filialeColumns} data={tableFiliales} />
-                                    <Pagination
-                                        page={tablePageCourante}
-                                        pageSize={tablePageSize}
-                                        totalPages={tableTotalPages}
-                                        total={tableTotal}
-                                        loading={loadingAll}
-                                        onPageChange={setTablePage}
-                                    />
+                                    <GenericTable columns={filialeColumns} data={allFiliales} />
                                 </>
                             )
                         ) : loading && filiales.length === 0 ? (
@@ -201,18 +192,20 @@ function ListeFiliale() {
                                         );
                                     })}
                                 </div>
-                                <Pagination
-                                    page={currentPage}
-                                    pageSize={pageSize}
-                                    totalPages={totalPages}
-                                    total={total}
-                                    loading={loading}
-                                    onPageChange={setCurrentPage}
-                                    onPageSizeChange={(size) => {
-                                        setPageSize(size);
-                                        setCurrentPage(1);
-                                    }}
-                                />
+                                {viewMode !== 'table' && (
+                                    <Pagination
+                                        page={currentPage}
+                                        pageSize={pageSize}
+                                        totalPages={totalPages}
+                                        total={total}
+                                        loading={loading}
+                                        onPageChange={setCurrentPage}
+                                        onPageSizeChange={(size) => {
+                                            setPageSize(size);
+                                            setCurrentPage(1);
+                                        }}
+                                    />
+                                )}
                             </>
                         )}
                     </div>

@@ -7,7 +7,8 @@ def get_type_appareil_by_name(cur,name):
     result = cur.fetchone()
     return result 
 
-def delete_all(cur):
+ 
+def delete(cur):
     cur.execute(
         """
         TRUNCATE TABLE t_type_appareil RESTART IDENTITY CASCADE

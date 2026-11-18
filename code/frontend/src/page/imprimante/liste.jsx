@@ -31,9 +31,8 @@ function ListeImprimante() {
     const [vendor, setVendor] = useState("");
     const [erreurFiltreDate, setErreurFiltreDate] = useState('');
     const [allImprimantes, setAllImprimantes] = useState([]);
-    const [tablePage, setTablePage] = useState(1);
     const [loadingAll, setLoadingAll] = useState(false);
-    const tablePageSize = 10;
+    const [reloadKey, setReloadKey] = useState(0);
     const navigate = useNavigate();
 
     const filtresImprimante = {
@@ -41,6 +40,7 @@ function ListeImprimante() {
         vendor: vendor || undefined,
         datetime_from: datetimeFrom || undefined,
         datetime_to: datetimeTo || undefined,
+        reload: reloadKey,
     };
 
     const { items: imprimantes, total, totalPages, loading, error } = usePaginatedData(
@@ -111,7 +111,6 @@ function ListeImprimante() {
 
     useEffect(() => {
         setCurrentPage(1);
-        setTablePage(1);
     }, [search, vendor, datetimeFrom, datetimeTo, debouncedSearch]);
 
     useEffect(() => {
@@ -119,12 +118,13 @@ function ListeImprimante() {
             chargerToutesLesImprimantes();
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [viewMode, search, vendor, datetimeFrom, datetimeTo, debouncedSearch]);
+    }, [viewMode, search, vendor, datetimeFrom, datetimeTo, debouncedSearch, reloadKey]);
 
     const tableTotal = allImprimantes.length;
-    const tableTotalPages = Math.max(1, Math.ceil(tableTotal / tablePageSize));
-    const tablePageCourante = Math.min(tablePage, tableTotalPages);
-    const tableImprimantes = allImprimantes.slice((tablePageCourante - 1) * tablePageSize, tablePageCourante * tablePageSize);
+
+    const actualiser = () => {
+        setReloadKey((k) => k + 1);
+    };
 
     return (
         <PageLayout
@@ -182,7 +182,12 @@ function ListeImprimante() {
                             <EmptyState
                                 icon={Printer}
                                 title="Aucune imprimante trouvée"
-                                subtitle={search || vendor ? "Modifiez vos filtres" : "Aucune donnée disponible"}
+                                subtitle={search || vendor ? "Aucun modèle ne correspond aux filtres actifs." : "Aucune donnée disponible."}
+                                action={
+                                    <button onClick={actualiser} className="px-4 py-2 text-xs font-semibold rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 hover:bg-amber-500/20 hover:border-amber-500/50 transition-all cursor-pointer">
+                                        Actualiser
+                                    </button>
+                                }
                             />
                         ) : (
                             <>
@@ -190,7 +195,7 @@ function ListeImprimante() {
                                     <div>
                                         <h2 className="section-title">Modèles détectés</h2>
                                         <span className="section-count">
-                                            {tableTotal} modèle{tableTotal > 1 ? "s" : ""} — Page {tablePageCourante}/{tableTotalPages}
+                                            {tableTotal} modèle{tableTotal > 1 ? "s" : ""}
                                         </span>
                                     </div>
                                     <div className="flex bg-zinc-900 rounded-lg p-1 border border-white/10">
@@ -210,15 +215,7 @@ function ListeImprimante() {
                                         </button>
                                     </div>
                                 </div>
-                                <GenericTable columns={imprimanteColumns} data={tableImprimantes} onRowClick={(imp) => navigate(`/imprimante/${imp.id}`)} />
-                                <Pagination
-                                    page={tablePageCourante}
-                                    pageSize={tablePageSize}
-                                    totalPages={tableTotalPages}
-                                    total={tableTotal}
-                                    loading={loadingAll}
-                                    onPageChange={setTablePage}
-                                />
+                                <GenericTable columns={imprimanteColumns} data={allImprimantes} onRowClick={(imp) => navigate(`/imprimante/${imp.id}`)} />
                             </>
                         )
                     ) : loading && imprimantes.length === 0 ? (
@@ -264,18 +261,20 @@ function ListeImprimante() {
                                 ))}
                             </div>
 
-                            <Pagination
-                                page={currentPage}
-                                pageSize={pageSize}
-                                totalPages={totalPages}
-                                total={total}
-                                loading={loading}
-                                onPageChange={setCurrentPage}
-                                onPageSizeChange={(size) => {
-                                    setPageSize(size);
-                                    setCurrentPage(1);
-                                }}
-                            />
+                            {viewMode !== 'table' && (
+                                <Pagination
+                                    page={currentPage}
+                                    pageSize={pageSize}
+                                    totalPages={totalPages}
+                                    total={total}
+                                    loading={loading}
+                                    onPageChange={setCurrentPage}
+                                    onPageSizeChange={(size) => {
+                                        setPageSize(size);
+                                        setCurrentPage(1);
+                                    }}
+                                />
+                            )}
                         </>
                     )}
             </PageLayout>

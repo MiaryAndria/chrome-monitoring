@@ -297,7 +297,7 @@ function ListeDeviceFiliale() {
                                                     onClick={() => setSelectedDevice(d)}
                                                     className="px-3 py-1.5 text-xs font-semibold text-cyan-400 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 hover:border-cyan-500/50 rounded-xl transition-all flex items-center gap-1 cursor-pointer shadow-sm"
                                                 >
-                                                    Voir tout
+                                                    Voir utilisateur récents 
                                                 </button>
                                                 <button
                                                     onClick={() => navigate(`/device/${d.id || d.id_device}`)}

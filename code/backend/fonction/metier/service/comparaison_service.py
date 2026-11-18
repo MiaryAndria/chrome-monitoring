@@ -1,12 +1,12 @@
 import json
 from datetime import datetime, timezone
-
 from backend.fonction.conn.transaction import lecture, transaction
 from backend.fonction.metier.repository.devices import (
     get_device_by_id,
     _get_device_cpu_info,
     get_liste_version_by_device,
     get_version_intervalle,
+    get_device_type,
 )
 from backend.fonction.metier.repository.cpu import get_cpu_device_date
 from backend.fonction.metier.repository.ram import get_ram_device_date
@@ -326,13 +326,35 @@ def _marquer_echec(id_comparaison):
     except Exception:
         pass
 
+def _famille_type_appareil(type_appareil):
+    t = str(type_appareil or "").lower()
+    if "chromebox" in t:
+        return "CHROMEBOX"
+    if "chromebook" in t:
+        return "CHROMEBOOK"
+    return str(type_appareil or "").strip().upper() or "INCONNUE"
 
+
+def _get_type_appareil(id_device):
+    if id_device is None:
+        return None
+    try:
+        with lecture() as cur:
+            return get_device_type(cur, id_device)
+    except Exception:
+        return None
+    
 def _executer_comparaison(id_device_a, id_device_b, version_a, version_b, id_type_comparaison):
     id_comparaison = None
     try:
         with transaction() as cur:
             if cur is None:
                 return None
+            type_appareil_a = _get_type_appareil(id_device_a)
+            type_appareil_b = _get_type_appareil(id_device_b)
+            if _famille_type_appareil(type_appareil_a) != _famille_type_appareil(type_appareil_b):
+                raise ValidationError("Type d'appareil de familles différentes")
+            
             detail_a = get_data_device(cur, id_device_a, version_a)
             detail_b = get_data_device(cur, id_device_b, version_b)
             if detail_a is None or detail_b is None:

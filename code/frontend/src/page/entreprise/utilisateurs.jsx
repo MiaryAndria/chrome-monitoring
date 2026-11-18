@@ -34,13 +34,13 @@ function ListeUtilisateursEntreprise() {
     const [devicesByUser, setDevicesByUser] = useState({});
     const [loadingDevices, setLoadingDevices] = useState(false);
     const [allUtilisateurs, setAllUtilisateurs] = useState([]);
-    const [tablePage, setTablePage] = useState(1);
     const [loadingAll, setLoadingAll] = useState(false);
-    const tablePageSize = 10;
+    const [reloadKey, setReloadKey] = useState(0);
 
     const filtresUtilisateurs = {
         filiale: filiale || undefined,
         recherche: debouncedSearch || undefined,
+        reload: reloadKey,
     };
 
     const { items: utilisateurs, total, totalPages, loading, error, firstLoadDone } = usePaginatedData(
@@ -77,7 +77,6 @@ function ListeUtilisateursEntreprise() {
 
     useEffect(() => {
         setCurrentPage(1);
-        setTablePage(1);
     }, [filiale, search, debouncedSearch]);
 
     useEffect(() => {
@@ -85,7 +84,7 @@ function ListeUtilisateursEntreprise() {
             chargerTousLesUtilisateurs();
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [viewMode, filiale, search, debouncedSearch]);
+    }, [viewMode, filiale, search, debouncedSearch, reloadKey]);
 
     const filtresActifs = filiale !== "" || search !== "";
 
@@ -93,15 +92,13 @@ function ListeUtilisateursEntreprise() {
         setFiliale("");
         setSearch("");
         setCurrentPage(1);
-        setTablePage(1);
     };
 
     const tableTotal = allUtilisateurs.length;
-    const tableTotalPages = Math.max(1, Math.ceil(tableTotal / tablePageSize));
-    const tablePageCourante = Math.min(tablePage, tableTotalPages);
-    const tableUtilisateurs = allUtilisateurs.slice((tablePageCourante - 1) * tablePageSize, tablePageCourante * tablePageSize);
-    const utilisateursAffiches = viewMode === "table" ? tableUtilisateurs : utilisateurs;
-    const totalAffiche = viewMode === "table" ? tableTotal : total;
+
+    const actualiser = () => {
+        setReloadKey((k) => k + 1);
+    };
 
     const ouvrirDevices = async (user) => {
         setSelectedUser(user);
@@ -206,19 +203,11 @@ function ListeUtilisateursEntreprise() {
                             <div>
                                 <h2 className="section-title">Utilisateurs récents</h2>
                                 <span className="section-count">
-                                    {tableTotal} utilisateur{tableTotal > 1 ? "s" : ""} — Page {tablePageCourante}/{tableTotalPages}
+                                    {tableTotal} utilisateur{tableTotal > 1 ? "s" : ""}
                                 </span>
                             </div>
                         </div>
-                        <GenericTable columns={columns} data={tableUtilisateurs} />
-                        <Pagination
-                            page={tablePageCourante}
-                            pageSize={tablePageSize}
-                            totalPages={tableTotalPages}
-                            total={tableTotal}
-                            loading={loadingAll}
-                            onPageChange={setTablePage}
-                        />
+                        <GenericTable columns={columns} data={allUtilisateurs} />
                     </>
                 )
             ) : loading && utilisateurs.length === 0 ? (

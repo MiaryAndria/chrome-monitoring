@@ -2,6 +2,16 @@ def get_liste_device(cur):
     cur.execute("SELECT id FROM t_device ORDER BY id ASC")
     return cur.fetchall()
 
+def get_device_type(cur,id_device):
+    cur.execute(
+        """
+        SELECT t_device.* , t_type_appareil.*
+        FROM t_device
+        LEFT JOIN t_type_appareil ON t_type_appareil.id = t_device.id_type_appareil
+        WHERE id_device = %s
+        """,(id_device)
+    )
+    return cur.fetchone()
 
 def get_device_by_id(cur, id):
     cur.execute(

@@ -141,11 +141,11 @@ def getListeDeviceAlerteDateResolue(date_debut=None, date_fin=None):
             })
         return result
 
-def _fetch_device_alertes_page(page, page_size, date_debut, date_fin,type,search):
+def _fetch_device_alertes_page(page, page_size, date_debut, date_fin, type, search, filiale=None, utilisateur_recent=None):
     with lecture() as cur:
         if cur is None:
             return build_page([], 0, page, page_size)
-        rows, total = find_device_alertes_paginated(cur, page, page_size, date_debut, date_fin,type,search)
+        rows, total = find_device_alertes_paginated(cur, page, page_size, date_debut, date_fin, type, search, filiale, utilisateur_recent)
         items = []
         for r in rows:
             items.append({
@@ -159,19 +159,19 @@ def _fetch_device_alertes_page(page, page_size, date_debut, date_fin,type,search
             })
         return build_page(items, total, page, page_size)
 
-def getDeviceAlertesPage(page=1, page_size=10, date_debut=None, date_fin=None,type=None,search=None):
-    cle = f"alertes:device:{page}:{page_size}:{date_debut}:{date_fin}:{type}:{search}"
+def getDeviceAlertesPage(page=1, page_size=10, date_debut=None, date_fin=None, type=None, search=None, filiale=None, utilisateur_recent=None):
+    cle = f"alertes:device:{page}:{page_size}:{date_debut}:{date_fin}:{type}:{search}:{filiale}:{utilisateur_recent}"
     valeur = cache_get(cle)
     if valeur is not None:
         return valeur
-    return cache_set(cle, _fetch_device_alertes_page(page, page_size, date_debut, date_fin,type,search))
+    return cache_set(cle, _fetch_device_alertes_page(page, page_size, date_debut, date_fin, type, search, filiale, utilisateur_recent))
 
 
-def _fetch_device_alertes_resolues_page(page, page_size, date_debut, date_fin,type,search):
+def _fetch_device_alertes_resolues_page(page, page_size, date_debut, date_fin, type, search, filiale=None, utilisateur_recent=None):
     with lecture() as cur:
         if cur is None:
             return build_page([], 0, page, page_size)
-        rows, total = find_device_alertes_resolues_paginated(cur, page, page_size, date_debut, date_fin,type,search)
+        rows, total = find_device_alertes_resolues_paginated(cur, page, page_size, date_debut, date_fin, type, search, filiale, utilisateur_recent)
         items = []
         for r in rows:
             items.append({
@@ -186,12 +186,12 @@ def _fetch_device_alertes_resolues_page(page, page_size, date_debut, date_fin,ty
         return build_page(items, total, page, page_size)
 
 
-def getDeviceAlertesResoluesPage(page=1, page_size=10, date_debut=None, date_fin=None,type=None,search=None):
-    cle = f"alertes:device:resolues:{page}:{page_size}:{date_debut}:{date_fin}:{type}:{search}"
+def getDeviceAlertesResoluesPage(page=1, page_size=10, date_debut=None, date_fin=None, type=None, search=None, filiale=None, utilisateur_recent=None):
+    cle = f"alertes:device:resolues:{page}:{page_size}:{date_debut}:{date_fin}:{type}:{search}:{filiale}:{utilisateur_recent}"
     valeur = cache_get(cle)
     if valeur is not None:
         return valeur
-    return cache_set(cle, _fetch_device_alertes_resolues_page(page, page_size, date_debut, date_fin,type,search))
+    return cache_set(cle, _fetch_device_alertes_resolues_page(page, page_size, date_debut, date_fin, type, search, filiale, utilisateur_recent))
 
 
 def _seuils_actifs(cur):

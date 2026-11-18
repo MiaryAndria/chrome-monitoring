@@ -53,9 +53,11 @@ def liste_device_alerte_resolue(date_debut: Optional[datetime] = None, date_fin:
 @router.get("/device/resolue/page", response_model=AlerteResumePageResponse)
 def liste_device_alerte_resolue_page(
     page: int = Query(1, ge=1),
-    page_size: int = Query(10, ge=1, le=100),
+    page_size: int = Query(10, ge=1, le=10000),
     type: Optional[str] = None,
     search: Optional[str] = None,
+    filiale: Optional[str] = None,
+    utilisateur_recent: Optional[str] = None,
     date_debut: Optional[datetime] = None,
     date_fin: Optional[datetime] = None,
 ):
@@ -63,15 +65,18 @@ def liste_device_alerte_resolue_page(
     return getDeviceAlertesResoluesPage(
         page=page, page_size=page_size,
         date_debut=date_debut, date_fin=date_fin, type=type, search=search,
+        filiale=filiale, utilisateur_recent=utilisateur_recent,
     )
 
 
 @router.get("/device/page", response_model=AlerteResumePageResponse)
 def liste_device_alerte_page(
     page: int = Query(1, ge=1),
-    page_size: int = Query(10, ge=1, le=100),
+    page_size: int = Query(10, ge=1, le=10000),
     type: Optional[str] = None,
     search: Optional[str] = None,
+    filiale: Optional[str] = None,
+    utilisateur_recent: Optional[str] = None,
     date_debut: Optional[datetime] = None,
     date_fin: Optional[datetime] = None,
 ):
@@ -79,6 +84,7 @@ def liste_device_alerte_page(
     return getDeviceAlertesPage(
         page=page, page_size=page_size,
         date_debut=date_debut, date_fin=date_fin, type=type, search=search,
+        filiale=filiale, utilisateur_recent=utilisateur_recent,
     )
 
 

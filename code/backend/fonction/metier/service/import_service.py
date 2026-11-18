@@ -6,6 +6,9 @@ from contextlib import contextmanager
 from datetime import datetime
 from backend.utils.chrono import _aware, chrono, memo
 from backend.fonction.metier.service.alerte_service import insertAlerte
+from backend.fonction.metier.repository.evenement.evenement_statut import (
+    insert_evenement_statut_si_absent,
+)
 def _appel_chrono(etapes, label, callback, *args):
     with chrono(label, etapes):
         return callback(*args)
@@ -34,6 +37,9 @@ from backend.fonction.metier.repository.statut import insert_device_statut, STAT
 from backend.fonction.metier.repository.rapport import (create_type_rapport,create_rapport_device,
     get_liste_type_rapport,insert_rapport_lot,
     init_default_types_rapport,
+)
+from backend.fonction.metier.repository.statut import (
+    ID_STATUT_ACTIVE,
 )
 
 from backend.fonction.metier.repository.evenement import get_or_create_type_evenement, create_evenement_device
@@ -84,7 +90,6 @@ def _enregistrer_version(cur, id_device, version):
     derniere = get_last_version(cur, id_device)
     if derniere is None or derniere != version:
         insert_device_version(cur, id_device, version)
-
 
 def _lier_reseau_device(cur, db_device_id, id_filiale, ip_adresse):
     if not id_filiale or not ip_adresse:
@@ -425,15 +430,19 @@ def _enregistrer_evenement(cur, crash):
         return
 
     details_json = json.dumps(_construire_details_evenement(crash), ensure_ascii=False)
-    create_evenement_device(cur, id_device, id_type_evenement, date_evenement, details_json)
+    return create_evenement_device(cur, id_device, id_type_evenement, date_evenement, details_json)
 
 
 def insert_event(cur, crashes_data):
     evenements = crashes_data.get("evenements", []) if isinstance(crashes_data, dict) else crashes_data
+    ids = []
     for crash in evenements:
         if not crash.get("deviceId"):
             continue
-        _enregistrer_evenement(cur, crash)
+        id_evenement = _enregistrer_evenement(cur, crash)
+        if id_evenement:
+            ids.append(id_evenement)
+    return ids
 
 def _recuperer_donnees_google(credential, debut, etapes):
     with chrono("google_total_parallele", etapes):
@@ -447,7 +456,6 @@ def _recuperer_donnees_google(credential, debut, etapes):
             events, ctx = f_crash.result()
     return dvc_list, telemetry_devices_list, events, ctx
 
-
 def _importer_en_bdd(cur, dvc_list, telemetry_devices_list, crashes_data, filtre_debut, etapes):
     with chrono("db_devices", etapes):
         insertion_device(cur, dvc_list)
@@ -456,8 +464,9 @@ def _importer_en_bdd(cur, dvc_list, telemetry_devices_list, crashes_data, filtre
     with chrono("db_imprimantes", etapes):
         insert_imprimante(cur, telemetry_devices_list)
     with chrono("db_evenements", etapes):
-        insert_event(cur, crashes_data)
-
+        id_evenements = insert_event(cur, crashes_data)
+        for id_evenement in id_evenements:
+            insert_evenement_statut_si_absent(cur, id_evenement, ID_STATUT_ACTIVE)
 
 def synchroniser_tout(debut=None, fin=None, suivi=None):
     suivi = suivi if suivi is not None else {}

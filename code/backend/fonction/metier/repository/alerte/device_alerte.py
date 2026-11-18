@@ -111,9 +111,10 @@ def get_dernieres_alertes(cur, limit):
     return cur.fetchall()
 
 
-def find_device_alertes_paginated(cur, page=1, page_size=10, date_debut=None, date_fin=None, type_alerte=None, search_params=None):
+def find_device_alertes_paginated(cur, page=1, page_size=10, date_debut=None, date_fin=None, type_alerte=None, search_params=None, filiale=None, utilisateur_recent=None):
     offset = (page - 1) * page_size
     motif = f"%{search_params}%" if search_params else None
+    motif_utilisateur = f"%{utilisateur_recent}%" if utilisateur_recent else None
 
     cur.execute(
         f"""
@@ -124,6 +125,20 @@ def find_device_alertes_paginated(cur, page=1, page_size=10, date_debut=None, da
           AND (%s IS NULL OR date <= %s)
           AND (%s IS NULL OR type = %s)
           AND (%s IS NULL OR serial_number ILIKE %s OR message ILIKE %s OR type ILIKE %s)
+          AND (%s IS NULL OR EXISTS (
+                SELECT 1
+                FROM t_device_filiale df
+                JOIN t_filiale f ON f.id = df.id_filiale
+                WHERE df.id_device = v_device_alerte.id_device
+                  AND f.org_unit_path = %s
+          ))
+          AND (%s IS NULL OR EXISTS (
+                SELECT 1
+                FROM t_device_utilisateur_recent dur
+                JOIN t_utilisateur ur ON ur.id = dur.id_utilisateur
+                WHERE dur.id_device = v_device_alerte.id_device
+                  AND ur.email ILIKE %s
+          ))
         """,
         (
             ID_STATUT_ACTIVE,
@@ -131,6 +146,8 @@ def find_device_alertes_paginated(cur, page=1, page_size=10, date_debut=None, da
             date_fin, date_fin,
             type_alerte, type_alerte,
             motif, motif, motif, motif,
+            filiale, filiale,
+            utilisateur_recent, motif_utilisateur,
         ),
     )
     total = cur.fetchone()[0]
@@ -144,6 +161,20 @@ def find_device_alertes_paginated(cur, page=1, page_size=10, date_debut=None, da
           AND (%s IS NULL OR date <= %s)
           AND (%s IS NULL OR type = %s)
           AND (%s IS NULL OR serial_number ILIKE %s OR message ILIKE %s OR type ILIKE %s)
+          AND (%s IS NULL OR EXISTS (
+                SELECT 1
+                FROM t_device_filiale df
+                JOIN t_filiale f ON f.id = df.id_filiale
+                WHERE df.id_device = v_device_alerte.id_device
+                  AND f.org_unit_path = %s
+          ))
+          AND (%s IS NULL OR EXISTS (
+                SELECT 1
+                FROM t_device_utilisateur_recent dur
+                JOIN t_utilisateur ur ON ur.id = dur.id_utilisateur
+                WHERE dur.id_device = v_device_alerte.id_device
+                  AND ur.email ILIKE %s
+          ))
         ORDER BY date DESC, id DESC
         LIMIT %s OFFSET %s
         """,
@@ -153,15 +184,18 @@ def find_device_alertes_paginated(cur, page=1, page_size=10, date_debut=None, da
             date_fin, date_fin,
             type_alerte, type_alerte,
             motif, motif, motif, motif,
+            filiale, filiale,
+            utilisateur_recent, motif_utilisateur,
             page_size, offset,
         ),
     )
     return cur.fetchall(), total
 
 
-def find_device_alertes_resolues_paginated(cur, page=1, page_size=10, date_debut=None, date_fin=None, type_alerte=None, search_params=None):
+def find_device_alertes_resolues_paginated(cur, page=1, page_size=10, date_debut=None, date_fin=None, type_alerte=None, search_params=None, filiale=None, utilisateur_recent=None):
     offset = (page - 1) * page_size
     motif = f"%{search_params}%" if search_params else None
+    motif_utilisateur = f"%{utilisateur_recent}%" if utilisateur_recent else None
 
     cur.execute(
         f"""
@@ -172,6 +206,20 @@ def find_device_alertes_resolues_paginated(cur, page=1, page_size=10, date_debut
           AND (%s IS NULL OR date <= %s)
           AND (%s IS NULL OR type = %s)
           AND (%s IS NULL OR serial_number ILIKE %s OR message ILIKE %s OR type ILIKE %s)
+          AND (%s IS NULL OR EXISTS (
+                SELECT 1
+                FROM t_device_filiale df
+                JOIN t_filiale f ON f.id = df.id_filiale
+                WHERE df.id_device = v_device_alerte.id_device
+                  AND f.org_unit_path = %s
+          ))
+          AND (%s IS NULL OR EXISTS (
+                SELECT 1
+                FROM t_device_utilisateur_recent dur
+                JOIN t_utilisateur ur ON ur.id = dur.id_utilisateur
+                WHERE dur.id_device = v_device_alerte.id_device
+                  AND ur.email ILIKE %s
+          ))
         """,
         (
             ID_STATUT_RESOLUE,
@@ -179,6 +227,8 @@ def find_device_alertes_resolues_paginated(cur, page=1, page_size=10, date_debut
             date_fin, date_fin,
             type_alerte, type_alerte,
             motif, motif, motif, motif,
+            filiale, filiale,
+            utilisateur_recent, motif_utilisateur,
         ),
     )
     total = cur.fetchone()[0]
@@ -192,6 +242,20 @@ def find_device_alertes_resolues_paginated(cur, page=1, page_size=10, date_debut
           AND (%s IS NULL OR date <= %s)
           AND (%s IS NULL OR type = %s)
           AND (%s IS NULL OR serial_number ILIKE %s OR message ILIKE %s OR type ILIKE %s)
+          AND (%s IS NULL OR EXISTS (
+                SELECT 1
+                FROM t_device_filiale df
+                JOIN t_filiale f ON f.id = df.id_filiale
+                WHERE df.id_device = v_device_alerte.id_device
+                  AND f.org_unit_path = %s
+          ))
+          AND (%s IS NULL OR EXISTS (
+                SELECT 1
+                FROM t_device_utilisateur_recent dur
+                JOIN t_utilisateur ur ON ur.id = dur.id_utilisateur
+                WHERE dur.id_device = v_device_alerte.id_device
+                  AND ur.email ILIKE %s
+          ))
         ORDER BY date DESC, id DESC
         LIMIT %s OFFSET %s
         """,
@@ -201,6 +265,8 @@ def find_device_alertes_resolues_paginated(cur, page=1, page_size=10, date_debut
             date_fin, date_fin,
             type_alerte, type_alerte,
             motif, motif, motif, motif,
+            filiale, filiale,
+            utilisateur_recent, motif_utilisateur,
             page_size, offset,
         ),
     )

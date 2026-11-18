@@ -11,6 +11,8 @@ import ListeFiliale from './page/filiale/liste'
 import ListeDeviceFiliale from './page/filiale/liste_device'
 import DetailDevice from './page/device/detail_device'
 import ListeEvent from './page/event/liste'
+import ListeEventResolue from './page/event/resolue'
+import DetailEvenement from './page/event/detail'
 import ListeImprimante from './page/imprimante/liste'
 import ConfigurationCreate from './page/configuration/create'
 import ConfigurationListe from './page/configuration/liste'
@@ -53,6 +55,8 @@ function App() {
             <Route path="/liste/device" element={<ListeDevice />} />
             <Route path="/device/:id" element={<DetailDevice />} />
             <Route path="/liste/event" element={<ListeEvent />} />
+            <Route path="/event/resolue" element={<ListeEventResolue />} />
+            <Route path="/event/:id" element={<DetailEvenement />} />
             <Route path="/imprimantes" element={<ListeImprimante />} />
             <Route path="/imprimante/:id" element={<DetailImprimante />} />
             <Route path="/comparaison/liste" element={<Comparaison/>} />

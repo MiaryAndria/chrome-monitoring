@@ -1,30 +1,24 @@
 import {
     Calendar, Monitor, User,
-    Zap, AlertTriangle, Cpu, Layers
+    Zap, Layers
 } from "lucide-react";
-import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { formatDateTime } from "../../fonction/utils/util";
-import EvenementDureeVie from "./EvenementDureeVie";
-import IAChatModal from "./IAChatModal";
 
 const CAUSE_LABELS = {
-    "ARRET_ANORMAL": { 
-        label: "Arrêt anormal", 
-        desc: "Coupure courant / extinction forcée / plantage entre 2 sessions", 
+    "ARRET_ANORMAL": {
+        label: "Arrêt anormal",
+        desc: "Coupure courant / extinction forcée / plantage entre 2 sessions",
         color: "text-red-400",
-        explication: "Le Chromebook s'est éteint brusquement sans suivre la procédure d'arrêt normale. Cela se produit souvent lorsqu'un utilisateur force l'extinction en maintenant le bouton d'alimentation enfoncé, ou si la batterie s'est vidée complètement de façon soudaine.",
-        solution: "Vérifiez l'état de la batterie de l'appareil. Sensibilisez les utilisateurs à utiliser le bouton 'Arrêter' de l'interface plutôt que de forcer l'arrêt matériel."
     },
-    "EN_SESSION": { 
-        label: "En session",    
-        desc: "Crash survenu pendant qu'un utilisateur était connecté",       
+    "EN_SESSION": {
+        label: "En session",
+        desc: "Crash survenu pendant qu'un utilisateur était connecté",
         color: "text-amber-400",
-        explication: "Le système a subi une défaillance critique (Kernel Panic ou crash système) alors qu'une session utilisateur était active. Cela indique généralement un problème logiciel sévère, un conflit matériel, ou une surcharge de la mémoire.",
-        solution: "Vérifiez si l'appareil manque de mémoire RAM. Assurez-vous que la version de ChromeOS est à jour. Si le problème persiste, il peut s'agir d'un défaut matériel (RAM ou carte mère)."
     },
 };
 
-const getStyle = (type, causeClass) => {
+const getStyle = (type) => {
     const t = (type || "").toUpperCase();
 
     if (t.includes("KERNEL"))
@@ -36,9 +30,6 @@ const getStyle = (type, causeClass) => {
             glow: "radial-gradient(circle at top right, rgba(239, 68, 68, 0.08), transparent 70%)",
             hoverBorder: "rgba(239, 68, 68, 0.5)",
             shadow: "rgba(239, 68, 68, 0.2)",
-            label: "Crash noyau",
-            explication: "Un Crash Kernel (Kernel Panic) est une erreur critique au niveau du cœur du système d'exploitation. L'OS n'a pas pu récupérer d'une erreur interne et s'est arrêté par sécurité.",
-            solution: "Généralement résolu par une mise à jour de ChromeOS. Si récurrent sur un même appareil, effectuez un Powerwash (réinitialisation d'usine). Si cela ne suffit pas, une réparation matérielle est nécessaire."
         };
     if (t.includes("EMBEDDED") || t.includes("CONTROLLER") || t.includes("EC"))
         return {
@@ -49,9 +40,6 @@ const getStyle = (type, causeClass) => {
             glow: "radial-gradient(circle at top right, rgba(245, 158, 11, 0.08), transparent 70%)",
             hoverBorder: "rgba(245, 158, 11, 0.5)",
             shadow: "rgba(245, 158, 11, 0.2)",
-            label: "Ctrl embarqué",
-            explication: "Le contrôleur embarqué (EC) est une puce qui gère le clavier, le pavé tactile, la batterie et l'alimentation. Un crash de l'EC signifie que cette puce a cessé de répondre et a redémarré.",
-            solution: "Ce type de crash est souvent lié à la batterie ou au chargeur. Essayez de réaliser un Hard Reset (Actualiser + Power). Si l'erreur se reproduit, la batterie ou la carte mère pourrait être défectueuse."
         };
     if (t.includes("BROWSER") || t.includes("APP"))
         return {
@@ -62,9 +50,6 @@ const getStyle = (type, causeClass) => {
             glow: "radial-gradient(circle at top right, rgba(168, 85, 247, 0.08), transparent 70%)",
             hoverBorder: "rgba(168, 85, 247, 0.5)",
             shadow: "rgba(168, 85, 247, 0.2)",
-            label: "App / Navigateur",
-            explication: "Le navigateur Chrome ou une application web (ou Android) a crashé (Out Of Memory ou erreur fatale de rendu), forçant la session à se fermer.",
-            solution: "L'utilisateur avait probablement trop d'onglets ouverts simultanément, dépassant la capacité de la mémoire RAM de l'appareil. Demandez-lui de limiter le nombre d'onglets ou désactivez certaines extensions gourmandes."
         };
     return {
         card: "border-cyan-500/30 bg-cyan-500/5",
@@ -74,33 +59,25 @@ const getStyle = (type, causeClass) => {
         glow: "radial-gradient(circle at top right, rgba(6, 182, 212, 0.08), transparent 70%)",
         hoverBorder: "rgba(6, 182, 212, 0.5)",
         shadow: "rgba(6, 182, 212, 0.2)",
-        label: "Autre",
-        explication: "Ce type d'événement est classé comme inconnu ou divers. Il peut s'agir d'un redémarrage normal demandé par le système (mise à jour) ou d'un comportement non surveillé.",
-        solution: "Aucune action urgente requise sauf si cela se produit de manière cyclique sur le même appareil."
     };
 };
 
-function EventCard({ ev, isOpen, onToggle }) {
-    const style = getStyle(ev.type_evenement, ev.cause_class);
+function EventCard({ ev }) {
+    const navigate = useNavigate();
+    const style = getStyle(ev.type_evenement);
     const causeInfo = CAUSE_LABELS[ev.cause_class] || null;
     const shortType = (ev.type_evenement || "INCONNU").replace("CRASH_TYPE_", "").replace(/_/g, " ");
-    const [iaOpen, setIaOpen] = useState(false);
-
-    const ev_date = formatDateTime(ev.date_evenement);
 
     return (
         <div
             className={`device-card group ${style.card}`}
-            style={{ 
+            style={{
                 "--card-glow": style.glow,
                 "--card-border-hover": style.hoverBorder,
                 "--card-shadow": style.shadow
             }}
         >
-
-            {/* En-tête carte */}
             <div className="relative z-10">
-                {/* Type + date */}
                 <div className="flex items-start justify-between gap-2 mb-3">
                     <div className="flex items-center gap-2">
                         <div className={`w-2 h-2 rounded-full ${style.dot} shadow-[0_0_6px_currentColor] flex-shrink-0 mt-1`} />
@@ -110,18 +87,16 @@ function EventCard({ ev, isOpen, onToggle }) {
                     </div>
                     <span className="text-[10px] text-zinc-500 whitespace-nowrap flex items-center gap-1">
                         <Calendar className="w-3 h-3" />
-                        {ev_date}
+                        {formatDateTime(ev.date_evenement)}
                     </span>
                 </div>
 
-                {/* Cause */}
                 {causeInfo && (
                     <span className={`inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full border ${style.badge} mb-3`}>
                         {causeInfo.label}
                     </span>
                 )}
 
-                {/* Utilisateur */}
                 {ev.last_user && (
                     <p className="text-xs text-zinc-300 flex items-center gap-1.5 mb-2 truncate">
                         <User className="w-3 h-3 text-zinc-500 flex-shrink-0" />
@@ -129,7 +104,6 @@ function EventCard({ ev, isOpen, onToggle }) {
                     </p>
                 )}
 
-                {/* Appareil */}
                 <p className="text-xs font-medium text-zinc-400 flex items-center gap-1.5 truncate">
                     <Monitor className="w-3 h-3 text-zinc-600 flex-shrink-0" />
                     {ev.modele || ev.device_id || "—"}
@@ -140,75 +114,30 @@ function EventCard({ ev, isOpen, onToggle }) {
                     </p>
                 )}
 
-                {/* Filiale */}
                 {ev.filiale && (
                     <p className="text-[10px] text-zinc-500 mt-1 flex items-center gap-1 pl-0.5">
                         <Layers className="w-3 h-3" />
                         {ev.filiale.replace(/^\//, "")}
                     </p>
                 )}
+
+                {ev.cause_hint && (
+                    <div className="mt-3 bg-zinc-900/60 rounded-lg p-3 border border-white/5">
+                        <p className="text-[10px] text-zinc-500 uppercase font-semibold mb-1 flex items-center gap-1">
+                            <Zap className="w-3 h-3" /> Analyse
+                        </p>
+                        <p className="text-[11px] text-zinc-300 leading-relaxed">{ev.cause_hint}</p>
+                    </div>
+                )}
             </div>
 
-            {/* Bouton détail */}
             <button
-                onClick={onToggle}
+                onClick={() => navigate(`/event/${ev.id}`)}
                 className="w-full px-4 py-2 mt-3 border-t border-white/5 text-[10px] text-zinc-500 hover:text-cyan-300 hover:bg-cyan-500/5 transition-colors flex items-center justify-center gap-1 cursor-pointer rounded-b-xl"
             >
-                {isOpen ? "Masquer" : "Voir diagnostic"}
-                <span className={`transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}>▼</span>
+                Voir diagnostic
+                <span>→</span>
             </button>
-
-            {/* Détail expandable */}
-            {isOpen && (
-                <div className="px-4 py-3 border-t border-white/5 bg-black/20 space-y-2">
-                    {causeInfo && (
-                        <p className="text-[11px] text-zinc-400 leading-relaxed">{causeInfo.desc}</p>
-                    )}
-                    {ev.cause_hint && (
-                        <div className="bg-zinc-900/60 rounded-lg p-3 border border-white/5">
-                            <p className="text-[10px] text-zinc-500 uppercase font-semibold mb-1 flex items-center gap-1">
-                                <Zap className="w-3 h-3" /> Analyse
-                            </p>
-                            <p className="text-[11px] text-zinc-300 leading-relaxed">{ev.cause_hint}</p>
-                        </div>
-                    )}
-                    <div className="grid grid-cols-3 gap-2">
-                        {ev.crash_seq != null && (
-                            <div className="bg-zinc-800/50 rounded-lg p-2 text-center border border-white/5">
-                                <p className="text-[10px] text-zinc-500">Seq.</p>
-                                <p className="text-sm font-bold text-zinc-200">#{ev.crash_seq}</p>
-                            </div>
-                        )}
-                        {ev.raw_events != null && (
-                            <div className="bg-zinc-800/50 rounded-lg p-2 text-center border border-white/5">
-                                <p className="text-[10px] text-zinc-500">Événements</p>
-                                <p className="text-sm font-bold text-zinc-200">{ev.raw_events}</p>
-                            </div>
-                        )}
-                        {ev.minutes_since_boot != null && (
-                            <div className="bg-zinc-800/50 rounded-lg p-2 text-center border border-white/5">
-                                <p className="text-[10px] text-zinc-500">Min/boot</p>
-                                <p className="text-sm font-bold text-zinc-200">{Number(ev.minutes_since_boot).toFixed(0)}</p>
-                            </div>
-                        )}
-                    </div>
-
-                    <div className="pt-2 border-t border-white/5">
-                        <p className="text-[10px] text-zinc-500 uppercase font-semibold mb-2">
-                            Durée de vie avant extinction
-                        </p>
-                        <EvenementDureeVie eventId={ev.id} />
-                    </div>
-                    <button
-                        onClick={() => setIaOpen(true)}
-                        className="w-full mt-3 px-4 py-2 rounded-xl bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 hover:bg-cyan-500/25 transition-colors text-xs font-semibold flex items-center justify-center gap-2 cursor-pointer"
-                    >
-                        Demander à l'IA
-                    </button>
-
-                    {iaOpen && <IAChatModal ev={ev} onClose={() => setIaOpen(false)} />}
-                </div>
-            )}
         </div>
     );
 }

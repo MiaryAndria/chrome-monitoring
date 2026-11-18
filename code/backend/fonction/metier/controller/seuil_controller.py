@@ -35,7 +35,7 @@ def get_liste():
 
 
 @router.get("/liste/page", response_model=SeuilPageResponse)
-def get_liste_page(page: int = Query(1, ge=1), page_size: int = Query(10, ge=1, le=100), categorie: str | None = None):
+def get_liste_page(page: int = Query(1, ge=1), page_size: int = Query(10, ge=1, le=10000), categorie: str | None = None):
     return getSeuilsPage(page=page, page_size=page_size, categorie=categorie)
 
 
@@ -45,7 +45,7 @@ def get_list_archive():
 
 
 @router.get("/liste/archiver/page", response_model=SeuilPageResponse)
-def get_list_archive_page(page: int = Query(1, ge=1), page_size: int = Query(10, ge=1, le=100)):
+def get_list_archive_page(page: int = Query(1, ge=1), page_size: int = Query(10, ge=1, le=10000)):
     return getSeuilsArchivePage(page=page, page_size=page_size)
 
 

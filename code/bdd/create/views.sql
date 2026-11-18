@@ -141,9 +141,10 @@ LEFT JOIN derniere_version dv ON dv.id_device = d.id;
 -- But : exposer les événements avec leur type, l'appareil et
 --       la filiale associés, pour des filtres backend
 --       (type, filiale, recherche, plage date/heure).
+--       id_statut = DERNIER statut (via t_evenement_statut).
 -- Colonnes : id, date_evenement, details, type_evenement,
 --            id_device, device_id, serial_number, modele,
---            id_filiale, filiale
+--            id_filiale, filiale, id_statut
 -- Utilisée par : AJUSTEMENT 3 (filtres backend + pagination)
 --                AJUSTEMENT 12 (filtres date + heure)
 --                C1 (performance pagination : agrégat global)
@@ -176,7 +177,14 @@ SELECT
     d.serial_number,
     d.modele,
     fi.id_filiale,
-    fi.org_unit_path AS filiale
+    fi.org_unit_path AS filiale,
+    (
+        SELECT s.id_statut
+        FROM t_evenement_statut s
+        WHERE s.id_evenement = ed.id
+        ORDER BY s.date DESC NULLS LAST, s.id DESC
+        LIMIT 1
+    ) AS id_statut
 FROM t_evenement_device ed
 LEFT JOIN t_type_evenement te ON te.id = ed.id_type_evenement
 LEFT JOIN t_device d ON d.id = ed.id_device
@@ -190,7 +198,9 @@ LEFT JOIN derniere_filiale fi ON fi.id_device = d.id;
 --            nb_anomalie, nb_reparation, nb_crashs,
 --            nb_incidents, nb_imprimantes,
 --            repartition_statuts, repartition_types,
---            repartition_evenements
+--            repartition_evenements, total_alerte, alerte_active,
+--            alerte_resolue, nb_filiales, nb_utilisateurs_recents,
+--            nb_utilisateurs
 -- Mapping métier :
 --   actifs        = dernier statut ACTIVE
 --   indisponibles = dernier statut DISABLED ou DEPROVISIONED
@@ -289,7 +299,10 @@ SELECT
     (SELECT valeur FROM repartition_evenements) AS repartition_evenements,
     (SELECT COUNT(*) FROM derniers_statuts_alerte ) AS total_alerte,
     (SELECT COUNT(*) FROM derniers_statuts_alerte WHERE id_statut = 1) AS alerte_active,
-    (SELECT COUNT(*) FROM derniers_statuts_alerte WHERE id_statut = 15) AS alerte_resolue;
+    (SELECT COUNT(*) FROM derniers_statuts_alerte WHERE id_statut = 15) AS alerte_resolue,
+    (SELECT COUNT(*) FROM t_filiale) AS nb_filiales,
+    (SELECT COUNT(DISTINCT id_utilisateur) FROM t_device_utilisateur_recent) AS nb_utilisateurs_recents,
+    (SELECT COUNT(*) FROM t_utilisateur) AS nb_utilisateurs;
 
 -- ------------------------------------------------------------
 -- v_imprimantes_filtrees

@@ -1,9 +1,10 @@
-function EmptyState({ icon: Icon, title, subtitle, iconClassName = "" }) {
+function EmptyState({ icon: Icon, title, subtitle, iconClassName = "", action = null }) {
     return (
         <div className="empty-state">
             {Icon && <Icon className={`empty-state-icon ${iconClassName}`} />}
             <p className="empty-state-title">{title}</p>
             {subtitle && <p className="empty-state-subtitle">{subtitle}</p>}
+            {action && <div className="mt-4 flex justify-center">{action}</div>}
         </div>
     );
 }

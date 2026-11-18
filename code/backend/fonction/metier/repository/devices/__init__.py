@@ -18,6 +18,7 @@ from .devices import (
     find_devices_paginated,
     get_version_intervalle,
     get_liste_version_by_device,
+    get_device_type
 )
 
 from .type_appareil import (

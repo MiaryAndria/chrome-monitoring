@@ -26,7 +26,20 @@ function DashboardSkeleton() {
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div>
+                <Skeleton className="h-5 w-40 mb-4" />
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {Array.from({ length: 4 }).map((_, index) => (
+                        <div key={index} className="device-card">
+                            <Skeleton className="w-10 h-10 mb-3" />
+                            <Skeleton className="h-7 w-16 mb-2" />
+                            <Skeleton className="h-3 w-24" />
+                        </div>
+                    ))}
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="device-card">
                     <Skeleton className="w-10 h-10 mb-4" />
                     <Skeleton className="h-8 w-20 mb-3" />
@@ -36,6 +49,11 @@ function DashboardSkeleton() {
                             <Skeleton key={index} className="h-16 w-full" />
                         ))}
                     </div>
+                </div>
+                <div className="device-card">
+                    <Skeleton className="w-10 h-10 mb-4" />
+                    <Skeleton className="h-8 w-20 mb-3" />
+                    <Skeleton className="h-3 w-56 mb-6" />
                 </div>
                 <div className="device-card">
                     <Skeleton className="w-10 h-10 mb-4" />

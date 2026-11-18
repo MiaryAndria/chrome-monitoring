@@ -10,9 +10,39 @@ export const getEvenements = async (params = {}) => {
     }
 };
 
+export const getEvenementsResolues = async (params = {}) => {
+    try {
+        const response = await api_service.get('/evenement/liste/resolue', { params });
+        return response.data;
+    } catch (e) {
+        console.log(e);
+        return { items: [], total: 0, page: 1, page_size: params.page_size || 10, total_pages: 0 };
+    }
+};
+
 export const getDureeVieEvenement = async (eventId) => {
     try {
         const response = await api_service.get(`/evenement/${eventId}/duree-vie`);
+        return response.data;
+    } catch (e) {
+        console.log(e);
+        return null;
+    }
+};
+
+export const getDetailEvenement = async (eventId) => {
+    try {
+        const response = await api_service.get(`/evenement/${eventId}`);
+        return response.data;
+    } catch (e) {
+        console.log(e);
+        return null;
+    }
+};
+
+export const updateStatutEvenement = async (eventId, idStatut) => {
+    try {
+        const response = await api_service.post(`/evenement/${eventId}/statut`, null, { params: { id_statut: idStatut } });
         return response.data;
     } catch (e) {
         console.log(e);

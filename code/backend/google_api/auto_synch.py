@@ -12,6 +12,7 @@ from backend.fonction.metier.repository.statut import (
     ID_STATUT_EN_COURS,
     ID_STATUT_TERMINER,
     ID_STATUT_ECHEC,
+
 )
 from backend.fonction.metier.service.import_service import synchroniser_tout
 from backend.fonction.metier.repository.synchronisation import (

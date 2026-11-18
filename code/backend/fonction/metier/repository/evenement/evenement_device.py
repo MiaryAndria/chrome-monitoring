@@ -1,3 +1,4 @@
+from backend.fonction.metier.repository.statut import ID_STATUT_RESOLUE
 
 def get_evenement_by_id(cur,id):
     cur.execute(
@@ -44,10 +45,12 @@ def create_evenement_device(cur,id_device,id_type_evenement,date_evenement,detai
         VALUES (%s, %s, %s, %s)
         ON CONFLICT (id_device, id_type_evenement, date_evenement)
         DO UPDATE SET
-            details = EXCLUDED.details;
+            details = EXCLUDED.details
+        RETURNING id;
         """, (id_device,id_type_evenement,date_evenement,details)
     )
-
+    row = cur.fetchone()
+    return row[0] if row else None
 
 def get_liste_evenement_avec_details(cur):
     cur.execute(
@@ -79,7 +82,8 @@ def _rows_to_dicts(cur):
 
 def _build_evenement_filter_clause(type_evenement=None, id_filiale=None,
                                    filiale=None, recherche=None,
-                                   datetime_from=None, datetime_to=None,id_device=None):
+                                   datetime_from=None, datetime_to=None,id_device=None,
+                                   utilisateur_recent=None):
     clauses = []
     params = []
 
@@ -103,16 +107,34 @@ def _build_evenement_filter_clause(type_evenement=None, id_filiale=None,
         params.append(datetime_to)
     if id_device is not None:
         clauses.append("id_device = %s"); params.append(id_device)
+    if utilisateur_recent:
+        # Recherche partielle (email) sur les utilisateurs récents du device
+        clauses.append(
+            """
+            EXISTS (
+                SELECT 1
+                FROM t_device_utilisateur_recent dur
+                JOIN t_utilisateur ur ON ur.id = dur.id_utilisateur
+                WHERE dur.id_device = v_evenements_avec_appareil.id_device
+                  AND ur.email ILIKE %s
+            )
+            """
+        )
+        params.append(f"%{utilisateur_recent}%")
 
     return clauses, params
 
 
 def find_evenements_paginated(cur, page=1, page_size=10, type_evenement=None,
                               id_filiale=None, filiale=None, recherche=None,
-                              datetime_from=None, datetime_to=None,id_device=None):
+                              datetime_from=None, datetime_to=None,id_device=None,
+                              utilisateur_recent=None):
     clauses, params = _build_evenement_filter_clause(
-        type_evenement, id_filiale, filiale, recherche, datetime_from, datetime_to,id_device
+        type_evenement, id_filiale, filiale, recherche, datetime_from, datetime_to,id_device,
+        utilisateur_recent
     )
+    clauses.append("(id_statut IS NULL OR id_statut != %s)")
+    params.append(ID_STATUT_RESOLUE)
     where = "WHERE " + " AND ".join(clauses) if clauses else ""
     offset = (page - 1) * page_size
 
@@ -138,10 +160,53 @@ def find_evenements_paginated(cur, page=1, page_size=10, type_evenement=None,
 
 def delete_evenements_avant(cur, date_limite):
     cur.execute(
+        """
+        DELETE FROM t_evenement_statut
+        WHERE id_evenement IN (
+            SELECT id FROM t_evenement_device WHERE date_evenement < %s
+        )
+        """,
+        (date_limite,),
+    )
+    cur.execute(
         "DELETE FROM t_evenement_device WHERE date_evenement < %s",
         (date_limite,),
     )
-    
+
+
+def find_evenements_resolues_paginated(cur, page=1, page_size=10, type_evenement=None,
+                                       id_filiale=None, filiale=None, recherche=None,
+                                       datetime_from=None, datetime_to=None, id_device=None,
+                                       utilisateur_recent=None):
+    clauses, params = _build_evenement_filter_clause(
+        type_evenement, id_filiale, filiale, recherche, datetime_from, datetime_to, id_device,
+        utilisateur_recent
+    )
+    clauses.append("id_statut = %s")
+    params.append(ID_STATUT_RESOLUE)
+    where = "WHERE " + " AND ".join(clauses) if clauses else ""
+    offset = (page - 1) * page_size
+
+    cur.execute(
+        f"SELECT COUNT(*) FROM v_evenements_avec_appareil {where}",
+        tuple(params),
+    )
+    total = cur.fetchone()[0]
+
+    cur.execute(
+        f"""
+        SELECT
+            id, date_evenement, details, type_evenement, id_device,
+            device_id, serial_number, modele, id_filiale, filiale
+        FROM v_evenements_avec_appareil
+        {where}
+        ORDER BY date_evenement DESC, id DESC
+        LIMIT %s OFFSET %s
+        """,
+        tuple(params + [page_size, offset])
+    )
+    return _rows_to_dicts(cur), total
+
 def get_evenement_detail_by_id(cur, event_id):
     cur.execute(
         """

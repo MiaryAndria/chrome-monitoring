@@ -631,3 +631,10 @@ CREATE TABLE t_device_ram(
     UNIQUE (id_device, date)
 );
 
+CREATE TABLE t_evenement_statut (
+    id SERIAL PRIMARY KEY , 
+    id_evenement INT NOT NULL REFERENCES t_evenement_device(id),
+    id_statut INT NOT NULL REFERENCES t_statut(id),
+    date TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE (id_evenement,id_statut,date)
+);

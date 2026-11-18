@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bell, CheckCircle2, BarChart3, Search } from 'lucide-react';
+import { Bell, CheckCircle2, BarChart3, Search, RefreshCw } from 'lucide-react';
 import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
 import PageLayout from '../../../components/PageLayout';
 import GenericTable from '../../../components/GenericTable';
+import EmptyState from '../../../components/EmptyState';
 import TableSkeleton from '../../../components/skeletons/TableSkeleton';
 import { getListeAlertePage, getNombreAlerteType, getListeType, ALERTE_META } from '../../../fonction/alerteFonction';
 import '../../../css/liste.css';
@@ -31,12 +32,15 @@ function ListeDeviceAlerte() {
     const [datetimeDebutApplique, setDatetimeDebutApplique] = useState('');
     const [datetimeFinApplique, setDatetimeFinApplique] = useState('');
     const [erreurFiltreDate, setErreurFiltreDate] = useState('');
+    const [reloadKey, setReloadKey] = useState(0);
+    const [filiale, setFiliale] = useState('');
+    const [utilisateurRecent, setUtilisateurRecent] = useState('');
 
     const { items: liste, total, totalPages, loading, error } = usePaginatedData(
         getListeAlertePage,
         page,
         pageSize,
-        { date_debut: datetimeDebutApplique || undefined, date_fin: datetimeFinApplique || undefined, type: TypeFiltered || undefined, search: debouncedSearch }
+        { date_debut: datetimeDebutApplique || undefined, date_fin: datetimeFinApplique || undefined, type: TypeFiltered || undefined, search: debouncedSearch || undefined, filiale: filiale || undefined, utilisateur_recent: utilisateurRecent || undefined, refresh: reloadKey }
     );
 
     const getType = async () => {
@@ -88,7 +92,7 @@ function ListeDeviceAlerte() {
         setPage(1);
     };
     // Un changement de filtre repart en page 1 (le hook refetch tout seul).
-    const filtresActifs = TypeFiltered !== "" || search !== "" || !!datetimeDebutApplique || !!datetimeFinApplique;
+    const filtresActifs = TypeFiltered !== "" || search !== "" || filiale !== "" || utilisateurRecent !== "" || !!datetimeDebutApplique || !!datetimeFinApplique;
 
     const totalActives = Number(total) || 0;
 
@@ -201,6 +205,28 @@ function ListeDeviceAlerte() {
                         />
                     </div>
 
+                    <div className="flex flex-wrap items-center gap-3">
+                        <span className="text-[10px] text-zinc-500 uppercase font-semibold tracking-wider">Filiale :</span>
+                        <input
+                            type="text"
+                            placeholder="Filiale…"
+                            value={filiale}
+                            onChange={(e) => setFiliale(e.target.value)}
+                            className="w-56 px-4 py-2.5 rounded-xl bg-zinc-900/60 border border-white/10 text-zinc-200 text-sm placeholder-zinc-500 focus:outline-none focus:border-cyan-400/50 focus:ring-1 focus:ring-cyan-400/20 transition-all"
+                        />
+                        <span className="text-[10px] text-zinc-500 uppercase font-semibold tracking-wider">Utilisateur récent :</span>
+                        <div className="relative w-64">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+                            <input
+                                type="text"
+                                placeholder="Rechercher un utilisateur (email)…"
+                                value={utilisateurRecent}
+                                onChange={(e) => setUtilisateurRecent(e.target.value)}
+                                className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-zinc-900/60 border border-white/10 text-zinc-200 text-sm placeholder-zinc-500 focus:outline-none focus:border-cyan-400/50 focus:ring-1 focus:ring-cyan-400/20 transition-all"
+                            />
+                        </div>
+                    </div>
+
                     <DateHeureFilter
                         dateDebut={dateDebut}
                         heureDebut={heureDebut}
@@ -245,11 +271,25 @@ function ListeDeviceAlerte() {
                 {loading && liste.length === 0 ? (
                     <TableSkeleton />
                 ) : !liste || liste.length === 0 ? (
-                    <div className="empty-state">
-                        <Bell className="empty-state-icon" />
-                        <p className="empty-state-title">Aucune alerte trouvée.</p>
-                        <p className="empty-state-subtitle">Aucune alerte sur cette période.</p>
-                    </div>
+                    <EmptyState
+                        icon={Bell}
+                        title={error ? "Impossible de charger les alertes" : "Aucune alerte trouvée"}
+                        subtitle={error
+                            ? "Une erreur est survenue lors du chargement. Vérifiez la connexion puis réessayez."
+                            : (filtresActifs ? "Aucun résultat pour ces filtres. Essayez de les réinitialiser." : "Aucune alerte active pour le moment.")}
+                        action={
+                            <div className="flex flex-wrap justify-center gap-2">
+                                {filtresActifs && (
+                                    <button type="button" onClick={reinitialiserFiltres} className="config-btn config-btn-ghost text-xs">
+                                        Réinitialiser les filtres
+                                    </button>
+                                )}
+                                <button type="button" onClick={() => setReloadKey((k) => k + 1)} className="config-btn config-btn-primary text-xs flex items-center gap-1.5">
+                                    <RefreshCw className="w-3.5 h-3.5" /> Actualiser
+                                </button>
+                            </div>
+                        }
+                    />
                 ) : (
                     <>
                         <div className="section-header">

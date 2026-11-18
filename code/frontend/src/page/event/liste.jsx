@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import {
     Bell, Search, Monitor,
-    Zap, AlertTriangle, Cpu, XCircle
+    Zap, AlertTriangle, Cpu, XCircle, CheckCircle2
 } from "lucide-react";
 import DateHeureFilter from "../component/DateHeureFilter";
 import GenericTable from "../../components/GenericTable";
@@ -16,7 +16,6 @@ import usePaginatedData from "../../hooks/usePaginatedData";
 import useDebounce from "../../hooks/useDebounce";
 import { getEvenements, getListeTypeEvenement } from "../../fonction/eventFonction";
 import EventCard from "../component/component_event";
-import EvenementDureeVie from "../component/EvenementDureeVie";
 import { getListeFiliale } from "../../fonction/filialeFonction";
 import { formatDateTime } from "../../fonction/utils/util";
 import FilialeDropdown from "../component/FilialeDropdown";
@@ -27,6 +26,7 @@ import '../../css/filiale.css';
 
 function ListeEvent() {
     const [searchParams] = useSearchParams();
+    const navigate = useNavigate();
     const typeDepuisUrl = searchParams.get("type");
 
     const [listeTypes, setListeTypes] = useState([]);
@@ -42,15 +42,14 @@ function ListeEvent() {
     const [erreurFiltreDate, setErreurFiltreDate] = useState('');
     const [typeEvenement, setTypeEvenement] = useState(typeDepuisUrl || "TOUS");
     const [filiale, setFiliale] = useState("");
+    const [utilisateurRecent, setUtilisateurRecent] = useState("");
     const [selectedExplanation, setSelectedExplanation] = useState(null);
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
     const [viewMode, setViewMode] = useState('grid');
-    const [openEventId, setOpenEventId] = useState(null);
     const [allEvenements, setAllEvenements] = useState([]);
-    const [tablePage, setTablePage] = useState(1);
     const [loadingAll, setLoadingAll] = useState(false);
-    const tablePageSize = 10;
+    const [reloadKey, setReloadKey] = useState(0);
 
     const filtresEvent = {
         recherche: debouncedSearch || undefined,
@@ -58,6 +57,8 @@ function ListeEvent() {
         filiale: filiale || undefined,
         datetime_from: datetimeDebutApplique || undefined,
         datetime_to: datetimeFinApplique || undefined,
+        utilisateur_recent: utilisateurRecent || undefined,
+        reload: reloadKey,
     };
 
     const {
@@ -96,10 +97,10 @@ function ListeEvent() {
             header: "Durée de vie",
             render: (ev) => (
                 <button
-                    onClick={() => setOpenEventId(prev => prev === ev.id ? null : ev.id)}
+                    onClick={() => navigate(`/event/${ev.id}`)}
                     className="px-3 py-1.5 text-xs font-semibold text-cyan-400 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 rounded-xl transition-all"
                 >
-                    {openEventId === ev.id ? 'Masquer' : 'Voir'}
+                    Voir
                 </button>
             )
         }
@@ -135,6 +136,7 @@ function ListeEvent() {
         setSearch("");
         setTypeEvenement("TOUS");
         setFiliale("");
+        setUtilisateurRecent("");
         setDateDebut('');
         setHeureDebut('00:00');
         setDateFin('');
@@ -154,7 +156,7 @@ function ListeEvent() {
         setDatetimeFinApplique('');
     };
 
-    const filtresActifs = search !== "" || typeEvenement !== "TOUS" || filiale !== "" || !!datetimeDebutApplique || !!datetimeFinApplique;
+    const filtresActifs = search !== "" || typeEvenement !== "TOUS" || filiale !== "" || utilisateurRecent !== "" || !!datetimeDebutApplique || !!datetimeFinApplique;
 
     useEffect(() => {
         chargerReferences();
@@ -176,21 +178,20 @@ function ListeEvent() {
 
     useEffect(() => {
         setCurrentPage(1);
-        setTablePage(1);
-        setOpenEventId(null);
-    }, [search, typeEvenement, filiale, datetimeDebutApplique, datetimeFinApplique, debouncedSearch]);
+    }, [search, typeEvenement, filiale, utilisateurRecent, datetimeDebutApplique, datetimeFinApplique, debouncedSearch]);
 
     useEffect(() => {
         if (viewMode === 'table') {
             chargerTousLesEvenements();
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [viewMode, search, typeEvenement, filiale, datetimeDebutApplique, datetimeFinApplique, debouncedSearch]);
+    }, [viewMode, search, typeEvenement, filiale, utilisateurRecent, datetimeDebutApplique, datetimeFinApplique, debouncedSearch, reloadKey]);
 
     const tableTotal = allEvenements.length;
-    const tableTotalPages = Math.max(1, Math.ceil(tableTotal / tablePageSize));
-    const tablePageCourante = Math.min(tablePage, tableTotalPages);
-    const tableEvenements = allEvenements.slice((tablePageCourante - 1) * tablePageSize, tablePageCourante * tablePageSize);
+
+    const actualiser = () => {
+        setReloadKey((k) => k + 1);
+    };
 
     return (
         <PageLayout
@@ -198,7 +199,17 @@ function ListeEvent() {
             subtitle="Journal des incidents système des appareils"
             titleIcon={Bell}
             contentClassName="space-y-8"
-            headerRight={<ViewModeToggle viewMode={viewMode} setViewMode={setViewMode} />}
+            headerRight={
+                <div className="flex items-center gap-3">
+                    <button
+                        onClick={() => navigate('/event/resolue')}
+                        className="config-btn config-btn-ghost"
+                    >
+                        <CheckCircle2 className="w-4 h-4" /> Voir les résolues
+                    </button>
+                    <ViewModeToggle viewMode={viewMode} setViewMode={setViewMode} />
+                </div>
+            }
         >
 
             {/* Légende couleurs cliquables */}
@@ -299,7 +310,7 @@ function ListeEvent() {
                     })}
                 </div>
 
-                {/* Filiale autocomplete dropdown + Réinitialiser */}
+                {/* Filiale + Utilisateur récent + Réinitialiser */}
                 <div className="flex flex-wrap items-center gap-3">
                     <span className="text-[10px] text-zinc-500 uppercase font-semibold tracking-wider">Filiale :</span>
 
@@ -308,6 +319,15 @@ function ListeEvent() {
                         filiale={filiale}
                         setFiliale={setFiliale}
                     />
+
+                    <span className="text-[10px] text-zinc-500 uppercase font-semibold tracking-wider ml-2">Utilisateur récent :</span>
+                    <div className="relative w-64">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+                        <input type="text" placeholder="Rechercher un utilisateur (email)..."
+                            value={utilisateurRecent}
+                            onChange={e => setUtilisateurRecent(e.target.value)}
+                            className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-zinc-900/60 border border-white/10 text-zinc-200 text-sm placeholder-zinc-500 focus:outline-none focus:border-cyan-400/50 focus:ring-1 focus:ring-cyan-400/20 transition-all" />
+                    </div>
 
                     <ResetFiltreButton actif={filtresActifs} onClick={reinitialiserFiltres} />
                 </div>
@@ -321,7 +341,15 @@ function ListeEvent() {
                     <EmptyState
                         icon={Bell}
                         title="Aucun événement trouvé"
-                        subtitle={filtresActifs ? "Modifiez vos filtres" : "Aucune donnée enregistrée"}
+                        subtitle={filtresActifs ? "Aucun événement ne correspond aux filtres actifs." : "Aucune donnée enregistrée."}
+                        action={
+                            <div className="flex items-center justify-center gap-2">
+                                <button onClick={actualiser} className="px-4 py-2 text-xs font-semibold rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 hover:bg-cyan-500/20 hover:border-cyan-500/50 transition-all cursor-pointer">
+                                    Actualiser
+                                </button>
+                                <ResetFiltreButton actif={filtresActifs} onClick={reinitialiserFiltres} />
+                            </div>
+                        }
                     />
                 ) : (
                     <>
@@ -329,24 +357,11 @@ function ListeEvent() {
                             <div>
                                 <h2 className="section-title">Incidents détectés</h2>
                                 <span className="section-count">
-                                    {tableTotal} événement{tableTotal > 1 ? "s" : ""} — Page {tablePageCourante}/{tableTotalPages}
+                                    {tableTotal} événement{tableTotal > 1 ? "s" : ""}
                                 </span>
                             </div>
                         </div>
-                        <GenericTable columns={eventColumns} data={tableEvenements} />
-                        {openEventId !== null && (
-                            <div className="mt-4">
-                                <EvenementDureeVie eventId={openEventId} />
-                            </div>
-                        )}
-                        <Pagination
-                            page={tablePageCourante}
-                            pageSize={tablePageSize}
-                            totalPages={tableTotalPages}
-                            total={tableTotal}
-                            loading={loadingAll}
-                            onPageChange={setTablePage}
-                        />
+                        <GenericTable columns={eventColumns} data={allEvenements} />
                     </>
                 )
             ) : loading && evenements.length === 0 ? (
@@ -375,8 +390,6 @@ function ListeEvent() {
                             <EventCard
                                 key={ev.id ?? idx}
                                 ev={ev}
-                                isOpen={openEventId === ev.id}
-                                onToggle={() => setOpenEventId(prev => prev === ev.id ? null : ev.id)}
                             />
                         ))}
                     </div>
@@ -435,18 +448,20 @@ function ListeEvent() {
                         </div>
                     )}
 
-                    <Pagination
-                        page={currentPage}
-                        pageSize={pageSize}
-                        totalPages={totalPages}
-                        total={total}
-                        loading={loading}
-                        onPageChange={setCurrentPage}
-                        onPageSizeChange={(size) => {
-                            setPageSize(size);
-                            setCurrentPage(1);
-                        }}
-                    />
+                    {viewMode !== 'table' && (
+                        <Pagination
+                            page={currentPage}
+                            pageSize={pageSize}
+                            totalPages={totalPages}
+                            total={total}
+                            loading={loading}
+                            onPageChange={setCurrentPage}
+                            onPageSizeChange={(size) => {
+                                setPageSize(size);
+                                setCurrentPage(1);
+                            }}
+                        />
+                    )}
                 </>
             )}
         </PageLayout>

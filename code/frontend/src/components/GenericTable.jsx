@@ -1,6 +1,7 @@
 import React from 'react';
 
-export default function GenericTable({ columns, data }) {
+export default function GenericTable({ columns, data, onRowClick }) {
+    const rows = Array.isArray(data) ? data : [];
     return (
         <div className="overflow-x-auto w-full glass-panel border border-white/10 rounded-xl">
             <table className="w-full text-left text-sm text-zinc-300">
@@ -14,15 +15,20 @@ export default function GenericTable({ columns, data }) {
                     </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
-                    {data.length === 0 ? (
+                    {rows.length === 0 ? (
                         <tr>
-                            <td colSpan={columns.length} className="px-6 py-8 text-center text-zinc-500">
-                                Aucune donnée disponible
+                            <td colSpan={columns.length} className="px-6 py-10 text-center text-zinc-500">
+                                <span className="block font-medium text-zinc-400">Aucune donnée à afficher</span>
+                                <span className="block text-xs mt-1">Aucun résultat pour les critères actuels.</span>
                             </td>
                         </tr>
                     ) : (
-                        data.map((row, rowIndex) => (
-                            <tr key={rowIndex} className="hover:bg-white/5 transition-colors group">
+                        rows.map((row, rowIndex) => (
+                            <tr
+                                key={rowIndex}
+                                className={`hover:bg-white/5 transition-colors group ${onRowClick ? 'cursor-pointer' : ''}`}
+                                onClick={onRowClick ? () => onRowClick(row) : undefined}
+                            >
                                 {columns.map((col, colIndex) => {
                                     let cellData;
                                     if (col.render) {

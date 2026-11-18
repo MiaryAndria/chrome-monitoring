@@ -27,7 +27,7 @@ def get_liste_all():
 @router.get("/liste/page", response_model=StatutPageResponse)
 def get_liste_page(
     page: int = Query(1, ge=1),
-    page_size: int = Query(10, ge=1, le=100),
+    page_size: int = Query(10, ge=1, le=10000),
 ):
     return getStatutsPage(page, page_size)
 

@@ -15,6 +15,9 @@ from backend.fonction.metier.service.event_service import (
     get_type_evenement,
     get_duree_vie_evenement,
     ia_chat_stream,
+    get_detail_evenement,
+    update_statut,
+    get_evenements_resolues_page,
 )
 from backend.utils.validation import valider_plage_datetime
 
@@ -29,6 +32,7 @@ def getListe(
     id_filiale: Optional[int] = None,
     filiale: Optional[str] = None,
     recherche: Optional[str] = None,
+    utilisateur_recent: Optional[str] = None,
     datetime_from: Optional[datetime] = None,
     datetime_to: Optional[datetime] = None,
 ):
@@ -40,6 +44,7 @@ def getListe(
         id_filiale=id_filiale,
         filiale=filiale,
         recherche=recherche,
+        utilisateur_recent=utilisateur_recent,
         datetime_from=datetime_from,
         datetime_to=datetime_to,
     )
@@ -50,12 +55,54 @@ def getListeType():
     return get_type_evenement()
 
 
+@router.get("/liste/resolue", response_model=EvenementsPageResponse)
+def getListeEvenementsResolues(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(10, ge=1, le=10000),
+    type_evenement: Optional[str] = None,
+    id_filiale: Optional[int] = None,
+    filiale: Optional[str] = None,
+    recherche: Optional[str] = None,
+    utilisateur_recent: Optional[str] = None,
+    datetime_from: Optional[datetime] = None,
+    datetime_to: Optional[datetime] = None,
+):
+    valider_plage_datetime(datetime_from, datetime_to)
+    return get_evenements_resolues_page(
+        page=page,
+        page_size=page_size,
+        type_evenement=type_evenement,
+        id_filiale=id_filiale,
+        filiale=filiale,
+        recherche=recherche,
+        utilisateur_recent=utilisateur_recent,
+        datetime_from=datetime_from,
+        datetime_to=datetime_to,
+    )
+
+
 @router.get("/{event_id}/duree-vie")
 def getDureeVie(event_id: int):
     resultat = get_duree_vie_evenement(event_id)
     if resultat is None:
         raise NotFoundError("Événement introuvable")
     return resultat
+
+
+@router.get("/{event_id}")
+def getDetailEvenement(event_id: int):
+    resultat = get_detail_evenement(event_id)
+    if resultat is None:
+        raise NotFoundError("Événement introuvable")
+    return resultat
+
+
+@router.post("/{event_id}/statut")
+def updateStatutEvenement(event_id: int, id_statut: int = Query(..., ge=1, le=16)):
+    ok = update_statut(event_id, id_statut)
+    if not ok:
+        raise NotFoundError("Événement introuvable")
+    return {"ok": True}
 
 
 @router.post("/{event_id}/ia/chat/stream")

@@ -34,7 +34,7 @@ def get_liste():
 @router.get("/liste/page", response_model=ComparaisonPageResponse)
 def get_liste_page(
     page: int = Query(1, ge=1),
-    page_size: int = Query(10, ge=1, le=100),
+    page_size: int = Query(10, ge=1, le=10000),
     datetime_from: Optional[datetime] = None,
     datetime_to: Optional[datetime] = None,
 ):
