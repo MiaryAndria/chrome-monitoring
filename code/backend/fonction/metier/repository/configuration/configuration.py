@@ -13,13 +13,16 @@ def get_liste_configuration(cur):
     return cur.fetchall()
 
 
-def find_configurations_paginated(cur, page=1, page_size=10, categorie=None):
+def find_configurations_paginated(cur, page=1, page_size=10, categorie=None, type_=None):
     offset = (page - 1) * page_size
     where = " WHERE id_statut <> 14"
     params = []
     if categorie:
         where += " AND categorie = %s"
         params.append(categorie)
+    if type_:
+        where += " AND type ILIKE %s"
+        params.append(f"%{type_}%")
 
     cur.execute(f"SELECT COUNT(*) FROM v_configuration{where}", tuple(params))
     total = cur.fetchone()[0]

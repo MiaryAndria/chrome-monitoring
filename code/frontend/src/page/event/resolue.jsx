@@ -141,7 +141,7 @@ function ListeEventResolue() {
             className: "w-[10%] text-right",
             render: (ev) => (
                 <button
-                    onClick={() => navigate(`/event/${ev.id}`)}
+                    onClick={() => navigate(`/event/resolue/${ev.id}`)}
                     className="px-3 py-1.5 text-xs font-semibold text-cyan-400 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 rounded-xl transition-all"
                 >
                     Voir
@@ -297,7 +297,7 @@ function ListeEventResolue() {
                         ) : (
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                                 {evenements.map((ev, idx) => (
-                                    <EventCard key={ev.id ?? idx} ev={ev} />
+                                    <EventCard key={ev.id ?? idx} ev={ev} resolu />
                                 ))}
                             </div>
                         )}

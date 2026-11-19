@@ -5,7 +5,7 @@ import {
 } from "lucide-react";
 import PageLayout from "../../components/PageLayout";
 import EmptyState from "../../components/EmptyState";
-import { getDetailEvenement, updateStatutEvenement } from "../../fonction/eventFonction";
+import { getDetailEvenement, marquerEvenementResolu } from "../../fonction/eventFonction";
 import { formatDateTime } from "../../fonction/utils/util";
 import EvenementDureeVie from "../component/EvenementDureeVie";
 import IAChatPanel from "../component/IAChatPanel";
@@ -38,16 +38,19 @@ function DetailEvenement() {
     const [nonTrouve, setNonTrouve] = useState(false);
     const [iaOpen, setIaOpen] = useState(false);
     const [iaVisible, setIaVisible] = useState(false);
-    const [resolueEnCours, setResolueEnCours] = useState(false);
-    const [resolue, setResolue] = useState(false);
+    const [enCours, setEnCours] = useState(false);
+    const [statut, setStatut] = useState(null);
+    const [erreur, setErreur] = useState("");
 
     const charger = async () => {
         setLoading(true);
+        setErreur("");
         try {
             const data = await getDetailEvenement(id);
             if (!data) {
                 setNonTrouve(true);
             } else {
+                setStatut(Number(data.id_statut) || null);
                 setEv(data);
             }
         } finally {
@@ -70,15 +73,22 @@ function DetailEvenement() {
     }, [iaOpen]);
 
     const handleMarquerResolu = async () => {
-        setResolueEnCours(true);
+        setEnCours(true);
+        setErreur("");
         try {
-            const res = await updateStatutEvenement(Number(id), 15);
+            const res = await marquerEvenementResolu(Number(id));
             if (res?.ok) {
-                setResolue(true);
+                setEnCours(false);
+                navigate(`/event/resolue/${id}`);
+                return;
             }
-        } finally {
-            setResolueEnCours(false);
+        } catch (e) {
+            setErreur(e?.response?.data?.error || "Une erreur est survenue lors de la mise à jour du statut.");
+            setEnCours(false);
+            return;
         }
+        setEnCours(false);
+        setErreur("Impossible de mettre à jour le statut de l'événement.");
     };
 
     if (loading) {
@@ -153,11 +163,7 @@ function DetailEvenement() {
                                     </p>
                                 </div>
                             </div>
-                            {resolue && (
-                                <span className="px-3 py-1.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 text-xs font-semibold">
-                                    Résolu
-                                </span>
-                            )}
+                                <span className="px-3 py-1.5 rounded-full bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 text-xs font-semibold">Actif</span>
                         </div>
 
                         {/* Infos appareil */}
@@ -239,14 +245,19 @@ function DetailEvenement() {
                             >
                                 {iaOpen ? "Masquer l'IA" : "Demander à l'IA"}
                             </button>
-                            <button
-                                onClick={handleMarquerResolu}
-                                disabled={resolueEnCours || resolue}
-                                className="flex-1 min-w-[180px] px-4 py-3 rounded-xl bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/25 transition-colors text-xs font-semibold flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
-                            >
-                                {resolue ? "Résolu ✓" : resolueEnCours ? "Résolution…" : "Marquer comme résolu"}
-                            </button>
+                                <button
+                                    onClick={handleMarquerResolu}
+                                    disabled={enCours}
+                                    className="flex-1 min-w-[180px] px-4 py-3 rounded-xl bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/25 transition-colors text-xs font-semibold flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                                >
+                                    {enCours ? "Résolution…" : "Marquer comme résolu"}
+                                </button>
                         </div>
+                        {erreur && (
+                            <p className="text-xs text-red-400 bg-red-500/10 border border-red-500/30 px-3 py-2.5 rounded-lg">
+                                {erreur}
+                            </p>
+                        )}
                     </div>
                 </div>
 

@@ -44,11 +44,11 @@ def getListeConfiguration():
             })
         return result
 
-def _fetch_configurations_page(page=1, page_size=10, categorie=None):
+def _fetch_configurations_page(page=1, page_size=10, categorie=None, type_=None):
     with lecture() as cur:
         if cur is None:
             return build_page([], 0, page, page_size)
-        rows, total = find_configurations_paginated(cur, page, page_size, categorie)
+        rows, total = find_configurations_paginated(cur, page, page_size, categorie, type_)
         items = []
         for r in rows:
             items.append({
@@ -62,13 +62,13 @@ def _fetch_configurations_page(page=1, page_size=10, categorie=None):
         return build_page(items, total, page, page_size)
 
 
-def getConfigurationsPage(page=1, page_size=10, categorie=None):
-    cle = f"configurations:{page}:{page_size}:{categorie}"
+def getConfigurationsPage(page=1, page_size=10, categorie=None, type_=None):
+    cle = f"configurations:{page}:{page_size}:{categorie}:{type_}"
     valeur = cache_get(cle)
     if valeur is not None:
         return valeur
 
-    resultat = _fetch_configurations_page(page, page_size, categorie)
+    resultat = _fetch_configurations_page(page, page_size, categorie, type_)
     return cache_set(cle, resultat)
 
 
@@ -201,6 +201,16 @@ def reStaurer(id_configuration):
         restore_configuration(cur, id_configuration, ID_STATUT_RESTAURER)
     cache_invalidate_prefix("configurations:")
     return id_configuration
+
+
+def get_liste_type_configuration_tous():
+    """Retourne tous les types de configuration (toutes catégories) pour le filtrage."""
+    with lecture() as cur:
+        if cur is None:
+            return []
+        cur.execute("SELECT id, type FROM t_type_configuration ORDER BY type ASC")
+        rows = cur.fetchall()
+        return [{"id": r[0], "type": r[1]} for r in rows]
 
 
 def get_liste_type_configuration_by_categorie(id_categorie):

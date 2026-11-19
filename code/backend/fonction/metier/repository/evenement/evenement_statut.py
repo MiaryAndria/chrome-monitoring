@@ -28,3 +28,15 @@ def insert_evenement_statut_si_absent(cur, id_evenement, id_statut, date=None):
     )
     return True
 
+def get_statut_evenement(cur, id_evenement):
+    cur.execute(
+        """
+        SELECT *
+        FROM t_evenement_statut
+        WHERE id_evenement = %s
+        ORDER BY id DESC
+        LIMIT 1
+        """,
+        (id_evenement,)
+    )
+    return cur.fetchone()

@@ -38,6 +38,16 @@ export const getListeTypeSeuil = async (idCategorie) => {
     }
 };
 
+export const getListeTypeSeuilTous = async () => {
+    try {
+        const response = await api_service.get('seuil/type/tous');
+        return response.data;
+    } catch (e) {
+        console.log(e);
+        return [];
+    }
+};
+
 export const createSeuil = async (idType, valeur) => {
     return await api_service.post('seuil/create', {
         id_type: idType,

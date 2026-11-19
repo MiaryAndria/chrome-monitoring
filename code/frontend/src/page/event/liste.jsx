@@ -180,7 +180,7 @@ function ListeEvent() {
             headerRight={
                 <div className="flex items-center gap-3">
                     <button
-                        onClick={() => navigate('/event/resolue')}
+                        onClick={() => navigate('/event/resolue/liste')}
                         className="config-btn config-btn-ghost"
                     >
                         <CheckCircle2 className="w-4 h-4" /> Voir les résolues
@@ -306,7 +306,6 @@ function ListeEvent() {
                             onChange={e => setUtilisateurRecent(e.target.value)}
                             className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-zinc-900/60 border border-white/10 text-zinc-200 text-sm placeholder-zinc-500 focus:outline-none focus:border-cyan-400/50 focus:ring-1 focus:ring-cyan-400/20 transition-all" />
                     </div>
-
                     <ResetFiltreButton actif={filtresActifs} onClick={reinitialiserFiltres} />
                 </div>
             </div>

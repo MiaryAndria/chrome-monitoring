@@ -14,9 +14,10 @@ from .evenement_device import (
 from .type_evenement import (
     get_liste_type_evenement,
     get_type_evenement_by_type,
-    get_or_create_type_evenement
+    get_or_create_type_evenement,
 )
 
 from .evenement_statut import (
     insert_evenement_statut,
+    get_statut_evenement,
 )

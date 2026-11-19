@@ -8,6 +8,8 @@ import GenericTable from '../../components/GenericTable';
 import Pagination from '../../components/Pagination';
 import TableSkeleton from '../../components/skeletons/TableSkeleton';
 import usePaginatedData from '../../hooks/usePaginatedData';
+import useDebounce from '../../hooks/useDebounce';
+import ResetFiltreButton from '../component/ResetFiltreButton';
 import '../../css/liste.css';
 import '../../css/configuration.css';
 
@@ -19,13 +21,16 @@ function SeuilListe() {
     const [refresh, setRefresh] = useState(0);
     const [categorie, setCategorie] = useState('');
     const [categories, setCategories] = useState([]);
+    const [type, setType] = useState('');
+    const debouncedType = useDebounce(type, 300);
     const [error, setError] = useState(null);
+    const filtresActifs = type !== "" || categorie !== "";
 
     const { items: seuils, total, totalPages, loading } = usePaginatedData(
         getListeSeuilPage,
         showAll ? 1 : currentPage,
         showAll ? 10000 : pageSize,
-        { refresh, categorie: categorie || undefined }
+        { refresh, categorie: categorie || undefined, type: debouncedType || undefined }
     );
 
     const chargerCategories = async () => {
@@ -46,18 +51,25 @@ function SeuilListe() {
         }
     };
 
+    const reinitialiserFiltres = () => {
+        setCategorie("");
+        setType("");
+    };
+
     const columns = [
         { header: 'Catégorie', className: 'w-[15%]', render: (s) => <span className="text-zinc-400">{s.categorie}</span> },
         { header: 'Type', className: 'w-[22%]', render: (s) => <span className="font-bold text-zinc-100">{s.cle}</span> },
         { header: 'Valeur', className: 'w-[12%]', render: (s) => <span className="text-zinc-300">{s.valeur} {s.unite === '%' ? '%' : <span className="text-zinc-500 text-xs">(entier)</span>}</span> },
         { header: 'Limite', className: 'w-[12%]', render: (s) => <span className="text-zinc-300">{s.limite ?? '—'}{s.limite != null ? (s.unite === '%' ? ' %' : ' (entier)') : ''}</span> },
         { header: 'Sens', className: 'w-[8%]', render: (s) => <span className="font-mono text-zinc-300">{s.sens ?? '—'}</span> },
-        { header: 'Date', className: 'w-[14%] text-right', render: (s) => s.date ? (
-            <span className="text-zinc-400 text-xs font-mono">
-                <span className="block">{new Date(s.date).toLocaleDateString('fr-FR')}</span>
-                <span className="block">{new Date(s.date).toLocaleTimeString('fr-FR')}</span>
-            </span>
-        ) : <span className="text-zinc-500">-</span> },
+        {
+            header: 'Date', className: 'w-[14%] text-right', render: (s) => s.date ? (
+                <span className="text-zinc-400 text-xs font-mono">
+                    <span className="block">{new Date(s.date).toLocaleDateString('fr-FR')}</span>
+                    <span className="block">{new Date(s.date).toLocaleTimeString('fr-FR')}</span>
+                </span>
+            ) : <span className="text-zinc-500">-</span>
+        },
         {
             header: 'Actions', sticky: true, className: 'w-[15%] text-right', render: (s) => (
                 <div className="config-table-actions">
@@ -78,7 +90,7 @@ function SeuilListe() {
 
     useEffect(() => {
         setCurrentPage(1);
-    }, [categorie]);
+    }, [categorie, type, debouncedType]);
 
     return (
         <PageLayout
@@ -108,6 +120,17 @@ function SeuilListe() {
                                 labelTous="Toutes les catégories"
                             />
                         </div>
+                        <div className="min-w-[240px]">
+                            <label className="config-form-label">Type de seuil</label>
+                            <input
+                                type="text"
+                                placeholder="Rechercher un type…"
+                                value={type}
+                                onChange={(e) => setType(e.target.value)}
+                                className="w-full px-3 py-2 rounded-lg bg-zinc-900/60 border border-white/10 text-zinc-200 text-sm placeholder-zinc-500 focus:outline-none focus:border-cyan-400/50"
+                            />
+                        </div>
+                        <ResetFiltreButton actif={filtresActifs} onClick={reinitialiserFiltres} />
                     </div>
                 </div>
 

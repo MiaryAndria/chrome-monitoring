@@ -88,22 +88,22 @@ def _map_seuil_row(r):
     }
 
 
-def _fetch_seuils_page(page=1, page_size=10, categorie=None):
+def _fetch_seuils_page(page=1, page_size=10, categorie=None, type_=None):
     with lecture() as cur:
         if cur is None:
             return build_page([], 0, page, page_size)
-        rows, total = find_seuils_paginated(cur, page, page_size, categorie)
+        rows, total = find_seuils_paginated(cur, page, page_size, categorie, type_)
         items = [_map_seuil_row(r) for r in rows]
         return build_page(items, total, page, page_size)
 
 
-def getSeuilsPage(page=1, page_size=10, categorie=None):
-    cle = f"seuils:{page}:{page_size}:{categorie}"
+def getSeuilsPage(page=1, page_size=10, categorie=None, type_=None):
+    cle = f"seuils:{page}:{page_size}:{categorie}:{type_}"
     valeur = cache_get(cle)
     if valeur is not None:
         return valeur
 
-    resultat = _fetch_seuils_page(page, page_size, categorie)
+    resultat = _fetch_seuils_page(page, page_size, categorie, type_)
     return cache_set(cle, resultat)
 
 
@@ -220,6 +220,16 @@ def reStaurer(id_seuil):
         restore_seuil(cur, id_seuil, ID_STATUT_RESTAURER)
     cache_invalidate_prefix("seuils:")
     return id_seuil
+
+
+def get_liste_type_seuil_tous():
+    """Retourne tous les types de seuil (toutes catégories confondues) pour le filtrage."""
+    with lecture() as cur:
+        if cur is None:
+            return []
+        cur.execute("SELECT id, type FROM t_type_seuil ORDER BY type ASC")
+        rows = cur.fetchall()
+        return [{"id": r[0], "type": r[1]} for r in rows]
 
 
 def get_liste_type_seuil_by_categorie(id_categorie):

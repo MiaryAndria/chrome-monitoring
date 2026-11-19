@@ -8,6 +8,8 @@ import GenericTable from '../../components/GenericTable';
 import Pagination from '../../components/Pagination';
 import TableSkeleton from '../../components/skeletons/TableSkeleton';
 import usePaginatedData from '../../hooks/usePaginatedData';
+import useDebounce from '../../hooks/useDebounce';
+import ResetFiltreButton from '../component/ResetFiltreButton';
 import '../../css/liste.css';
 import '../../css/configuration.css';
 
@@ -19,13 +21,16 @@ function ConfigurationListe() {
     const [refresh, setRefresh] = useState(0);
     const [categorie, setCategorie] = useState('');
     const [categories, setCategories] = useState([]);
+    const [type, setType] = useState('');
+    const debouncedType = useDebounce(type, 300);
     const [error, setError] = useState(null);
+    const filtresActifs = type !== "" || categorie !== "";
 
     const { items: conf, total, totalPages, loading } = usePaginatedData(
         getListeConfigurationPage,
         showAll ? 1 : currentPage,
         showAll ? 10000 : pageSize,
-        { refresh, categorie: categorie || undefined }
+        { refresh, categorie: categorie || undefined, type: debouncedType || undefined }
     );
 
     const chargerCategories = async () => {
@@ -46,6 +51,11 @@ function ConfigurationListe() {
         }
     };
 
+    const reinitialiserFiltres = () => {
+        setCategorie("");
+        setType("");
+    };
+    
     const columns = [
         { header: 'Catégorie', className: 'w-[18%]', render: (c) => <span className="text-zinc-400">{c.categorie}</span> },
         { header: 'Type', className: 'w-[25%]', render: (c) => <span className="font-bold text-zinc-100">{c.cle}</span> },
@@ -78,7 +88,7 @@ function ConfigurationListe() {
 
     useEffect(() => {
         setCurrentPage(1);
-    }, [categorie]);
+    }, [categorie, type, debouncedType]);
 
     return (
         <PageLayout
@@ -108,6 +118,17 @@ function ConfigurationListe() {
                                 labelTous="Toutes les catégories"
                             />
                         </div>
+                        <div className="min-w-[240px]">
+                            <label className="config-form-label">Type de configuration</label>
+                            <input
+                                type="text"
+                                placeholder="Rechercher un type…"
+                                value={type}
+                                onChange={(e) => setType(e.target.value)}
+                                className="w-full px-3 py-2 rounded-lg bg-zinc-900/60 border border-white/10 text-zinc-200 text-sm placeholder-zinc-500 focus:outline-none focus:border-cyan-400/50"
+                            />
+                        </div>
+                        <ResetFiltreButton actif={filtresActifs} onClick={reinitialiserFiltres} />
                     </div>
                 </div>
 

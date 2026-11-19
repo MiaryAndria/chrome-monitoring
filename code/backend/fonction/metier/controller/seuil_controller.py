@@ -16,6 +16,7 @@ from backend.fonction.metier.service.seuil_service import (
     deleteSeuil as delete_seuil_service,
     hardDeleteSeuil as hard_delete_seuil_service,
     get_liste_categorie_seuil,
+    get_liste_type_seuil_tous,
     get_liste_type_seuil_by_categorie,
     getListeArchiveSeuil,
     getListeSeuil,
@@ -35,8 +36,8 @@ def get_liste():
 
 
 @router.get("/liste/page", response_model=SeuilPageResponse)
-def get_liste_page(page: int = Query(1, ge=1), page_size: int = Query(10, ge=1, le=10000), categorie: str | None = None):
-    return getSeuilsPage(page=page, page_size=page_size, categorie=categorie)
+def get_liste_page(page: int = Query(1, ge=1), page_size: int = Query(10, ge=1, le=10000), categorie: str | None = None, type: str | None = None):
+    return getSeuilsPage(page=page, page_size=page_size, categorie=categorie, type_=type)
 
 
 @router.get("/liste/archiver", response_model=List[SeuilResponse])
@@ -52,6 +53,11 @@ def get_list_archive_page(page: int = Query(1, ge=1), page_size: int = Query(10,
 @router.get("/categorie/type", response_model=List[SeuilCategorieResponse])
 def get_liste_categorie():
     return get_liste_categorie_seuil()
+
+
+@router.get("/type/tous", response_model=List[SeuilTypeResponse])
+def get_liste_type_tous():
+    return get_liste_type_seuil_tous()
 
 
 @router.get("/type/{id_categorie}", response_model=List[SeuilTypeResponse])

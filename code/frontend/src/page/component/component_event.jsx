@@ -62,7 +62,7 @@ const getStyle = (type) => {
     };
 };
 
-function EventCard({ ev }) {
+function EventCard({ ev, resolu = false }) {
     const navigate = useNavigate();
     const style = getStyle(ev.type_evenement);
     const causeInfo = CAUSE_LABELS[ev.cause_class] || null;
@@ -132,7 +132,7 @@ function EventCard({ ev }) {
             </div>
 
             <button
-                onClick={() => navigate(`/event/${ev.id}`)}
+                onClick={() => navigate(resolu ? `/event/resolue/${ev.id}` : `/event/${ev.id}`)}
                 className="w-full px-4 py-2 mt-3 border-t border-white/5 text-[10px] text-zinc-500 hover:text-cyan-300 hover:bg-cyan-500/5 transition-colors flex items-center justify-center gap-1 cursor-pointer rounded-b-xl"
             >
                 Voir diagnostic

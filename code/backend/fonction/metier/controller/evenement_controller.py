@@ -16,8 +16,9 @@ from backend.fonction.metier.service.event_service import (
     get_duree_vie_evenement,
     ia_chat_stream,
     get_detail_evenement,
-    update_statut,
     get_evenements_resolues_page,
+    marquer_evenement_resolu,
+    repasser_evenement_actif,
 )
 from backend.utils.validation import valider_plage_datetime
 
@@ -97,9 +98,17 @@ def getDetailEvenement(event_id: int):
     return resultat
 
 
-@router.post("/{event_id}/statut")
-def updateStatutEvenement(event_id: int, id_statut: int = Query(..., ge=1, le=16)):
-    ok = update_statut(event_id, id_statut)
+@router.post("/{event_id}/marquer-resolu")
+def marquerResolu(event_id: int):
+    ok = marquer_evenement_resolu(event_id)
+    if not ok:
+        raise NotFoundError("Événement introuvable")
+    return {"ok": True}
+
+
+@router.post("/{event_id}/repasser-active")
+def repasserActive(event_id: int):
+    ok = repasser_evenement_actif(event_id)
     if not ok:
         raise NotFoundError("Événement introuvable")
     return {"ok": True}

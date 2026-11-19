@@ -40,13 +40,23 @@ export const getDetailEvenement = async (eventId) => {
     }
 };
 
-export const updateStatutEvenement = async (eventId, idStatut) => {
+export const marquerEvenementResolu = async (eventId) => {
     try {
-        const response = await api_service.post(`/evenement/${eventId}/statut`, null, { params: { id_statut: idStatut } });
+        const response = await api_service.post(`/evenement/${eventId}/marquer-resolu`);
         return response.data;
     } catch (e) {
         console.log(e);
-        return null;
+        throw e;
+    }
+};
+
+export const repasserEvenementActif = async (eventId) => {
+    try {
+        const response = await api_service.post(`/evenement/${eventId}/repasser-active`);
+        return response.data;
+    } catch (e) {
+        console.log(e);
+        throw e;
     }
 };
 

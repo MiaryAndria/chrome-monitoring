@@ -30,6 +30,16 @@ export const getListeTypeConfiguration = async (idCategorie) => {
     }
 };
 
+export const getListeTypeConfigurationTous = async () => {
+    try {
+        const response = await api_service.get('configuration/type/tous');
+        return response.data;
+    } catch (e) {
+        console.log(e);
+        return [];
+    }
+};
+
 export const createConfiguration = async (idType, valeur) => {
     return await api_service.post('configuration/create', {
         id_type: idType,

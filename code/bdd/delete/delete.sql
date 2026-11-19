@@ -58,16 +58,23 @@
 -- INSERT INTO t_seuil (cle, valeur) VALUES ('STOCKAGE', 80);   -- en pourcentage
 
 
+-- Réinitialise toutes les données (collecte, historique, référentiels métier)
+-- sans toucher aux comptes applicatifs ni à leurs dépendances :
+-- t_user, t_user_statut, t_role et t_statut sont préservés.
 TRUNCATE TABLE
+    t_evenement_statut,
     t_device_alerte_statut,
     t_device_alerte,
+    t_alerte_statut,
     t_device_cpu,
+    t_device_ram,
     t_device_filiale,
     t_device_reseau,
     t_device_statut,
     t_device_utilisateur,
     t_device_utilisateur_recent,
     t_disk_device,
+    t_device_version,
     t_rapport_device,
     t_evenement_device,
     t_imprimante_device,
@@ -78,17 +85,28 @@ TRUNCATE TABLE
     t_reseau_filiale,
     t_statut_synchronisation,
     t_synchronisation_historique,
+    t_seuil_statut,
+    t_configuration_statut,
     t_device,
     t_imprimante,
     t_utilisateur,
     t_filiale,
     t_reseau,
     t_cpu,
-    t_disk
-RESTART IDENTITY;
-
-TRUNCATE TABLE t_statut_comparaison, t_comparaison RESTART IDENTITY CASCADE;
-TRUNCATE TABLE t_configuration_statut,t_configuration RESTART IDENTITY;
+    t_disk,
+    t_configuration,
+    t_seuil,
+    t_alerte,
+    t_vendor,
+    t_type_evenement,
+    t_type_rapport,
+    t_type_appareil,
+    t_type_comparaison,
+    t_type_seuil,
+    t_categorie_type_seuil,
+    t_type_configuration,
+    t_categorie_type_configuration
+RESTART IDENTITY CASCADE;
 -- Supression doublons 
 -- WITH doublons AS (
 --     SELECT id,

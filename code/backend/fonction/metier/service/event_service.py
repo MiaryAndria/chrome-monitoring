@@ -11,28 +11,45 @@ from backend.fonction.metier.repository.evenement import (
     get_evenement_by_id,
     delete_evenements_avant,
     get_evenement_detail_by_id,
+    insert_evenement_statut,
+    get_statut_evenement,
 )
-from backend.fonction.metier.repository.evenement.evenement_statut import insert_evenement_statut
+
 from backend.fonction.metier.repository.rapport import get_latest_battery_by_device
 from backend.utils.pagination import build_page
 from backend.core.cache import cache_get, cache_invalidate_prefix, cache_set
 from backend.utils.datetime_tools import _to_utc, local_to_utc
 from backend.utils.config_db import get_int_configuration
+from backend.exceptions import ValidationError
 from backend.fonction.metier.service.ia_evenement_service import stream_chat_with_ia
-from backend.fonction.metier.repository.statut import ID_STATUT_RESOLUE
+from backend.fonction.metier.repository.statut import ID_STATUT_RESOLUE, ID_STATUT_ACTIVE
 
+def _get_statut_evenement(cur, id_evenement):
+    row = get_statut_evenement(cur, id_evenement)
+    if row is None:
+        return None
+    return row[2]
 
-def update_statut(id_evenement, id_statut=ID_STATUT_RESOLUE):
+def _change_statut(id_evenement, id_statut):
     with transaction() as cur:
         if cur is None:
             return False
         if get_evenement_by_id(cur, id_evenement) is None:
             return False
+        statut_evenement = _get_statut_evenement(cur, id_evenement)
+        if statut_evenement == id_statut:
+            raise ValidationError("Impossible de modifier le statut : transition refusée (statut déjà appliqué).")
         insert_evenement_statut(cur, id_evenement, id_statut)
     cache_invalidate_prefix("events:")
     cache_invalidate_prefix("events_resolues:")
+    cache_invalidate_prefix("events_actives:")
     return True
 
+def marquer_evenement_resolu(id_evenement):
+    return _change_statut(id_evenement, ID_STATUT_RESOLUE)
+
+def repasser_evenement_actif(id_evenement):
+    return _change_statut(id_evenement, ID_STATUT_ACTIVE)    
 
 def get_detail_evenement(id):
     with lecture() as cur:
@@ -312,4 +329,6 @@ __all__ = [
     "compute_battery_remaining",
     "get_evenement_ia_context",
     "ia_chat_stream",
+    "marquer_evenement_resolu",
+    "repasser_evenement_actif",
 ]

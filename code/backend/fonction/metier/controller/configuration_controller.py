@@ -20,6 +20,7 @@ from backend.fonction.metier.service.configuration_service import (
     getConfigurationsArchivePage,
     getDetailConfiguration,
     get_liste_categorie_configuration,
+    get_liste_type_configuration_tous,
     get_liste_type_configuration_by_categorie,
     reStaurer as restore_config_service,
 )
@@ -33,8 +34,8 @@ def get_liste():
 
 
 @router.get("/liste/page", response_model=ConfigurationPageResponse)
-def get_liste_page(page: int = Query(1, ge=1), page_size: int = Query(10, ge=1, le=10000), categorie: str | None = None):
-    return getConfigurationsPage(page=page, page_size=page_size, categorie=categorie)
+def get_liste_page(page: int = Query(1, ge=1), page_size: int = Query(10, ge=1, le=10000), categorie: str | None = None, type: str | None = None):
+    return getConfigurationsPage(page=page, page_size=page_size, categorie=categorie, type_=type)
 
 
 @router.get("/liste/archiver", response_model=List[ConfigurationResponse])
@@ -50,6 +51,11 @@ def get_list_archive_page(page: int = Query(1, ge=1), page_size: int = Query(10,
 @router.get("/categorie/type", response_model=List[ConfigurationCategorieResponse])
 def get_liste_categorie():
     return get_liste_categorie_configuration()
+
+
+@router.get("/type/tous", response_model=List[ConfigurationTypeResponse])
+def get_liste_type_tous():
+    return get_liste_type_configuration_tous()
 
 
 @router.get("/type/{id_categorie}", response_model=List[ConfigurationTypeResponse])
