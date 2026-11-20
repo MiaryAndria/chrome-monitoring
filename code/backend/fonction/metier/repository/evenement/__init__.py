@@ -6,7 +6,8 @@ from .evenement_device import (
     find_evenements_resolues_paginated,
     get_last_event_date,
     count_evenements_device_period,
-    delete_evenements_avant,
+    delete_evenements_statut,
+    delete_evenement_device,
     get_evenement_detail_by_id,
 )
 

@@ -18,7 +18,8 @@ from backend.fonction.metier.repository.alerte import (
     get_liste_device_alerte_by_date_resolue,
     get_nombre_alerte_resolue,
     get_type_alerte,
-    delete_alertes_avant,
+    delete_alertes_statut,
+    delete_alerte_device,
     get_alertes_nouvelles,
     get_nombre_alerte_nouvelle,
 )
@@ -337,7 +338,8 @@ def delete_alerte(date_limite):
     with transaction() as cur:
         if cur is None:
             return 0
-        delete_alertes_avant(cur, date_limite)
+        delete_alertes_statut(cur, date_limite)
+        delete_alerte_device(cur,date_limite)
     cache_invalidate_prefix("alertes:")
     cache_invalidate_prefix("dashboard:")
 

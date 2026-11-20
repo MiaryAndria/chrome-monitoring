@@ -9,7 +9,8 @@ from backend.fonction.metier.repository.evenement import (
     find_evenements_resolues_paginated,
     get_last_event_date,
     get_evenement_by_id,
-    delete_evenements_avant,
+    delete_evenements_statut,
+    delete_evenement_device,
     get_evenement_detail_by_id,
     insert_evenement_statut,
     get_statut_evenement,
@@ -303,7 +304,8 @@ def delete_evenement(date_limite):
     with transaction() as cur:
         if cur is None:
             return 0
-        delete_evenements_avant(cur, date_limite)
+        delete_evenements_statut(cur, date_limite)
+        delete_evenement_device(cur,date_limite)
     cache_invalidate_prefix("events:")
     cache_invalidate_prefix("events_resolues:")
 

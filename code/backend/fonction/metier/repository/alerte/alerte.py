@@ -50,7 +50,7 @@ def get_type_alerte(cur):
     )
     return cur.fetchall()
 
-def delete_alertes_avant(cur, date_limite):
+def delete_alertes_statut(cur, date_limite):
     cur.execute(
         """
         DELETE FROM t_device_alerte_statut
@@ -60,7 +60,9 @@ def delete_alertes_avant(cur, date_limite):
         """,
         (date_limite,),
     )
+
+def delete_alerte_device(cur,date_limite):
     cur.execute(
         "DELETE FROM t_device_alerte WHERE date < %s",
         (date_limite,),
-    )
+    )    

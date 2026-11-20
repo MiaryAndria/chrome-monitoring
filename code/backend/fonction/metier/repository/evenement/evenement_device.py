@@ -147,7 +147,7 @@ def find_evenements_paginated(cur, page=1, page_size=10, type_evenement=None,
     )
     return _rows_to_dicts(cur), total
 
-def delete_evenements_avant(cur, date_limite):
+def delete_evenements_statut(cur, date_limite):
     cur.execute(
         """
         DELETE FROM t_evenement_statut
@@ -157,11 +157,12 @@ def delete_evenements_avant(cur, date_limite):
         """,
         (date_limite,),
     )
+    
+def delete_evenement_device(cur,date_limite):
     cur.execute(
         "DELETE FROM t_evenement_device WHERE date_evenement < %s",
         (date_limite,),
     )
-
 
 def find_evenements_resolues_paginated(cur, page=1, page_size=10, type_evenement=None,
                                        id_filiale=None, filiale=None, recherche=None,
