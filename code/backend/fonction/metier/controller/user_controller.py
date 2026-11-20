@@ -59,7 +59,7 @@ def roles(current_user: dict = Depends(require_admin)):
     return get_role()
 
 
-@router.put("/{id}/role", response_model=UserResponse)
+@router.put("/{id}/role")
 def update_role_user(id: int, data: UserRoleUpdate, current_user: dict = Depends(require_admin)):
     return update_role(id, data.id_role)
 
