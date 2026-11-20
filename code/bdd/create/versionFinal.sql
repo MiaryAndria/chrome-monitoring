@@ -638,3 +638,11 @@ CREATE TABLE t_evenement_statut (
     date TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     UNIQUE (id_evenement,id_statut,date)
 );
+
+CREATE TABLE IF NOT EXISTS t_user_role (
+    id          SERIAL PRIMARY KEY,
+    id_user     INT NOT NULL REFERENCES t_user(id),
+    id_role     INT NOT NULL REFERENCES t_role(id),
+    date        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE (id_user, id_role, date)
+);

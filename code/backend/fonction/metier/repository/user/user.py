@@ -1,21 +1,23 @@
 def get_user_by_email(cur, email):
     cur.execute(
         """
-        SELECT id, nom, email, mdp, id_role FROM t_user WHERE email = %s
+        SELECT id, nom, email, mdp, id_role, role
+        FROM v_user
+        WHERE email = %s
         """,
         (email,),
     )
     return cur.fetchone()
 
 
-def create_user(cur, nom, email, mdp, id_role):
+def create_user(cur, nom, email, mdp):
     cur.execute(
         """
-        INSERT INTO t_user (nom, email, mdp, id_role)
-        VALUES (%s, %s, %s, %s)
-        RETURNING id, nom, email, id_role
+        INSERT INTO t_user (nom, email, mdp)
+        VALUES (%s, %s, %s)
+        RETURNING id, nom, email
         """,
-        (nom, email, mdp, id_role),
+        (nom, email, mdp),
     )
     return cur.fetchone()
 
@@ -29,41 +31,60 @@ def get_role(cur):
     return cur.fetchall()
 
 
-def list_users(cur):
-    cur.execute(
-        """
-        SELECT u.id, u.nom, u.email, u.id_role, r.role
-        FROM t_user u
-        JOIN t_role r ON r.id = u.id_role
-        ORDER BY u.id ASC
-        """
-    )
-    return cur.fetchall()
-
-
 def role_exists(cur, id_role):
     cur.execute("SELECT 1 FROM t_role WHERE id = %s", (id_role,))
     return cur.fetchone() is not None
 
 
-def set_user_role(cur, id_user, id_role):
+def list_users(cur):
     cur.execute(
         """
-        UPDATE t_user SET id_role = %s WHERE id = %s
-        RETURNING id, nom, email, id_role
-        """,
-        (id_role, id_user),
+        SELECT id, nom, email, id_role, role
+        FROM v_user
+        ORDER BY id ASC
+        """
     )
-    return cur.fetchone()
+    return cur.fetchall()
+
+
+def get_id_role_actif(cur, id_user):
+    """Renvoie l'id du rôle actif (le plus récent) d'un utilisateur, ou None."""
+    cur.execute(
+        """
+        SELECT id_role FROM t_user_role
+        WHERE id_user = %s
+        ORDER BY date DESC, id DESC
+        LIMIT 1
+        """,
+        (id_user,),
+    )
+    row = cur.fetchone()
+    return row[0] if row else None
+
+
+def assigner_role(cur, id_user, id_role):
+    cur.execute(
+        """
+        INSERT INTO t_user_role (id_user, id_role)
+        VALUES (%s, %s)
+        ON CONFLICT (id_user, id_role, date) DO NOTHING
+        """,
+        (id_user, id_role),
+    )
+    cur.execute(
+        "SELECT id, nom, email FROM t_user WHERE id = %s",
+        (id_user,),
+    )
+    row = cur.fetchone()
+    return (row[0], row[1], row[2], id_role) if row else None
 
 
 def get_user_by_id(cur, id_user):
     cur.execute(
         """
-        SELECT u.id, u.nom, u.email, u.id_role, r.role
-        FROM t_user u
-        JOIN t_role r ON r.id = u.id_role
-        WHERE u.id = %s
+        SELECT id, nom, email, id_role, role
+        FROM v_user
+        WHERE id = %s
         """,
         (id_user,),
     )
@@ -71,7 +92,14 @@ def get_user_by_id(cur, id_user):
 
 
 def get_nom_role_by_user_id(cur, id_user):
-    cur.execute("SELECT nom, id_role FROM t_user WHERE id = %s", (id_user,))
+    cur.execute(
+        """
+        SELECT nom, id_role
+        FROM v_user
+        WHERE id = %s
+        """,
+        (id_user,),
+    )
     row = cur.fetchone()
     if row is None:
         return None
@@ -82,7 +110,7 @@ def get_user_auth_by_id(cur, id_user):
     cur.execute(
         """
         SELECT id, nom, email, mdp, id_role
-        FROM t_user
+        FROM v_user
         WHERE id = %s
         """,
         (id_user,),
@@ -107,14 +135,13 @@ def update_user_mdp(cur, id_user, mdp_hache):
 def get_user_archived(cur, id_user, id_statut_supprime):
     cur.execute(
         """
-        SELECT u.id, u.nom, u.email, u.id_role, r.role
-        FROM t_user u
-        JOIN t_role r ON r.id = u.id_role
-        WHERE u.id = %s
+        SELECT id, nom, email, id_role, role
+        FROM v_user
+        WHERE id = %s
           AND (
               SELECT us.id_statut
               FROM t_user_statut us
-              WHERE us.id_user = u.id
+              WHERE us.id_user = v_user.id
               ORDER BY us.date DESC, us.id DESC
               LIMIT 1
           ) = %s
@@ -146,7 +173,7 @@ def find_users_paginated(cur, id_statut_supprime, page=1, page_size=10):
 
     cur.execute(
         """
-        SELECT u.id, u.nom, u.email, u.id_role, r.role,
+        SELECT u.id, u.nom, u.email, u.id_role, u.role,
                (
                    SELECT us.date
                    FROM t_user_statut us
@@ -154,8 +181,7 @@ def find_users_paginated(cur, id_statut_supprime, page=1, page_size=10):
                    ORDER BY us.date DESC, us.id DESC
                    LIMIT 1
                ) AS date
-        FROM t_user u
-        JOIN t_role r ON r.id = u.id_role
+        FROM v_user u
         WHERE COALESCE(
             (
                 SELECT us.id_statut
@@ -193,7 +219,7 @@ def find_users_archived_paginated(cur, id_statut_supprime, page=1, page_size=10)
 
     cur.execute(
         """
-        SELECT u.id, u.nom, u.email, u.id_role, r.role,
+        SELECT u.id, u.nom, u.email, u.id_role, u.role,
                (
                    SELECT us.date
                    FROM t_user_statut us
@@ -201,8 +227,7 @@ def find_users_archived_paginated(cur, id_statut_supprime, page=1, page_size=10)
                    ORDER BY us.date DESC, us.id DESC
                    LIMIT 1
                ) AS date
-        FROM t_user u
-        JOIN t_role r ON r.id = u.id_role
+        FROM v_user u
         WHERE (
             SELECT us.id_statut
             FROM t_user_statut us

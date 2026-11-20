@@ -440,6 +440,40 @@ WHERE id IN (1, 2, 3, 4)
 ORDER BY id ASC;
 
 -- ------------------------------------------------------------
+-- v_user
+-- But : exposer chaque utilisateur (compte de connexion) avec son
+--       rôle ACTIF (le plus récent de t_user_role) et le libellé.
+-- Colonnes : id, nom, email, mdp, id_role, role
+-- Consommateur : repository/user/user.py (get_user_by_email,
+--                get_user_auth_by_id, get_nom_role_by_user_id,
+--                list_users, get_user_by_id, get_user_archived,
+--                find_users_paginated, find_users_archived_paginated)
+--                → GET /user/*, auth (login)
+-- Rôle : encapsule le calcul du rôle actif (dernière ligne de
+--        t_user_role) une seule fois ; le code Python ne fait que
+--        des SELECT simples vers cette vue.
+-- Note : nécessite que t_role contienne les rôles et t_user_role
+--        les affectations (cf. alter_user_role.sql).
+-- ------------------------------------------------------------
+CREATE OR REPLACE VIEW v_user AS
+SELECT u.id,
+       u.nom,
+       u.email,
+       u.mdp,
+       (SELECT ur.id_role
+        FROM t_user_role ur
+        WHERE ur.id_user = u.id
+        ORDER BY ur.date DESC, ur.id DESC
+        LIMIT 1) AS id_role,
+       (SELECT r2.role
+        FROM t_user_role ur2
+        JOIN t_role r2 ON r2.id = ur2.id_role
+        WHERE ur2.id_user = u.id
+        ORDER BY ur2.date DESC, ur2.id DESC
+        LIMIT 1) AS role
+FROM t_user u;
+
+-- ------------------------------------------------------------
 -- v_device_alerte
 -- But : chaque alerte device enrichie — série, type, utilisateur
 --       récent, DERNIER statut (ACTIVE/RESOLUE).

@@ -5,7 +5,8 @@ from backend.fonction.metier.repository.user import (
     get_role as get_roles_repo,
     list_users,
     role_exists,
-    set_user_role,
+    get_id_role_actif,
+    assigner_role,
     get_user_by_id,
     get_user_archived,
     find_users_paginated,
@@ -96,9 +97,11 @@ def signin_user(nom, email, mdp, confirm_mdp=""):
             raise ConflictError("Cet email est déjà utilisé.")
 
         mdp_hache = hasher_password(mdp)
-        user = create_user(cur, nom, email, mdp_hache, ID_ROLE_LECTURE)
+        user = create_user(cur, nom, email, mdp_hache)
         if user is not None:
+            assigner_role(cur, user[0], ID_ROLE_LECTURE)
             insert_user_statut(cur, user[0], ID_STATUT_CREER)
+            return (user[0], user[1], user[2], ID_ROLE_LECTURE)
         return user
 
 def get_users():
@@ -153,12 +156,12 @@ def update_role(id_user, id_role):
         if not role_exists(cur, id_role):
             raise NotFoundError("Le rôle référencé n'existe pas")
 
-        user = set_user_role(cur, id_user, id_role)
-        if user is None:
+        if get_user_by_id(cur, id_user) is None:
             raise NotFoundError("Utilisateur introuvable")
 
-        insert_user_statut(cur, user[0], ID_STATUT_MODIFIER)
-        return {"id": user[0], "nom": user[1], "email": user[2], "id_role": user[3]}
+        assigner_role(cur, id_user, id_role)
+        insert_user_statut(cur, id_user, ID_STATUT_MODIFIER)
+        return {"id": id_user, "id_role": id_role}
 
 
 def getUsersPage(page=1, page_size=10):
