@@ -10,6 +10,7 @@ from backend.fonction.metier.repository.configuration import (
     insert_configuration_statut,
     update_configuration,
     delete_configuration,
+    delete_configuration_statuts,
     restore_configuration,
     hard_delete_configuration,
     verifier_configuration_type_existe,
@@ -185,6 +186,7 @@ def hardDeleteConfiguration(id_configuration):
     with transaction() as cur:
         if cur is None:
             return False
+        delete_configuration_statuts(cur, id_configuration)
         supprime = hard_delete_configuration(cur, id_configuration)
         if not supprime:
             raise NotFoundError("Configuration introuvable")

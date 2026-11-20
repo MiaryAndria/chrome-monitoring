@@ -9,6 +9,7 @@ from .seuil import (
     insert_seuil_statut,
     update_seuil,
     delete_seuil,
+    delete_seuil_statuts,
     restore_seuil,
     hard_delete_seuil,
     verifier_seuil_type_existe,

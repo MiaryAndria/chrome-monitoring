@@ -102,17 +102,24 @@ def update_device_ram_total(cur, device_id, ram_total):
     return row[0] if row else None
 
 
+def device_filiale_exists(cur, id_device, id_filiale):
+    cur.execute(
+        """
+        SELECT 1 FROM t_device_filiale
+        WHERE id_device = %s AND id_filiale = %s
+        """,
+        (id_device, id_filiale),
+    )
+    return cur.fetchone() is not None
+
+
 def insert_device_filiale(cur, id_device, id_filiale):
     cur.execute(
         """
         INSERT INTO t_device_filiale (id_device, id_filiale)
-        SELECT %s, %s
-        WHERE NOT EXISTS (
-            SELECT 1 FROM t_device_filiale
-            WHERE id_device = %s AND id_filiale = %s
-        );
+        VALUES (%s, %s)
         """,
-        (id_device, id_filiale, id_device, id_filiale)
+        (id_device, id_filiale),
     )
 
 

@@ -169,11 +169,14 @@ def restore_seuil(cur, id_seuil, id_statut=16):
     return True
 
 
-def hard_delete_seuil(cur, id_seuil):
+def delete_seuil_statuts(cur, id_seuil):
     cur.execute(
         "DELETE FROM t_seuil_statut WHERE id_seuil = %s",
         (id_seuil,),
     )
+
+
+def hard_delete_seuil(cur, id_seuil):
     cur.execute(
         "DELETE FROM t_seuil WHERE id = %s",
         (id_seuil,),

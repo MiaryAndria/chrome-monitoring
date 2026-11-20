@@ -55,21 +55,10 @@ def create_evenement_device(cur,id_device,id_type_evenement,date_evenement,detai
 def get_liste_evenement_avec_details(cur):
     cur.execute(
         """
-        SELECT DISTINCT ON (ed.id)
-            ed.id,
-            ed.date_evenement,
-            ed.details,
-            te.type       AS type_evenement,
-            d.device_id,
-            d.serial_number,
-            d.modele,
-            f.org_unit_path AS filiale
-        FROM t_evenement_device ed
-        LEFT JOIN t_type_evenement te  ON te.id = ed.id_type_evenement
-        LEFT JOIN t_device         d   ON d.id  = ed.id_device
-        LEFT JOIN t_device_filiale df  ON df.id_device = d.id
-        LEFT JOIN t_filiale        f   ON f.id = df.id_filiale
-        ORDER BY ed.id, ed.date_evenement DESC
+        SELECT id, date_evenement, details, type_evenement,
+               device_id, serial_number, modele, filiale
+        FROM v_evenements_avec_appareil
+        ORDER BY date_evenement DESC, id DESC
         """
     )
     return cur.fetchall()
@@ -210,29 +199,10 @@ def find_evenements_resolues_paginated(cur, page=1, page_size=10, type_evenement
 def get_evenement_detail_by_id(cur, event_id):
     cur.execute(
         """
-        SELECT
-            ed.id,
-            ed.date_evenement,
-            ed.details,
-            te.type        AS type_evenement,
-            d.id           AS id_device,
-            d.device_id,
-            d.serial_number,
-            d.modele,
-            f.org_unit_path AS filiale,
-            (
-                SELECT s.id_statut
-                FROM t_evenement_statut s
-                WHERE s.id_evenement = ed.id
-                ORDER BY s.date DESC NULLS LAST, s.id DESC
-                LIMIT 1
-            ) AS id_statut
-        FROM t_evenement_device ed
-        LEFT JOIN t_type_evenement te ON te.id = ed.id_type_evenement
-        LEFT JOIN t_device d          ON d.id  = ed.id_device
-        LEFT JOIN t_device_filiale df ON df.id_device = d.id
-        LEFT JOIN t_filiale f         ON f.id = df.id_filiale
-        WHERE ed.id = %s
+        SELECT id, date_evenement, details, type_evenement, id_device,
+               device_id, serial_number, modele, id_filiale, filiale, id_statut
+        FROM v_evenements_avec_appareil
+        WHERE id = %s
         LIMIT 1
         """,
         (event_id,),
@@ -243,6 +213,7 @@ def get_evenement_detail_by_id(cur, event_id):
 
     colonnes = [
         "id", "date_evenement", "details", "type_evenement",
-        "id_device", "device_id", "serial_number", "modele", "filiale", "id_statut",
+        "id_device", "device_id", "serial_number", "modele", "id_filiale",
+        "filiale", "id_statut",
     ]
     return dict(zip(colonnes, row))

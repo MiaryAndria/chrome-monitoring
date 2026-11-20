@@ -1,6 +1,3 @@
-
-
-
 def get_disk_by_model_and_type(cur, disk_model, disk_type):
     cur.execute(
         """

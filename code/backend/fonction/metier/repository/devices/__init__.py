@@ -6,6 +6,7 @@ from .devices import (
     get_device_detail,
     insert_device,
     update_device,
+    device_filiale_exists,
     insert_device_filiale,
     get_last_version,
     insert_device_version,

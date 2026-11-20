@@ -10,6 +10,7 @@ from backend.fonction.metier.repository.seuil import (
     insert_seuil_statut,
     update_seuil,
     delete_seuil,
+    delete_seuil_statuts,
     restore_seuil,
     hard_delete_seuil,
     verifier_seuil_type_existe,
@@ -206,6 +207,7 @@ def hardDeleteSeuil(id_seuil):
     with transaction() as cur:
         if cur is None:
             return False
+        delete_seuil_statuts(cur, id_seuil)
         supprime = hard_delete_seuil(cur, id_seuil)
     cache_invalidate_prefix("seuils:")
     return supprime

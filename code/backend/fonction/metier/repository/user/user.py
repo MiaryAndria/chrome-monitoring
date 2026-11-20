@@ -67,16 +67,9 @@ def assigner_role(cur, id_user, id_role):
         """
         INSERT INTO t_user_role (id_user, id_role)
         VALUES (%s, %s)
-        ON CONFLICT (id_user, id_role, date) DO NOTHING
         """,
         (id_user, id_role),
     )
-    cur.execute(
-        "SELECT id, nom, email FROM t_user WHERE id = %s",
-        (id_user,),
-    )
-    row = cur.fetchone()
-    return (row[0], row[1], row[2], id_role) if row else None
 
 
 def get_user_by_id(cur, id_user):

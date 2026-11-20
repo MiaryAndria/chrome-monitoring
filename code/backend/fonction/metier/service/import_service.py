@@ -7,7 +7,8 @@ from datetime import datetime
 from backend.utils.chrono import _aware, chrono, memo
 from backend.fonction.metier.service.alerte_service import insertAlerte
 from backend.fonction.metier.repository.evenement.evenement_statut import (
-    insert_evenement_statut_si_absent,
+    insert_evenement_statut,
+    get_statut_evenement,
 )
 def _appel_chrono(etapes, label, callback, *args):
     with chrono(label, etapes):
@@ -22,6 +23,7 @@ from backend.fonction.metier.repository.devices import (
     update_device,
     update_device_ram_total,
     get_device_by_device_id,
+    device_filiale_exists,
     insert_device_filiale,
     insert_device_utilisateur_recent,
     insert_device_utilisateur,
@@ -140,7 +142,8 @@ def insertion_device(cur, dvc_list):
                 _enregistrer_version(cur, db_device_id, d.get("osVersion"))
                 insert_device_utilisateur(cur, db_device_id, utilisateur_id)
                 if id_filiale:
-                    insert_device_filiale(cur, db_device_id, id_filiale)
+                    if not device_filiale_exists(cur, db_device_id, id_filiale):
+                        insert_device_filiale(cur, db_device_id, id_filiale)
                     get_or_create_filiale_utilisateur(cur, id_filiale, utilisateur_id)
                     _lier_reseau_device(cur, db_device_id, id_filiale, ip_adresse)
 
@@ -466,7 +469,8 @@ def _importer_en_bdd(cur, dvc_list, telemetry_devices_list, crashes_data, filtre
     with chrono("db_evenements", etapes):
         id_evenements = insert_event(cur, crashes_data)
         for id_evenement in id_evenements:
-            insert_evenement_statut_si_absent(cur, id_evenement, ID_STATUT_ACTIVE)
+            if get_statut_evenement(cur, id_evenement) is None:
+                insert_evenement_statut(cur, id_evenement, ID_STATUT_ACTIVE)
 
 def synchroniser_tout(debut=None, fin=None, suivi=None):
     suivi = suivi if suivi is not None else {}

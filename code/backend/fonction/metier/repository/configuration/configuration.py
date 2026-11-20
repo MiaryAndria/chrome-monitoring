@@ -203,11 +203,14 @@ def restore_configuration(cur, id_configuration, id_statut=16):
     return True
 
 
-def hard_delete_configuration(cur, id_configuration):
+def delete_configuration_statuts(cur, id_configuration):
     cur.execute(
         "DELETE FROM t_configuration_statut WHERE id_configuration = %s",
         (id_configuration,),
     )
+
+
+def hard_delete_configuration(cur, id_configuration):
     cur.execute(
         "DELETE FROM t_configuration WHERE id = %s",
         (id_configuration,),
