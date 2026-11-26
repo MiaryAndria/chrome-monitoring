@@ -38,15 +38,13 @@ function SynchronisationListe() {
     const [fenetre_fin, setFenetreFin] = useState('');
     const [statuts, setStatuts] = useState([]);
     const [enCours, setEnCours] = useState(null);
-    // Filtres réellement appliqués (envoyés à l'API) — ne changent qu'au clic sur "Filtrer"
     const [applied, setApplied] = useState({});
 
     const { items: synch, total, totalPages, loading } = usePaginatedData(
         getListeSynchronisation,
         showAll ? 1 : currentPage,
         showAll ? 10000 : pageSize,
-        filtreSynchronisation
-        
+        applied
     );
 
     // Statuts alimentés par l'API (jamais figés dans le code)
@@ -82,12 +80,15 @@ function SynchronisationListe() {
 
     const filtresActifs = statut !== "" || date_debut !== "" || date_fin !== "" || fenetre_debut !== "" || fenetre_fin !== "";
 
-    const filtreSynchronisation =  {
+    const filtrer = () => {
+        setApplied({
             statut: statut || undefined,
             date_debut: date_debut || undefined,
             date_fin: date_fin || undefined,
             fenetre_debut: fenetre_debut || undefined,
             fenetre_fin: fenetre_fin || undefined,
+        });
+        setCurrentPage(1);
     };
 
     const resetFilter = () => {
@@ -96,6 +97,7 @@ function SynchronisationListe() {
         setFenetreDebut('');
         setFenetreFin('');
         setStatut('');
+        setApplied({});
         setCurrentPage(1);
     };
 
