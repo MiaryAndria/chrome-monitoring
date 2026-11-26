@@ -34,8 +34,6 @@ function SynchronisationListe() {
     const [statut, setStatut] = useState('');
     const [date_debut, setDateDebut] = useState('');
     const [date_fin, setDateFin] = useState('');
-    const [fenetre_debut, setFenetreDebut] = useState('');
-    const [fenetre_fin, setFenetreFin] = useState('');
     const [statuts, setStatuts] = useState([]);
     const [enCours, setEnCours] = useState(null);
     const [applied, setApplied] = useState({});
@@ -85,8 +83,6 @@ function SynchronisationListe() {
             statut: statut || undefined,
             date_debut: date_debut || undefined,
             date_fin: date_fin || undefined,
-            fenetre_debut: fenetre_debut || undefined,
-            fenetre_fin: fenetre_fin || undefined,
         });
         setCurrentPage(1);
     };
@@ -120,8 +116,6 @@ function SynchronisationListe() {
         { header: 'Date début', className: 'w-[14%]', render: (s) => <span className="text-zinc-300 text-xs">{fmtDate(s.date_debut)}</span> },
         { header: 'Date fin', className: 'w-[14%]', render: (s) => <span className="text-zinc-300 text-xs">{fmtDate(s.date_fin)}</span> },
         { header: 'Lignes', className: 'w-[7%]', render: (s) => <span className="text-zinc-100">{s.nb_lignes}</span> },
-        { header: 'Fenêtre début', className: 'w-[13%]', render: (s) => <span className="text-zinc-400 text-xs">{fmtDate(s.fenetre_debut)}</span> },
-        { header: 'Fenêtre fin', className: 'w-[13%]', render: (s) => <span className="text-zinc-400 text-xs">{fmtDate(s.fenetre_fin)}</span> },
         {
             header: 'Message', className: 'w-[11%]', render: (s) => (
                 s.message ? <span className="text-red-400 text-xs">{s.message}</span> : <span className="text-zinc-500 text-xs">-</span>
@@ -203,14 +197,6 @@ function SynchronisationListe() {
                         <div>
                             <label className="config-form-label">Date fin</label>
                             <input type="date" value={date_fin} onChange={(e) => setDateFin(e.target.value)} className={inputDateClass} />
-                        </div>
-                        <div>
-                            <label className="config-form-label">Fenêtre début</label>
-                            <input type="date" value={fenetre_debut} onChange={(e) => setFenetreDebut(e.target.value)} className={inputDateClass} />
-                        </div>
-                        <div>
-                            <label className="config-form-label">Fenêtre fin</label>
-                            <input type="date" value={fenetre_fin} onChange={(e) => setFenetreFin(e.target.value)} className={inputDateClass} />
                         </div>
                         <button onClick={filtrer} className="config-btn config-btn-primary">
                             <Filter className="w-4 h-4" /> Filtrer
