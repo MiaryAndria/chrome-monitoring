@@ -589,9 +589,14 @@ export default function Navbar() {
                                     <span>Exporter des données</span>
                                 </button>
 
-                                <div>
-                                    <button onClick={()=>navigate('/liste/synchronisation')}>Voir toutes les synchronisations </button>
-                                </div>
+                                <button
+                                    onClick={() => { setOpenMenu(null); navigate('/liste/synchronisation'); }}
+                                    className="config-dropdown-item"
+                                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: '0.5rem', width: '100%', textAlign: 'left' }}
+                                >
+                                    <Activity className="w-4 h-4" />
+                                    <span>Voir les synchronisations</span>
+                                </button>
 
                                 <div className="config-dropdown-divider" />
                                 <button
