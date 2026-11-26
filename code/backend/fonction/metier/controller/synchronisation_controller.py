@@ -3,7 +3,7 @@ from datetime import datetime
 
 from fastapi import APIRouter, Query
 
-from backend.exceptions import NotFoundError
+from backend.exceptions import NotFoundError, ValidationError
 from backend.fonction.metier.models.synchronisation import (
     SynchronisationDetail,
     SynchronisationPageResponse,
@@ -14,7 +14,7 @@ from backend.fonction.metier.service.synchronisation_service import (
     getSynchronisationEnCours,
     getStatutsSynchronisation,
 )
-from backend.utils.validation import valider_plage_datetime
+from backend.utils.validation import is_valid_datetime_range
 
 router = APIRouter()
 
@@ -39,7 +39,8 @@ def liste_page(
     fenetre_debut:Optional[datetime] = None,
     fenetre_fin:Optional[datetime] = None,
 ):
-    valider_plage_datetime(date_debut, date_fin)
+    if not is_valid_datetime_range(date_debut, date_fin):
+        raise ValidationError("La date de début doit être antérieure ou égale à la date de fin.")
     return getListeSynchronisation(page, page_size, statut, date_debut, date_fin,fenetre_debut,fenetre_fin)
 
 
