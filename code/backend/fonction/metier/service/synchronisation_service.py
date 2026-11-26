@@ -18,8 +18,8 @@ def _duree(date_debut, date_fin):
     return round((date_fin - date_debut).total_seconds(), 3)
 
 
-def getListeSynchronisation(page=1, page_size=10, statut=None, date_debut=None, date_fin=None,fenetre_debut=None,fenetre_fin=None):
-    cle = f"synchronisations:liste:{page}:{page_size}:{statut}:{date_debut}:{date_fin}:{fenetre_debut}:{fenetre_fin}"
+def getListeSynchronisation(page=1, page_size=10, statut=None, date_debut=None, date_fin=None):
+    cle = f"synchronisations:liste:{page}:{page_size}:{statut}:{date_debut}:{date_fin}"
     valeur = cache_get(cle)
     if valeur is not None:
         return valeur
@@ -27,8 +27,8 @@ def getListeSynchronisation(page=1, page_size=10, statut=None, date_debut=None, 
         if cur is None:
             return build_page([], 0, page, page_size)
         offset = (page - 1) * page_size
-        rows = get_liste_synchronisation(cur, page_size, offset, statut, date_debut, date_fin,fenetre_debut,fenetre_fin)
-        total = count_synchronisation(cur, statut, date_debut, date_fin,fenetre_debut,fenetre_fin)
+        rows = get_liste_synchronisation(cur, page_size, offset, statut, date_debut, date_fin)
+        total = count_synchronisation(cur, statut, date_debut, date_fin)
         items = []
         for r in rows:
             items.append({

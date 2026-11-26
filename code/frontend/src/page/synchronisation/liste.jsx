@@ -33,9 +33,9 @@ function SynchronisationListe() {
     const [showAll, setShowAll] = useState(false);
     const [statut, setStatut] = useState('');
     const [date_debut, setDateDebut] = useState('');
+    const [heureDebut, setHeureDebut] = useState('00:00');
     const [date_fin, setDateFin] = useState('');
-    const [fenetre_debut, setFenetreDebut] = useState('');
-    const [fenetre_fin, setFenetreFin] = useState('');
+    const [heureFin, setHeureFin] = useState('23:59');
     const [statuts, setStatuts] = useState([]);
     const [enCours, setEnCours] = useState(null);
 
@@ -79,24 +79,22 @@ function SynchronisationListe() {
         setCurrentPage(1);
     }, []);
 
-    const filtresActifs = statut !== "" || date_debut !== "" || date_fin !== "" || fenetre_debut !== "" || fenetre_fin !== "";
+    const filtresActifs = statut !== "" || date_debut !== "" || date_fin !== "";
 
     const filtrer = () => {
         setApplied({
             statut: statut || undefined,
-            date_debut: date_debut || undefined,
-            date_fin: date_fin || undefined,
-            fenetre_debut: fenetre_debut || undefined,
-            fenetre_fin: fenetre_fin || undefined,
+            date_debut: date_debut ? `${date_debut}T${heureDebut || '00:00'}:00` : undefined,
+            date_fin: date_fin ? `${date_fin}T${heureFin || '23:59'}:59` : undefined,
         });
         setCurrentPage(1);
     };
 
     const resetFilter = () => {
         setDateDebut('');
+        setHeureDebut('00:00');
         setDateFin('');
-        setFenetreDebut('');
-        setFenetreFin('');
+        setHeureFin('23:59');
         setStatut('');
         setApplied({});
         setCurrentPage(1);
@@ -104,7 +102,7 @@ function SynchronisationListe() {
 
     useEffect(()=>{
         setCurrentPage(1);
-    },[date_debut,date_fin,fenetre_debut,fenetre_fin])
+    },[date_debut,date_fin])
 
     // La synchro en cours est affichée en haut ; on la retire du tableau
     const liste = enCours ? synch.filter((s) => s.id !== enCours.id) : synch;
@@ -202,16 +200,16 @@ function SynchronisationListe() {
                             <input type="date" value={date_debut} onChange={(e) => setDateDebut(e.target.value)} className={inputDateClass} />
                         </div>
                         <div>
+                            <label className="config-form-label">Heure début</label>
+                            <input type="time" value={heureDebut} onChange={(e) => setHeureDebut(e.target.value)} className={inputDateClass} />
+                        </div>
+                        <div>
                             <label className="config-form-label">Date fin</label>
                             <input type="date" value={date_fin} onChange={(e) => setDateFin(e.target.value)} className={inputDateClass} />
                         </div>
                         <div>
-                            <label className="config-form-label">Fenêtre début</label>
-                            <input type="date" value={fenetre_debut} onChange={(e) => setFenetreDebut(e.target.value)} className={inputDateClass} />
-                        </div>
-                        <div>
-                            <label className="config-form-label">Fenêtre fin</label>
-                            <input type="date" value={fenetre_fin} onChange={(e) => setFenetreFin(e.target.value)} className={inputDateClass} />
+                            <label className="config-form-label">Heure fin</label>
+                            <input type="time" value={heureFin} onChange={(e) => setHeureFin(e.target.value)} className={inputDateClass} />
                         </div>
                         <button onClick={filtrer} className="config-btn config-btn-primary">
                             <Filter className="w-4 h-4" /> Filtrer

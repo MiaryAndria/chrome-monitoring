@@ -36,12 +36,10 @@ def liste_page(
     statut: Optional[str] = None,
     date_debut: Optional[datetime] = None,
     date_fin: Optional[datetime] = None,
-    fenetre_debut:Optional[datetime] = None,
-    fenetre_fin:Optional[datetime] = None,
 ):
     if not is_valid_datetime_range(date_debut, date_fin):
         raise ValidationError("La date de début doit être antérieure ou égale à la date de fin.")
-    return getListeSynchronisation(page, page_size, statut, date_debut, date_fin,fenetre_debut,fenetre_fin)
+    return getListeSynchronisation(page, page_size, statut, date_debut, date_fin)
 
 
 @router.get("/{id_sync}", response_model=SynchronisationDetail)

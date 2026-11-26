@@ -55,7 +55,7 @@ def update_synchronisation_journal(cur, id_sync, journal):
     """, (json.dumps(journal, ensure_ascii=False), id_sync))
     
 
-def get_liste_synchronisation(cur, limit, offset, statut=None, date_debut=None, date_fin=None,fenetre_debut=None,fenetre_fin=None):
+def get_liste_synchronisation(cur, limit, offset, statut=None, date_debut=None, date_fin=None):
     cur.execute(
         """
         SELECT id, source, date_debut, date_fin, fenetre_debut, fenetre_fin,
@@ -63,28 +63,24 @@ def get_liste_synchronisation(cur, limit, offset, statut=None, date_debut=None, 
         FROM v_synchronisation
         WHERE (%s IS NULL OR statut = %s)
           AND (%s IS NULL OR date_debut >= %s)
-          AND (%s IS NULL OR date_debut < (%s + INTERVAL '1 day'))
-          AND (%s IS NULL OR fenetre_debut >= %s)
-          AND (%s IS NULL OR fenetre_fin < (%s + INTERVAL '1 day'))
+          AND (%s IS NULL OR date_debut <= %s)
         ORDER BY date_debut DESC, id DESC
         LIMIT %s OFFSET %s
         """,
-        (statut, statut, date_debut, date_debut, date_fin, date_fin, fenetre_debut, fenetre_debut, fenetre_fin, fenetre_fin, limit, offset),
+        (statut, statut, date_debut, date_debut, date_fin, date_fin, limit, offset),
     )
     return cur.fetchall()
 
 
-def count_synchronisation(cur, statut=None, date_debut=None, date_fin=None,fenetre_debut=None,fenetre_fin=None):
+def count_synchronisation(cur, statut=None, date_debut=None, date_fin=None):
     cur.execute(
         """
         SELECT COUNT(*) FROM v_synchronisation
         WHERE (%s IS NULL OR statut = %s)
           AND (%s IS NULL OR date_debut >= %s)
-          AND (%s IS NULL OR date_debut < (%s + INTERVAL '1 day'))
-          AND (%s IS NULL OR fenetre_debut >= %s)
-          AND (%s IS NULL OR fenetre_fin < (%s + INTERVAL '1 day'))
+          AND (%s IS NULL OR date_debut <= %s)
         """,
-        (statut, statut, date_debut, date_debut, date_fin, date_fin, fenetre_debut, fenetre_debut, fenetre_fin, fenetre_fin),
+        (statut, statut, date_debut, date_debut, date_fin, date_fin),
     )
     row = cur.fetchone()
     return row[0] if row else 0
