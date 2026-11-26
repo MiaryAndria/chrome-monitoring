@@ -616,3 +616,18 @@ LEFT JOIN LATERAL (
 
 
 
+CREATE OR REPLACE VIEW v_synchronisation AS
+SELECT
+    h.id, h.source, h.date_debut, h.date_fin,
+    h.fenetre_debut, h.fenetre_fin, h.nb_lignes, h.message, h.journal,
+    st.nom AS statut,
+    d.date AS date_statut
+FROM t_synchronisation_historique h
+LEFT JOIN LATERAL (
+    SELECT ss.id_statut, ss.date
+    FROM t_statut_synchronisation ss
+    WHERE ss.id_synchronisation = h.id
+    ORDER BY ss.date DESC, ss.id DESC
+    LIMIT 1
+) d ON TRUE
+LEFT JOIN t_statut st ON st.id = d.id_statut;

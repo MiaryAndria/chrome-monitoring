@@ -85,7 +85,7 @@ function ListeDeviceFiliale() {
         getUtilisateurRecent();
     }, [firstLoadDone]);
 
-    const filtresActifs = statut !== "" || search !== "" || modele !== ""|| utilisateurRecent!="";;
+    const filtresActifs = statut !== "" || search !== "" || modele !== ""|| utilisateurRecent!="";
 
     const reinitialiserFiltres = () => {
         setUtilisateurRecent("");

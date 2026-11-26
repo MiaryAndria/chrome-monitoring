@@ -316,8 +316,7 @@ CREATE TABLE t_user (
     id SERIAL PRIMARY KEY ,
     nom VARCHAR(255) NOT NULL,
     email VARCHAR(255) UNIQUE NOT NULL,
-    mdp VARCHAR(255) NOT NULL,
-    id_role INT NOT NULL REFERENCES t_role(id)
+    mdp VARCHAR(255) NOT NULL
 );
 
 CREATE TABLE t_user_statut(
@@ -580,7 +579,8 @@ CREATE TABLE t_synchronisation_historique (
     fenetre_debut  TIMESTAMPTZ,
     fenetre_fin    TIMESTAMPTZ,
     nb_lignes      INTEGER NOT NULL DEFAULT 0,
-    message        TEXT DEFAULT ''
+    message        TEXT DEFAULT '',
+    journal JSONB
 );
 
 CREATE TABLE t_statut_synchronisation (

@@ -1,0 +1,422 @@
+// ============================================================
+// Schéma Chrome Monitoring - 49 tables
+// À coller dans dbdiagram.io (éditeur DBML)
+// Les 36 anciennes tables commentées ont été exclues.
+// Les vues et index ne sont pas représentés en DBML.
+// ============================================================
+
+Table t_role {
+  id int [pk, increment]
+  role varchar(255) [unique, not null]
+}
+
+Table t_statut {
+  id int [pk, increment]
+  nom varchar(100) [unique, not null]
+}
+
+Table t_categorie_type_seuil {
+  id int [pk, increment]
+  categorie varchar(255) [unique, not null]
+}
+
+Table t_categorie_type_configuration {
+  id int [pk, increment]
+  categorie varchar(255) [unique, not null]
+}
+
+Table t_type_configuration {
+  id int [pk, increment]
+  type varchar(255) [unique, not null]
+  id_categorie int [not null, ref: > t_categorie_type_configuration.id]
+}
+
+Table t_type_seuil {
+  id int [pk, increment]
+  type varchar(255) [unique, not null]
+  id_categorie int [not null, ref: > t_categorie_type_seuil.id]
+  sens varchar(1) [not null, default: '>']
+  type_alerte varchar(100)
+  metrique varchar(50)
+  message text
+  limite int
+}
+
+Table t_user {
+  id int [pk, increment]
+  nom varchar(255) [not null]
+  email varchar(255) [unique, not null]
+  mdp varchar(255) [not null]
+}
+
+Table t_user_statut {
+  id int [pk, increment]
+  id_user int [not null, ref: > t_user.id]
+  id_statut int [not null, ref: > t_statut.id]
+  date timestamptz [not null, default: `now()`]
+}
+
+Table t_filiale {
+  id int [pk, increment]
+  org_unit_path varchar(255) [unique, not null]
+}
+
+Table t_reseau {
+  id int [pk, increment]
+  valeur varchar(255) [unique, not null]
+}
+
+Table t_vendor {
+  id int [pk, increment]
+  vendor varchar(255) [unique, not null]
+}
+
+Table t_reseau_filiale {
+  id int [pk, increment]
+  id_reseau int [not null, ref: > t_reseau.id]
+  id_filiale int [not null, ref: > t_filiale.id]
+  date timestamptz [not null, default: `now()`]
+  indexes {
+    (id_reseau, id_filiale) [unique]
+  }
+}
+
+Table t_type_appareil {
+  id int [pk, increment]
+  nom varchar(100) [unique, not null]
+}
+
+Table t_utilisateur {
+  id int [pk, increment]
+  email varchar(255) [unique, not null]
+}
+
+Table t_filiale_utilisateur {
+  id int [pk, increment]
+  id_filiale int [not null, ref: > t_filiale.id]
+  id_utilisateur int [not null, ref: > t_utilisateur.id]
+  date timestamptz [not null, default: `now()`]
+  indexes {
+    (id_filiale, id_utilisateur) [unique]
+  }
+}
+
+Table t_cpu {
+  id int [pk, increment]
+  cpu_model varchar(250) [unique, not null]
+  freq_max_proc bigint
+  cpu_architecture varchar(50)
+}
+
+Table t_device {
+  id int [pk, increment]
+  device_id varchar(255) [unique, not null]
+  serial_number varchar(255)
+  modele varchar(255)
+  id_type_appareil int [not null, ref: > t_type_appareil.id]
+  mac_adress varchar(255)
+  ram_total bigint
+  ip_adress varchar(255)
+  date_creation timestamptz [not null, default: `now()`]
+}
+
+Table t_disk {
+  id int [pk, increment]
+  model varchar(250) [not null]
+  type varchar(250) [not null]
+  indexes {
+    (model, type) [unique]
+  }
+}
+
+Table t_disk_device {
+  id int [pk, increment]
+  id_device int [not null, ref: > t_device.id]
+  id_disk int [not null, ref: > t_disk.id]
+  disponible bigint
+  total_reel bigint
+  total_utiliser bigint
+  disponible_formater varchar(50)
+  total_formater varchar(50)
+  total_utiliser_formater varchar(50)
+  date timestamptz [not null, default: `now()`]
+  indexes {
+    (id_device, id_disk, date) [unique]
+  }
+}
+
+Table t_type_comparaison {
+  id int [pk, increment]
+  type text [not null, unique]
+}
+
+Table t_device_statut {
+  id int [pk, increment]
+  id_device int [not null, ref: > t_device.id]
+  id_statut int [not null, ref: > t_statut.id]
+  date timestamptz [not null, default: `now()`]
+}
+
+Table t_device_utilisateur {
+  id int [pk, increment]
+  id_device int [not null, ref: > t_device.id]
+  id_utilisateur int [not null, ref: > t_utilisateur.id]
+  indexes {
+    (id_device, id_utilisateur) [unique]
+  }
+}
+
+Table t_device_filiale {
+  id int [pk, increment]
+  id_device int [not null, ref: > t_device.id]
+  id_filiale int [not null, ref: > t_filiale.id]
+  date timestamptz [not null, default: `now()`]
+  indexes {
+    (id_device, id_filiale) [unique]
+  }
+}
+
+Table t_device_utilisateur_recent {
+  id int [pk, increment]
+  id_device int [not null, ref: > t_device.id]
+  id_utilisateur int [not null, ref: > t_utilisateur.id]
+  date_observation timestamptz [not null, default: `now()`]
+  indexes {
+    (id_device, id_utilisateur) [unique]
+  }
+}
+
+Table t_type_rapport {
+  id int [pk, increment]
+  type varchar(100) [unique, not null]
+  cle_api varchar(255) [unique, not null]
+}
+
+Table t_rapport_device {
+  id int [pk, increment]
+  id_device int [not null, ref: > t_device.id]
+  id_type_rapport int [not null, ref: > t_type_rapport.id]
+  report_time timestamptz [not null]
+  donnees jsonb [not null]
+  indexes {
+    (id_device, id_type_rapport, report_time) [unique]
+  }
+}
+
+Table t_type_evenement {
+  id int [pk, increment]
+  type varchar(100) [unique, not null]
+}
+
+Table t_evenement_device {
+  id int [pk, increment]
+  id_device int [not null, ref: > t_device.id]
+  id_type_evenement int [not null, ref: > t_type_evenement.id]
+  date_evenement timestamptz [not null]
+  details jsonb
+  indexes {
+    (id_device, id_type_evenement, date_evenement) [unique]
+  }
+}
+
+Table t_device_reseau {
+  id int [pk, increment]
+  id_device int [not null, ref: > t_device.id]
+  id_reseau int [not null, ref: > t_reseau.id]
+  date timestamptz [not null, default: `now()`]
+  indexes {
+    (id_device, id_reseau) [unique]
+  }
+}
+
+Table t_imprimante {
+  id int [pk, increment]
+  vid int
+  pid int
+  id_vendor int [not null, ref: > t_vendor.id]
+  nom varchar(255)
+  indexes {
+    (vid, pid, nom) [unique]
+  }
+}
+
+Table t_imprimante_device {
+  id int [pk, increment]
+  id_imprimante int [not null, ref: > t_imprimante.id]
+  id_device int [not null, ref: > t_device.id]
+  date timestamptz [not null, default: `now()`]
+  indexes {
+    (id_imprimante, id_device, date) [unique]
+  }
+}
+
+Table t_imprimante_user {
+  id int [pk, increment]
+  id_imprimante int [not null, ref: > t_imprimante.id]
+  id_utilisateur int [not null, ref: > t_utilisateur.id]
+  date timestamptz [not null, default: `now()`]
+  indexes {
+    (id_imprimante, id_utilisateur, date) [unique]
+  }
+}
+
+Table t_alerte {
+  id int [pk, increment]
+  type varchar(100) [unique, not null]
+}
+
+Table t_alerte_statut {
+  id int [pk, increment]
+  id_alerte int [not null, ref: > t_alerte.id]
+  id_statut int [not null, ref: > t_statut.id]
+  date timestamptz [not null, default: `now()`]
+  indexes {
+    (id_alerte, id_statut, date) [unique]
+  }
+}
+
+Table t_device_alerte {
+  id int [pk, increment]
+  id_device int [not null, ref: > t_device.id]
+  id_alerte int [not null, ref: > t_alerte.id]
+  message text
+  date timestamptz [not null, default: `now()`]
+}
+
+Table t_device_alerte_statut {
+  id int [pk, increment]
+  id_device_alerte int [not null, ref: > t_device_alerte.id]
+  id_statut int [not null, ref: > t_statut.id]
+  date timestamptz [not null, default: `now()`]
+}
+
+Table t_seuil {
+  id int [pk, increment]
+  id_type_seuil int [not null, ref: > t_type_seuil.id]
+  valeur int [not null]
+  indexes {
+    (id_type_seuil) [unique]
+  }
+}
+
+Table t_device_version {
+  id int [pk, increment]
+  id_device int [not null, ref: > t_device.id]
+  chromeos_version varchar(100)
+  date timestamptz [not null, default: `now()`]
+  indexes {
+    (id_device, date) [unique]
+  }
+}
+
+Table t_configuration {
+  id int [pk, increment]
+  id_type_configuration int [not null, ref: > t_type_configuration.id]
+  valeur varchar(255) [not null]
+  indexes {
+    (id_type_configuration) [unique]
+  }
+}
+
+Table t_configuration_statut {
+  id int [pk, increment]
+  id_configuration int [not null, ref: > t_configuration.id]
+  id_statut int [not null, ref: > t_statut.id]
+  date timestamptz [not null, default: `now()`]
+  indexes {
+    (id_configuration, id_statut, date) [unique]
+  }
+}
+
+Table t_seuil_statut {
+  id int [pk, increment]
+  id_seuil int [not null, ref: > t_seuil.id]
+  id_statut int [not null, ref: > t_statut.id]
+  date timestamptz [not null, default: `now()`]
+  indexes {
+    (id_seuil, id_statut, date) [unique]
+  }
+}
+
+Table t_synchronisation_historique {
+  id int [pk, increment]
+  source varchar(50) [not null]
+  date_debut timestamptz [not null]
+  date_fin timestamptz
+  fenetre_debut timestamptz
+  fenetre_fin timestamptz
+  nb_lignes integer [not null, default: 0]
+  message text [default: '']
+}
+
+Table t_statut_synchronisation {
+  id int [pk, increment]
+  id_statut int [not null, ref: > t_statut.id]
+  id_synchronisation int [not null, ref: > t_synchronisation_historique.id]
+  date timestamptz [not null, default: `now()`]
+}
+
+Table t_comparaison {
+  id int [pk, increment]
+  id_device_a int [not null, ref: > t_device.id]
+  id_type_comparaison int [not null, ref: > t_type_comparaison.id]
+  id_device_b int [not null, ref: > t_device.id]
+  date_reference_a timestamptz
+  date_reference_b timestamptz
+  date_comparaison timestamptz [not null, default: `now()`]
+  version_a varchar(255)
+  version_b varchar(255)
+  resultat jsonb
+}
+
+Table t_statut_comparaison {
+  id int [pk, increment]
+  id_comparaison int [not null, ref: > t_comparaison.id]
+  id_statut int [not null, ref: > t_statut.id]
+  date timestamptz [not null, default: `now()`]
+}
+
+Table t_device_cpu {
+  id int [pk, increment]
+  id_device int [not null, ref: > t_device.id]
+  id_cpu int [not null, ref: > t_cpu.id]
+  cpu_utiliser numeric(5,2)
+  cpu_libre bigint
+  cpu_total bigint
+  date timestamptz [not null, default: `now()`]
+  indexes {
+    (id_device, date) [unique]
+  }
+}
+
+Table t_device_ram {
+  id int [pk, increment]
+  id_device int [not null, ref: > t_device.id]
+  ram_total bigint
+  ram_utiliser bigint
+  ram_libre bigint
+  date timestamptz [not null, default: `now()`]
+  indexes {
+    (id_device, date) [unique]
+  }
+}
+
+Table t_evenement_statut {
+  id int [pk, increment]
+  id_evenement int [not null, ref: > t_evenement_device.id]
+  id_statut int [not null, ref: > t_statut.id]
+  date timestamptz [not null, default: `now()`]
+  indexes {
+    (id_evenement, id_statut, date) [unique]
+  }
+}
+
+Table t_user_role {
+  id int [pk, increment]
+  id_user int [not null, ref: > t_user.id]
+  id_role int [not null, ref: > t_role.id]
+  date timestamptz [not null, default: `now()`]
+  indexes {
+    (id_user, id_role, date) [unique]
+  }
+}

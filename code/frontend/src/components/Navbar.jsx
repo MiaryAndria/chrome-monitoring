@@ -290,6 +290,7 @@ export default function Navbar() {
         { path: '/liste/statut', label: 'Liste des statuts' },
     ]
 
+
     const configPaths = ['/liste/configuration', '/creer/configuration', '/liste/configuration/archive'];
     const comparePaths = ['/comparaison/liste', '/comparaison/single', '/comparaison/double'];
     const devicePaths = ['/liste/device', '/imprimantes'];
@@ -587,6 +588,10 @@ export default function Navbar() {
                                     <FileSpreadsheet className="w-4 h-4" />
                                     <span>Exporter des données</span>
                                 </button>
+
+                                <div>
+                                    <button onClick={()=>navigate('/liste/synchronisation')}>Voir toutes les synchronisations </button>
+                                </div>
 
                                 <div className="config-dropdown-divider" />
                                 <button

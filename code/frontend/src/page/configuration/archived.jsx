@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { getListeArchiverPage, restaurerConfiguration, supprimerConfiguration } from '../../fonction/configurationFonction';
 import { Archive, RotateCcw, Trash2 } from 'lucide-react';
 import PageLayout from '../../components/PageLayout';
@@ -14,6 +14,10 @@ function ArchivedConfiguration() {
     const [pageSize, setPageSize] = useState(10);
     const [showAll, setShowAll] = useState(false);
     const [refresh, setRefresh] = useState(0);
+    const [selectedItem, setSelectedItem] = useState([]);
+    const [deleteStatut, setDelete] = useState(false);
+    const [restoreStatut, setRestaurer] = useState(false);
+    const [columns, setColumns] = useState([]);
 
     const { items: conf, total, totalPages, loading } = usePaginatedData(
         getListeArchiverPage,
@@ -22,56 +26,105 @@ function ArchivedConfiguration() {
         { refresh }
     );
 
-    const restaurer = async (id) => {
-        try {
-            await restaurerConfiguration(id);
-            setRefresh(r => r + 1);
-        } catch (e) {
-            console.log(e);
+    const deleteConfig = async () => {
+        if (deleteStatut === true) {
+            setDelete(false)
+        } else {
+            setDelete(true)
         }
+    }
+
+    const RestoreConfig = async () => {
+        if (restoreStatut === true) {
+            setRestaurer(false)
+        } else {
+            setRestaurer(true)
+        }
+    }
+
+    const restaurer = async () => {
+        for (const id of selectedItem) {
+            try {
+                await restaurerConfiguration(id);
+            } catch (e) {
+                console.log(e);
+            }
+        }
+        setSelectedItem([]);
+        setRefresh(r => r + 1)
+        setRestaurer(false);
     };
 
-    const supprimer = async (id) => {
-        if (!window.confirm("Êtes-vous sûr de supprimer cet paramètres?")) return;
-        try {
-            await supprimerConfiguration(id);
-            setRefresh(r => r + 1);
-        } catch (e) {
-            console.log(e);
+    const supprimer = async () => {
+        if (!window.confirm("Êtes-vous sûr de supprimer ces paramètres ?")) {
+            return
         }
+        for (const id of selectedItem) {
+            try {
+                await supprimerConfiguration(id);
+            } catch (e) {
+                console.log(e);
+            }
+        }
+        setSelectedItem([]);
+        setRefresh(r => r + 1)
+        setDelete(false);
     };
 
-    const columns = [
-        { header: 'Catégorie', className: 'w-[18%]', render: (c) => <span className="text-zinc-400">{c.categorie}</span> },
-        { header: 'Type', className: 'w-[30%]', render: (c) => <span className="font-bold text-zinc-100">{c.cle}</span> },
-        { header: 'Valeur', className: 'w-[15%]', render: (c) => <span className="text-zinc-300">{c.valeur}</span> },
-        {
-            header: 'Date', className: 'w-[15%] text-right', render: (c) => c.date ? (
-                <span className="text-zinc-400 text-xs font-mono">
-                    <span className="block">{new Date(c.date).toLocaleDateString('fr-FR')}</span>
-                    <span className="block">{new Date(c.date).toLocaleTimeString('fr-FR')}</span>
-                </span>
-            ) : <span className="text-zinc-500">-</span>
-        },
-        {
-            header: 'Actions', sticky: true, className: 'w-[15%] text-right', render: (c) => (
-                <div className="config-table-actions">
-                    <button onClick={() => restaurer(c.id)} className="config-btn config-btn-success" style={{ padding: '0.4rem 0.75rem', fontSize: '0.7rem' }}>
-                        <RotateCcw className="w-3.5 h-3.5" /> Restaurer
-                    </button>
-                </div>
-            )
-        },
-        {
-            header: 'Actions', sticky: true, className: 'w-[15%] text-right', render: (c) => (
-                <div className="config-table-actions">
-                    <button onClick={() => supprimer(c.id)} className="config-btn config-btn-danger" style={{ padding: '0.4rem 0.75rem', fontSize: '0.7rem' }}>
-                        <Trash2 className="w-3.5 h-3.5" /> Supprimer
-                    </button>
-                </div>
-            )
+    const handleCheckboxChange = (id) => {
+        setSelectedItem(prev => {
+            if (prev.includes(id)) {
+                return prev.filter(item => item !== id);
+            } else {
+                return [...prev, id];
+            }
+        });
+    };
+
+    useEffect(() => {
+        if (deleteStatut===true || restoreStatut === true) {
+            setColumns([
+                {
+                    header: "",
+                    className: "w-10",
+                    render: (c) => < input
+                        type="checkbox"
+                        checked={selectedItem.includes(c.id)}
+                        onChange={() => handleCheckboxChange(c.id)
+                        } />
+
+                },
+                { header: 'Catégorie', className: 'w-[18%]', render: (c) => <span className="text-zinc-400">{c.categorie}</span> },
+                { header: 'Type', className: 'w-[30%]', render: (c) => <span className="font-bold text-zinc-100">{c.cle}</span> },
+                { header: 'Valeur', className: 'w-[15%]', render: (c) => <span className="text-zinc-300">{c.valeur}</span> },
+                {
+                    header: 'Date', className: 'w-[15%] text-right', render: (c) => c.date ? (
+                        <span className="text-zinc-400 text-xs font-mono">
+                            <span className="block">{new Date(c.date).toLocaleDateString('fr-FR')}</span>
+                            <span className="block">{new Date(c.date).toLocaleTimeString('fr-FR')}</span>
+                        </span>
+                    ) : <span className="text-zinc-500">-</span>
+                },
+            ]);
         }
-    ];
+
+        else if (deleteStatut===false|| restoreStatut === false) {
+            setColumns([
+                { header: 'Catégorie', className: 'w-[18%]', render: (c) => <span className="text-zinc-400">{c.categorie}</span> },
+                { header: 'Type', className: 'w-[30%]', render: (c) => <span className="font-bold text-zinc-100">{c.cle}</span> },
+                { header: 'Valeur', className: 'w-[15%]', render: (c) => <span className="text-zinc-300">{c.valeur}</span> },
+                {
+                    header: 'Date', className: 'w-[15%] text-right', render: (c) => c.date ? (
+                        <span className="text-zinc-400 text-xs font-mono">
+                            <span className="block">{new Date(c.date).toLocaleDateString('fr-FR')}</span>
+                            <span className="block">{new Date(c.date).toLocaleTimeString('fr-FR')}</span>
+                        </span>
+                    ) : <span className="text-zinc-500">-</span>
+                },
+            ]);
+        }
+
+    }, [selectedItem, restoreStatut, deleteStatut])
 
     return (
         <PageLayout
@@ -79,6 +132,27 @@ function ArchivedConfiguration() {
             subtitle="Configurations supprimées pouvant être restaurées"
             titleIcon={Archive}
         >
+            {restoreStatut ? (
+                <button onClick={restaurer} className="config-btn config-btn-success" style={{ padding: '0.4rem 0.75rem', fontSize: '0.7rem' }}>
+                    <RotateCcw className="w-3.5 h-3.5" /> Restaurer {selectedItem.length} configurations.
+                </button>
+            ) : (
+                <button onClick={RestoreConfig} className="config-btn config-btn-success" style={{ padding: '0.4rem 0.75rem', fontSize: '0.7rem' }}>
+                    <RotateCcw className="w-3.5 h-3.5" /> Restaurer configuration
+                </button>
+            )}
+
+            {deleteStatut ? (
+                <button onClick={supprimer} className="config-btn config-btn-danger" style={{ padding: '0.4rem 0.75rem', fontSize: '0.7rem' }}>
+                    <Trash2 className="w-3.5 h-3.5" /> Supprimer {selectedItem.length} configurations.
+                </button>
+            ) : (
+                <button onClick={deleteConfig} className="config-btn config-btn-danger" style={{ padding: '0.4rem 0.75rem', fontSize: '0.7rem' }}>
+                    <Trash2 className="w-3.5 h-3.5" /> Supprimer configuration
+                </button>
+
+            )}
+
             <div className="space-y-6">
                 {loading && conf.length === 0 ? (
                     <TableSkeleton />

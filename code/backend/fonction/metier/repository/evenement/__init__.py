@@ -11,7 +11,6 @@ from .evenement_device import (
     get_evenement_detail_by_id,
 )
 
-
 from .type_evenement import (
     get_liste_type_evenement,
     get_type_evenement_by_type,

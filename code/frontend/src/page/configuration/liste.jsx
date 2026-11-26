@@ -22,9 +22,12 @@ function ConfigurationListe() {
     const [categorie, setCategorie] = useState('');
     const [categories, setCategories] = useState([]);
     const [type, setType] = useState('');
+    const [deleteStatut, setDelete] = useState(false);
     const debouncedType = useDebounce(type, 300);
+    const [selectedItem, setSelectedItem] = useState([]);
     const [error, setError] = useState(null);
     const filtresActifs = type !== "" || categorie !== "";
+    const [columns, setColumns] = useState([]);
 
     const { items: conf, total, totalPages, loading } = usePaginatedData(
         getListeConfigurationPage,
@@ -42,45 +45,113 @@ function ConfigurationListe() {
         }
     };
 
-    const supprimerConfiguration = async (id) => {
-        try {
-            await deleteConfiguration(id);
-            setRefresh(r => r + 1);
-        } catch (e) {
-            setError(e.response?.data?.error);
+    const deleteConfig = async () => {
+        if (deleteStatut === true) {
+            setDelete(false)
+        } else {
+            setDelete(true)
         }
+    }
+
+    const supprimerConfiguration = async () => {
+        for (const id of selectedItem) {
+            try {
+                await deleteConfiguration(id);
+                setRefresh(r => r + 1)
+            } catch (e) {
+                setError(e.response?.data?.error);
+            }
+        }
+        setDelete(false);
+    };
+
+    const handleCheckboxChange = (id) => {
+        setSelectedItem(prev => {
+            if (prev.includes(id)) {
+                return prev.filter(item => item !== id);
+            } else {
+                return [...prev, id];
+            }
+        });
     };
 
     const reinitialiserFiltres = () => {
         setCategorie("");
         setType("");
     };
-    
-    const columns = [
-        { header: 'Catégorie', className: 'w-[18%]', render: (c) => <span className="text-zinc-400">{c.categorie}</span> },
-        { header: 'Type', className: 'w-[25%]', render: (c) => <span className="font-bold text-zinc-100">{c.cle}</span> },
-        { header: 'Valeur', className: 'w-[15%]', render: (c) => <span className="text-zinc-300">{c.valeur}</span> },
-        {
-            header: 'Date', className: 'w-[15%] text-right', render: (c) => c.date ? (
-                <span className="text-zinc-400 text-xs font-mono">
-                    <span className="block">{new Date(c.date).toLocaleDateString('fr-FR')}</span>
-                    <span className="block">{new Date(c.date).toLocaleTimeString('fr-FR')}</span>
-                </span>
-            ) : <span className="text-zinc-500">-</span>
-        },
-        {
-            header: 'Actions', sticky: true, className: 'w-[15%] text-right', render: (c) => (
-                <div className="config-table-actions">
-                    <button onClick={() => navigate(`/update/configuration/${c.id}`)} className="config-btn config-btn-primary" style={{ padding: '0.4rem 0.75rem', fontSize: '0.7rem' }}>
-                        <Pencil className="w-3.5 h-3.5" /> Modifier
-                    </button>
-                    <button onClick={() => supprimerConfiguration(c.id)} className="config-btn config-btn-danger" style={{ padding: '0.4rem 0.75rem', fontSize: '0.7rem' }}>
-                        <Trash2 className="w-3.5 h-3.5" /> Supprimer
-                    </button>
-                </div>
-            )
+
+    useEffect(() => {
+        if (deleteStatut === true) {
+            setColumns([
+                {
+                    header: "",
+                    className: "w-10",
+                    render: (c) => (
+                        <input
+                            type="checkbox"
+                            checked={selectedItem.includes(c.id)}
+                            onChange={() => handleCheckboxChange(c.id)}
+                        />
+                    )
+                },
+                { header: 'Catégorie', className: 'w-[18%]', render: (c) => <span className="text-zinc-400">{c.categorie}</span> },
+                { header: 'Type', className: 'w-[25%]', render: (c) => <span className="font-bold text-zinc-100">{c.cle}</span> },
+                { header: 'Valeur', className: 'w-[15%]', render: (c) => <span className="text-zinc-300">{c.valeur}</span> },
+                {
+                    header: 'Date',
+                    className: 'w-[15%] text-right',
+                    render: (c) => c.date ? (
+                        <span className="text-zinc-400 text-xs font-mono">
+                            <span className="block">{new Date(c.date).toLocaleDateString('fr-FR')}</span>
+                            <span className="block">{new Date(c.date).toLocaleTimeString('fr-FR')}</span>
+                        </span>
+                    ) : <span className="text-zinc-500">-</span>
+                },
+                {
+                    header: 'Actions',
+                    sticky: true,
+                    className: 'w-[15%] text-right',
+                    render: (c) => (
+                        <div className="config-table-actions">
+                            <button onClick={() => navigate(`/update/configuration/${c.id}`)} className="config-btn config-btn-primary" style={{ padding: '0.4rem 0.75rem', fontSize: '0.7rem' }}>
+                                <Pencil className="w-3.5 h-3.5" /> Modifier
+                            </button>
+                        </div>
+                    )
+                }
+            ]);
+
+        } else {
+            setColumns([
+                { header: 'Catégorie', className: 'w-[18%]', render: (c) => <span className="text-zinc-400">{c.categorie}</span> },
+                { header: 'Type', className: 'w-[25%]', render: (c) => <span className="font-bold text-zinc-100">{c.cle}</span> },
+                { header: 'Valeur', className: 'w-[15%]', render: (c) => <span className="text-zinc-300">{c.valeur}</span> },
+                {
+                    header: 'Date',
+                    className: 'w-[15%] text-right',
+                    render: (c) => c.date ? (
+                        <span className="text-zinc-400 text-xs font-mono">
+                            <span className="block">{new Date(c.date).toLocaleDateString('fr-FR')}</span>
+                            <span className="block">{new Date(c.date).toLocaleTimeString('fr-FR')}</span>
+                        </span>
+                    ) : <span className="text-zinc-500">-</span>
+                },
+                {
+                    header: 'Actions',
+                    sticky: true,
+                    className: 'w-[15%] text-right',
+                    render: (c) => (
+                        <div className="config-table-actions">
+                            <button onClick={() => navigate(`/update/configuration/${c.id}`)} className="config-btn config-btn-primary" style={{ padding: '0.4rem 0.75rem', fontSize: '0.7rem' }}>
+                                <Pencil className="w-3.5 h-3.5" /> Modifier
+                            </button>
+                        </div>
+                    )
+                }
+            ]);
         }
-    ];
+    }, [deleteStatut, selectedItem, navigate]);
+
 
     useEffect(() => {
         chargerCategories();
@@ -91,6 +162,7 @@ function ConfigurationListe() {
     }, [categorie, type, debouncedType]);
 
     return (
+
         <PageLayout
             title="Configurations"
             subtitle="Gérer les configurations du système"
@@ -128,6 +200,15 @@ function ConfigurationListe() {
                                 className="w-full px-3 py-2 rounded-lg bg-zinc-900/60 border border-white/10 text-zinc-200 text-sm placeholder-zinc-500 focus:outline-none focus:border-cyan-400/50"
                             />
                         </div>
+                        {deleteStatut ? (
+                            <button onClick={supprimerConfiguration}className="config-btn config-btn-danger" style={{ padding: '0.4rem 0.75rem', fontSize: '0.7rem' }}>
+                                <Trash2 className="w-3.5 h-3.5" />Supprimer les {selectedItem.length} configurations sélectionnées
+                            </button>
+                        ) : (
+                            <button onClick={deleteConfig}className="config-btn config-btn-danger" style={{ padding: '0.4rem 0.75rem', fontSize: '0.7rem' }}>
+                                <Trash2 className="w-3.5 h-3.5" />Supprimer Configuration
+                            </button>
+                        )}
                         <ResetFiltreButton actif={filtresActifs} onClick={reinitialiserFiltres} />
                     </div>
                 </div>
@@ -148,7 +229,7 @@ function ConfigurationListe() {
                                 <span className="section-count">{total} configuration(s)</span>
                             </div>
                         </div>
-                        <GenericTable columns={columns} data={conf} />
+                        <GenericTable columns={columns} data={conf} onRowClick={conf.id} />
 
                         <Pagination
                             page={currentPage}

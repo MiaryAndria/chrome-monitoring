@@ -27,47 +27,38 @@ from backend.fonction.metier.service.configuration_service import (
 
 router = APIRouter()
 
-
 @router.get("/liste", response_model=List[ConfigurationResponse])
 def get_liste():
     return getListeConfiguration()
-
 
 @router.get("/liste/page", response_model=ConfigurationPageResponse)
 def get_liste_page(page: int = Query(1, ge=1), page_size: int = Query(10, ge=1, le=10000), categorie: str | None = None, type: str | None = None):
     return getConfigurationsPage(page=page, page_size=page_size, categorie=categorie, type_=type)
 
-
 @router.get("/liste/archiver", response_model=List[ConfigurationResponse])
 def get_list_archive():
     return getListeArchiveConfiguration()
-
 
 @router.get("/liste/archiver/page", response_model=ConfigurationPageResponse)
 def get_list_archive_page(page: int = Query(1, ge=1), page_size: int = Query(10, ge=1, le=10000)):
     return getConfigurationsArchivePage(page=page, page_size=page_size)
 
-
 @router.get("/categorie/type", response_model=List[ConfigurationCategorieResponse])
 def get_liste_categorie():
     return get_liste_categorie_configuration()
-
 
 @router.get("/type/tous", response_model=List[ConfigurationTypeResponse])
 def get_liste_type_tous():
     return get_liste_type_configuration_tous()
 
-
 @router.get("/type/{id_categorie}", response_model=List[ConfigurationTypeResponse])
 def get_liste_type(id_categorie: int):
     return get_liste_type_configuration_by_categorie(id_categorie)
-
 
 @router.post("/create", status_code=201)
 def create_configuration(data: ConfigurationData):
     insert_config_service(data.id_type, data.valeur)
     return {"message": "Configuration créée"}
-
 
 @router.get("/{id}", response_model=ConfigurationResponse)
 def get_detail(id: int):
@@ -76,18 +67,15 @@ def get_detail(id: int):
         raise NotFoundError("Configuration introuvable")
     return detail
 
-
 @router.put("/{id}/update")
 def update_configuration(id: int, data: ConfigurationData):
     update_config_service(id, data.valeur)
     return {"message": "Configuration mise à jour"}
 
-
 @router.post("/{id}/delete", status_code=201)
 def delete_configuration(id: int):
     delete_config_service(id)
     return {"message": "Configuration supprimée"}
-
 
 @router.post("/{id}/hard/delete")
 def hard_delete_configuration(id: int):
@@ -95,7 +83,6 @@ def hard_delete_configuration(id: int):
     if not supprime:
         raise NotFoundError("Configuration introuvable")
     return {"message": "Configuration supprimée définitivement"}
-
 
 @router.post("/{id}/restaurer")
 def restore_configuration(id: int):

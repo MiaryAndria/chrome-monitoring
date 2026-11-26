@@ -16,12 +16,14 @@ function StatutListe() {
     const [pageSize, setPageSize] = useState(10);
     const [showAll, setShowAll] = useState(false);
 
-    const { items: statuts, total, totalPages, loading } = usePaginatedData(
+
+    const { items: statuts, total, totalPages } = usePaginatedData(
         getListeStatutPage,
         showAll ? 1 : currentPage,
         showAll ? 10000 : pageSize,
         {}
     );
+
 
     const columns = [
         { header: 'ID', className: 'w-[10%]', render: (s) => <span className="font-mono text-zinc-400">{s.id}</span> },
@@ -43,6 +45,7 @@ function StatutListe() {
             subtitle="Gérer les libellés des statuts"
             titleIcon={Tags}
         >
+
             <div className="space-y-6">
                 {loading && statuts.length === 0 ? (
                     <TableSkeleton />

@@ -1,6 +1,6 @@
-import { useState } from 'react';
-import { getListeArchiverPage, restaurerSeuil,supprimerSeuil } from '../../fonction/seuilFonction';
-import { Archive, RotateCcw ,Trash2} from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { getListeArchiverPage, restaurerSeuil, supprimerSeuil } from '../../fonction/seuilFonction';
+import { Archive, RotateCcw, Trash2 } from 'lucide-react';
 import PageLayout from '../../components/PageLayout';
 import GenericTable from '../../components/GenericTable';
 import Pagination from '../../components/Pagination';
@@ -14,7 +14,10 @@ function ArchivedSeuil() {
     const [pageSize, setPageSize] = useState(10);
     const [showAll, setShowAll] = useState(false);
     const [refresh, setRefresh] = useState(0);
-
+    const [selectedItem, setSelectedItem] = useState([]);
+    const [deleteStatut, setDelete] = useState(false);
+    const [restoreStatut, setRestaurer] = useState(false);
+    const [columns, setColumns] = useState([]);
     const { items: seuils, total, totalPages, loading } = usePaginatedData(
         getListeArchiverPage,
         showAll ? 1 : currentPage,
@@ -22,56 +25,103 @@ function ArchivedSeuil() {
         { refresh }
     );
 
-    const restaurer = async (id) => {
-        try {
-            await restaurerSeuil(id);
-            setRefresh(r => r + 1);
-        } catch (e) {
-            console.log(e);
+    const restaurer = async () => {
+        for (const id of selectedItem) {
+            try {
+                await restaurerSeuil(id);
+            } catch (e) {
+                console.log(e);
+            }
         }
+        setSelectedItem([]);
+        setRefresh(r => r + 1);
+        setRestaurer(false);
     };
 
-    const supprimer = async(id)=>{
-        if (!window.confirm("Êtes-vous sûr de supprimer cet paramètres?")) return;
-        try{
-            await supprimerSeuil(id);
-            setRefresh(r=>r+1);
-        }catch(e){
-            console.log(e)
+    const deleteSeuil = async () => {
+        if (deleteStatut === true) {
+            setDelete(false)
+        } else {
+            setDelete(true)
         }
     }
 
-    const columns = [
-        { header: 'Catégorie', className: 'w-[18%]', render: (s) => <span className="text-zinc-400">{s.categorie}</span> },
-        { header: 'Type', className: 'w-[30%]', render: (s) => <span className="font-bold text-zinc-100">{s.cle}</span> },
-        { header: 'Valeur', className: 'w-[15%]', render: (s) => <span className="text-zinc-300">{s.valeur}</span> },
-        {
-            header: 'Date', className: 'w-[15%] text-right', render: (s) => s.date ? (
-                <span className="text-zinc-400 text-xs font-mono">
-                    <span className="block">{new Date(s.date).toLocaleDateString('fr-FR')}</span>
-                    <span className="block">{new Date(s.date).toLocaleTimeString('fr-FR')}</span>
-                </span>
-            ) : <span className="text-zinc-500">-</span>
-        },
-        {
-            header: 'Actions', sticky: true, className: 'w-[15%] text-right', render: (s) => (
-                <div className="config-table-actions">
-                    <button onClick={() => restaurer(s.id)} className="config-btn config-btn-success" style={{ padding: '0.4rem 0.75rem', fontSize: '0.7rem' }}>
-                        <RotateCcw className="w-3.5 h-3.5" /> Restaurer
-                    </button>
-                </div>
-            )
-        },
-        {
-            header: 'Actions', sticky: true, className: 'w-[15%] text-right', render: (s) => (
-                <div className="config-table-actions">
-                    <button onClick={() => supprimer(s.id)} className="config-btn config-btn-danger" style={{ padding: '0.4rem 0.75rem', fontSize: '0.7rem' }}>
-                        <Trash2 className="w-3.5 h-3.5" /> Supprimer
-                    </button>
-                </div>
-            )
+    const RestoreSeuil = async () => {
+        if (restoreStatut === true) {
+            setRestaurer(false)
+        } else {
+            setRestaurer(true)
         }
-    ];
+    }
+
+
+    const handleCheckboxChange = (id) => {
+        setSelectedItem(prev => {
+            if (prev.includes(id)) {
+                return prev.filter(item => item !== id);
+            } else {
+                return [...prev, id];
+            }
+        });
+    };
+
+    const supprimer = async () => {
+        if (!window.confirm("Êtes-vous sûr de supprimer ces seuils ?")) {
+            return
+        }
+        for (const id of selectedItem) {
+            try {
+                await supprimerSeuil(id);
+            } catch (e) {
+                console.log(e)
+            }
+        }
+        setSelectedItem([]);
+        setRefresh(r => r + 1);
+        setDelete(false);
+    }
+
+    useEffect(() => {
+        if (deleteStatut ==true || restoreStatut == true) {
+            setColumns([
+                {
+                    header: '', className: 'w-[15%]', render: (s) =>
+                        <input type="checkbox"
+                            checked={selectedItem.includes(s.id)}
+                            onChange={() => handleCheckboxChange(s.id)
+                            }
+                        />
+                },
+                { header: 'Catégorie', className: 'w-[18%]', render: (s) => <span className="text-zinc-400">{s.categorie}</span> },
+                { header: 'Type', className: 'w-[30%]', render: (s) => <span className="font-bold text-zinc-100">{s.cle}</span> },
+                { header: 'Valeur', className: 'w-[15%]', render: (s) => <span className="text-zinc-300">{s.valeur}</span> },
+                {
+                    header: 'Date', className: 'w-[15%] text-right', render: (s) => s.date ? (
+                        <span className="text-zinc-400 text-xs font-mono">
+                            <span className="block">{new Date(s.date).toLocaleDateString('fr-FR')}</span>
+                            <span className="block">{new Date(s.date).toLocaleTimeString('fr-FR')}</span>
+                        </span>
+                    ) : <span className="text-zinc-500">-</span>
+                },
+            ]);
+        }
+        else if (deleteStatut ==true || restoreStatut === false) {
+            setColumns([
+                { header: 'Catégorie', className: 'w-[18%]', render: (s) => <span className="text-zinc-400">{s.categorie}</span> },
+                { header: 'Type', className: 'w-[30%]', render: (s) => <span className="font-bold text-zinc-100">{s.cle}</span> },
+                { header: 'Valeur', className: 'w-[15%]', render: (s) => <span className="text-zinc-300">{s.valeur}</span> },
+                {
+                    header: 'Date', className: 'w-[15%] text-right', render: (s) => s.date ? (
+                        <span className="text-zinc-400 text-xs font-mono">
+                            <span className="block">{new Date(s.date).toLocaleDateString('fr-FR')}</span>
+                            <span className="block">{new Date(s.date).toLocaleTimeString('fr-FR')}</span>
+                        </span>
+                    ) : <span className="text-zinc-500">-</span>
+                },
+            ]);
+        }
+    }, [selectedItem, restoreStatut, deleteStatut])
+
 
     return (
         <PageLayout
@@ -79,6 +129,24 @@ function ArchivedSeuil() {
             subtitle="Seuils supprimés pouvant être restaurés"
             titleIcon={Archive}
         >
+            {restoreStatut ? (
+                <button onClick={restaurer} className="config-btn config-btn-success" style={{ padding: '0.4rem 0.75rem', fontSize: '0.7rem' }}>
+                    <RotateCcw className="w-3.5 h-3.5" /> Restaurer {selectedItem.length} seuils
+                </button>
+            ) : (
+                <button onClick={RestoreSeuil} className="config-btn config-btn-success" style={{ padding: '0.4rem 0.75rem', fontSize: '0.7rem' }}>
+                    <RotateCcw className="w-3.5 h-3.5" /> Restaurer seuil
+                </button>
+            )}
+            {deleteStatut ? (
+                <button onClick={supprimer} className="config-btn config-btn-danger" style={{ padding: '0.4rem 0.75rem', fontSize: '0.7rem' }}>
+                    <Trash2 className="w-3.5 h-3.5" /> Supprimer {selectedItem.length} seuils
+                </button>
+            ) : (
+                <button onClick={deleteSeuil} className="config-btn config-btn-danger" style={{ padding: '0.4rem 0.75rem', fontSize: '0.7rem' }}>
+                    <Trash2 className="w-3.5 h-3.5" /> Supprimer seuil
+                </button>
+            )}
             <div className="space-y-6">
                 {loading && seuils.length === 0 ? (
                     <TableSkeleton />

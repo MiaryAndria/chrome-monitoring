@@ -60,6 +60,14 @@ from backend.utils.format_valeur import _to_int, format_bytes
 from backend.utils.format_date import parse_date_safe, parse_google_datetime
 from backend.core.cache import cache_invalidate_prefix
 
+def _ajouter_erreur(suivi, etape, reference, message):
+    if suivi is None:
+        return
+    suivi.setdefault("erreurs", []).append({
+        "etape": etape,
+        "reference": reference,
+        "message": str(message),
+    })
 
 def _resoudre_ip_mac(d):
     networks = d.get("lastKnownNetwork", [])
@@ -69,7 +77,6 @@ def _resoudre_ip_mac(d):
         ip_adresse = None
     mac_adresse = d.get("macAddress") or d.get("ethernetMacAddress")
     return ip_adresse, mac_adresse
-
 
 def _upsert_device(cur, d, model_nom, type_appareil_id, date_creation, ip_adresse, mac_adresse):
     device_id = d.get("deviceId")
@@ -113,7 +120,7 @@ def _lier_utilisateurs_recents(cur, db_device_id, id_filiale, recent_users):
         if id_filiale:
             get_or_create_filiale_utilisateur(cur, id_filiale, ru_user_id)
 
-def insertion_device(cur, dvc_list):
+def insertion_device(cur, dvc_list, suivi=None):
     print("\n--- Ingestion des appareils ---")
     for d in dvc_list:
         device_id = d.get("deviceId")
@@ -156,6 +163,7 @@ def insertion_device(cur, dvc_list):
             print(f" Device synchronisé : {device_id} [{status_google}]")
         except Exception as err:
             print(f" Erreur device {device_id}: {err}")
+            _ajouter_erreur(suivi, "device", device_id, err)
 
 def _extraire_infos_cpu(tel):
     cpu_model = None
@@ -252,8 +260,7 @@ def _enregistrer_disk_device(cur, get_disk, db_device_id, disk_model, disk_type,
         utiliser,total_utiliser_formater,disk_report_time or datetime.now(),
     )
 
-
-def _inserer_releve_ram(cur, db_device_id, releve, ram_total, date_releve):
+def _inserer_releve_ram(cur, db_device_id, releve, ram_total, date_releve, suivi=None):
     releve_ram_total = _to_int(
         releve.get("totalRamBytes")
         or releve.get("totalMemoryBytes")
@@ -285,11 +292,12 @@ def _inserer_releve_ram(cur, db_device_id, releve, ram_total, date_releve):
             )
         except Exception as e_ram:
             print(f"  [RAM] Erreur insertion device {db_device_id}: {e_ram}")
+            _ajouter_erreur(suivi, "ram", db_device_id, e_ram)
 
     return releve
 
 
-def _inserer_releve_cpu(cur, db_device_id, releve, default_cpu_id, date_releve):
+def _inserer_releve_cpu(cur, db_device_id, releve, default_cpu_id, date_releve, suivi=None):
     cpu_utilisation_pct = releve.get("cpuUtilizationPct")
     if cpu_utilisation_pct is None:
         return
@@ -302,9 +310,9 @@ def _inserer_releve_cpu(cur, db_device_id, releve, default_cpu_id, date_releve):
         )
     except Exception as e_cpu:
         print(f"  [CPU] Erreur insertion device {db_device_id}: {e_cpu}")
+        _ajouter_erreur(suivi, "cpu", db_device_id, e_cpu)
 
-
-def insert_telemetry(cur, telemetry_devices_list, debut=None):
+def insert_telemetry(cur, telemetry_devices_list, debut=None, suivi=None):
     print("\n--- Ingestion de la télémétrie ---")
     init_default_types_rapport(cur)
     types_rapport = get_liste_type_rapport(cur)
@@ -369,9 +377,9 @@ def insert_telemetry(cur, telemetry_devices_list, debut=None):
                     continue
 
                 if nom_type == 'MEMORY_STATUS':
-                    releve = _inserer_releve_ram(cur, db_device_id, releve, ram_total, date_releve)
+                    releve = _inserer_releve_ram(cur, db_device_id, releve, ram_total, date_releve, suivi)
                 elif nom_type == 'CPU_STATUS':
-                    _inserer_releve_cpu(cur, db_device_id, releve, default_cpu_id, date_releve)
+                    _inserer_releve_cpu(cur, db_device_id, releve, default_cpu_id, date_releve, suivi)
 
                 lignes.append((db_device_id, id_type_rapport, date_releve, json.dumps(releve)))
 
@@ -403,10 +411,14 @@ def _enregistrer_imprimante_device(cur, p):
         insert_imprimante_user(cur, id_imprimante, utilisateur[0], p.get("lastSeen"))
 
 
-def insert_imprimante(cur, telemetry_devices_list):
+def insert_imprimante(cur, telemetry_devices_list, suivi=None):
     printers = extract_printers_from_telemetry(telemetry_devices_list)
     for p in printers:
-        _enregistrer_imprimante_device(cur, p)
+        try:
+            _enregistrer_imprimante_device(cur, p)
+        except Exception as err:
+            print(f"  [Imprimante] Erreur device {p.get('deviceId')}: {err}")
+            _ajouter_erreur(suivi, "imprimante", p.get("deviceId"), err)
 
 
 def _construire_details_evenement(crash):
@@ -436,13 +448,18 @@ def _enregistrer_evenement(cur, crash):
     return create_evenement_device(cur, id_device, id_type_evenement, date_evenement, details_json)
 
 
-def insert_event(cur, crashes_data):
+def insert_event(cur, crashes_data, suivi=None):
     evenements = crashes_data.get("evenements", []) if isinstance(crashes_data, dict) else crashes_data
     ids = []
     for crash in evenements:
         if not crash.get("deviceId"):
             continue
-        id_evenement = _enregistrer_evenement(cur, crash)
+        try:
+            id_evenement = _enregistrer_evenement(cur, crash)
+        except Exception as err:
+            print(f"  [Événement] Erreur device {crash.get('deviceId')}: {err}")
+            _ajouter_erreur(suivi, "evenement", crash.get("deviceId"), err)
+            continue
         if id_evenement:
             ids.append(id_evenement)
     return ids
@@ -459,15 +476,15 @@ def _recuperer_donnees_google(credential, debut, etapes):
             events, ctx = f_crash.result()
     return dvc_list, telemetry_devices_list, events, ctx
 
-def _importer_en_bdd(cur, dvc_list, telemetry_devices_list, crashes_data, filtre_debut, etapes):
+def _importer_en_bdd(cur, dvc_list, telemetry_devices_list, crashes_data, filtre_debut, etapes, suivi=None):
     with chrono("db_devices", etapes):
-        insertion_device(cur, dvc_list)
+        insertion_device(cur, dvc_list, suivi)
     with chrono("db_telemetrie", etapes):
-        insert_telemetry(cur, telemetry_devices_list, filtre_debut)
+        insert_telemetry(cur, telemetry_devices_list, filtre_debut, suivi)
     with chrono("db_imprimantes", etapes):
-        insert_imprimante(cur, telemetry_devices_list)
+        insert_imprimante(cur, telemetry_devices_list, suivi)
     with chrono("db_evenements", etapes):
-        id_evenements = insert_event(cur, crashes_data)
+        id_evenements = insert_event(cur, crashes_data, suivi)
         for id_evenement in id_evenements:
             if get_statut_evenement(cur, id_evenement) is None:
                 insert_evenement_statut(cur, id_evenement, ID_STATUT_ACTIVE)
@@ -500,7 +517,7 @@ def synchroniser_tout(debut=None, fin=None, suivi=None):
         # with chrono("db_dedup_evenement", etapes):
         #     nb_events = dedup_evenement_device(cur)
 
-        _importer_en_bdd(cur, dvc_list, telemetry_devices_list, crashes_data, filtre_debut, etapes)
+        _importer_en_bdd(cur, dvc_list, telemetry_devices_list, crashes_data, filtre_debut, etapes, suivi)
         insertAlerte(cur)
 
         # --- Backfill historique (décommenter si besoin de reconstituer CPU/RAM/DISK) ---

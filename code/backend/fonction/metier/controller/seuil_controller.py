@@ -64,7 +64,6 @@ def get_liste_type_tous():
 def get_liste_type(id_categorie: int):
     return get_liste_type_seuil_by_categorie(id_categorie)
 
-
 @router.put("/type/{id_type}/limite", response_model=SeuilTypeResponse)
 def update_limite_type(id_type: int, data: SeuilLimiteUpdate):
     return update_limite_seuil_type(id_type, data.limite)
@@ -108,3 +107,5 @@ def hard_delete_seuil(id: int):
 def restore_seuil(id: int):
     restored_id = restore_seuil_service(id)
     return {"message": "Seuil restauré", "id": restored_id}
+
+    

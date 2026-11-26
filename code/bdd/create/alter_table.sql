@@ -181,3 +181,9 @@ ALTER TABLE t_statut_comparaison ALTER COLUMN date SET DEFAULT NOW();
 COMMIT;
 
 ALTER TABLE t_type_seuil ADD COLUMN limite INT;
+
+ALTER TABLE t_synchronisation_historique
+    ADD COLUMN IF NOT EXISTS journal JSONB;
+
+CREATE INDEX IF NOT EXISTS idx_sync_hist_date
+    ON t_synchronisation_historique (date_debut DESC);

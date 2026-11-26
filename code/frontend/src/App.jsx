@@ -36,6 +36,8 @@ import ListeUtilisateur from './page/utilisateur/liste'
 import ArchivedUtilisateur from './page/utilisateur/archived'
 import ListeUtilisateursEntreprise from './page/entreprise/utilisateurs'
 import UpdatePassword from './page/utilisateur/update'
+import SynchronisationListe from './page/synchronisation/liste'
+import DetailSynchronisation from './page/synchronisation/detail'
 function App() {
   return (
     <main className="main-content">
@@ -68,6 +70,8 @@ function App() {
             <Route path="/alerte/device" element={<ListeDeviceAlerte />} />
             <Route path="/alerte/device/resolue" element={<ListeDeviceAlerteResolue />} />
             <Route path="/profil/mot-de-passe" element={<UpdatePassword />} />
+            <Route path="/liste/synchronisation" element={<SynchronisationListe />} />
+            <Route path="/liste/synchronisation/:id" element={<DetailSynchronisation />} />
 
             {/* Réservé aux administrateurs : configuration & seuil */}
             <Route element={<AdminRoute />}>

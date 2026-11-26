@@ -21,8 +21,11 @@ function SeuilListe() {
     const [refresh, setRefresh] = useState(0);
     const [categorie, setCategorie] = useState('');
     const [categories, setCategories] = useState([]);
+    const [selectedItem, setSelectedItem] = useState([]);
     const [type, setType] = useState('');
+    const [deleteStatut, setDelete] = useState(false);
     const debouncedType = useDebounce(type, 300);
+    const [columns, setColumns] = useState([]);
     const [error, setError] = useState(null);
     const filtresActifs = type !== "" || categorie !== "";
 
@@ -42,47 +45,105 @@ function SeuilListe() {
         }
     };
 
-    const supprimerSeuil = async (id) => {
-        try {
-            await deleteSeuil(id);
-            setRefresh(r => r + 1);
-        } catch (e) {
-            setError(e.response?.data?.error);
+
+    const toggleDelete = async () => {
+        if (deleteStatut === true) {
+            setDelete(false)
+        } else {
+            setDelete(true)
         }
+    }
+
+    const supprimerSeuil = async () => {
+        for (const id of selectedItem) {
+            try {
+                await deleteSeuil(id);
+            } catch (e) {
+                setError(e.response?.data?.error);
+            }
+        }
+        setSelectedItem([]);
+        setRefresh(r => r + 1);
+        setDelete(false);
+    };
+
+    const handleCheckboxChange = (id) => {
+        setSelectedItem(prev => {
+            if (prev.includes(id)) {
+                return prev.filter(item => item !== id);
+            } else {
+                return [...prev, id];
+            }
+        });
     };
 
     const reinitialiserFiltres = () => {
         setCategorie("");
         setType("");
     };
-
-    const columns = [
-        { header: 'Catégorie', className: 'w-[15%]', render: (s) => <span className="text-zinc-400">{s.categorie}</span> },
-        { header: 'Type', className: 'w-[22%]', render: (s) => <span className="font-bold text-zinc-100">{s.cle}</span> },
-        { header: 'Valeur', className: 'w-[12%]', render: (s) => <span className="text-zinc-300">{s.valeur} {s.unite === '%' ? '%' : <span className="text-zinc-500 text-xs">(entier)</span>}</span> },
-        { header: 'Limite', className: 'w-[12%]', render: (s) => <span className="text-zinc-300">{s.limite ?? '—'}{s.limite != null ? (s.unite === '%' ? ' %' : ' (entier)') : ''}</span> },
-        { header: 'Sens', className: 'w-[8%]', render: (s) => <span className="font-mono text-zinc-300">{s.sens ?? '—'}</span> },
-        {
-            header: 'Date', className: 'w-[14%] text-right', render: (s) => s.date ? (
-                <span className="text-zinc-400 text-xs font-mono">
-                    <span className="block">{new Date(s.date).toLocaleDateString('fr-FR')}</span>
-                    <span className="block">{new Date(s.date).toLocaleTimeString('fr-FR')}</span>
-                </span>
-            ) : <span className="text-zinc-500">-</span>
-        },
-        {
-            header: 'Actions', sticky: true, className: 'w-[15%] text-right', render: (s) => (
-                <div className="config-table-actions">
-                    <button onClick={() => navigate(`/update/seuil/${s.id}`)} className="config-btn config-btn-primary" style={{ padding: '0.4rem 0.75rem', fontSize: '0.7rem' }}>
-                        <Pencil className="w-3.5 h-3.5" /> Modifier
-                    </button>
-                    <button onClick={() => supprimerSeuil(s.id)} className="config-btn config-btn-danger" style={{ padding: '0.4rem 0.75rem', fontSize: '0.7rem' }}>
-                        <Trash2 className="w-3.5 h-3.5" /> Supprimer
-                    </button>
-                </div>
-            )
+    useEffect(() => {
+        if (deleteStatut === true) {
+            setColumns([
+                {
+                    header: '', className: 'w-[15%]', render: (s) =>
+                        <input type="checkbox"
+                            checked={selectedItem.includes(s.id)}
+                            onChange={() => handleCheckboxChange(s.id)
+                            }
+                        />
+                },
+                { header: 'Catégorie', className: 'w-[15%]', render: (s) => <span className="text-zinc-400">{s.categorie}</span> },
+                { header: 'Type', className: 'w-[22%]', render: (s) => <span className="font-bold text-zinc-100">{s.cle}</span> },
+                { header: 'Valeur', className: 'w-[12%]', render: (s) => <span className="text-zinc-300">{s.valeur} {s.unite === '%' ? '%' : <span className="text-zinc-500 text-xs">(entier)</span>}</span> },
+                { header: 'Limite', className: 'w-[12%]', render: (s) => <span className="text-zinc-300">{s.limite ?? '—'}{s.limite != null ? (s.unite === '%' ? ' %' : ' (entier)') : ''}</span> },
+                { header: 'Sens', className: 'w-[8%]', render: (s) => <span className="font-mono text-zinc-300">{s.sens ?? '—'}</span> },
+                {
+                    header: 'Date', className: 'w-[14%] text-right', render: (s) => s.date ? (
+                        <span className="text-zinc-400 text-xs font-mono">
+                            <span className="block">{new Date(s.date).toLocaleDateString('fr-FR')}</span>
+                            <span className="block">{new Date(s.date).toLocaleTimeString('fr-FR')}</span>
+                        </span>
+                    ) : <span className="text-zinc-500">-</span>
+                },
+                {
+                    header: 'Actions', sticky: true, className: 'w-[15%] text-right', render: (s) => (
+                        <div className="config-table-actions">
+                            <button onClick={() => navigate(`/update/seuil/${s.id}`)} className="config-btn config-btn-primary" style={{ padding: '0.4rem 0.75rem', fontSize: '0.7rem' }}>
+                                <Pencil className="w-3.5 h-3.5" /> Modifier
+                            </button>
+                        </div>
+                    )
+                }
+            ]);
         }
-    ];
+        else {
+            setColumns([
+                { header: 'Catégorie', className: 'w-[15%]', render: (s) => <span className="text-zinc-400">{s.categorie}</span> },
+                { header: 'Type', className: 'w-[22%]', render: (s) => <span className="font-bold text-zinc-100">{s.cle}</span> },
+                { header: 'Valeur', className: 'w-[12%]', render: (s) => <span className="text-zinc-300">{s.valeur} {s.unite === '%' ? '%' : <span className="text-zinc-500 text-xs">(entier)</span>}</span> },
+                { header: 'Limite', className: 'w-[12%]', render: (s) => <span className="text-zinc-300">{s.limite ?? '—'}{s.limite != null ? (s.unite === '%' ? ' %' : ' (entier)') : ''}</span> },
+                { header: 'Sens', className: 'w-[8%]', render: (s) => <span className="font-mono text-zinc-300">{s.sens ?? '—'}</span> },
+                {
+                    header: 'Date', className: 'w-[14%] text-right', render: (s) => s.date ? (
+                        <span className="text-zinc-400 text-xs font-mono">
+                            <span className="block">{new Date(s.date).toLocaleDateString('fr-FR')}</span>
+                            <span className="block">{new Date(s.date).toLocaleTimeString('fr-FR')}</span>
+                        </span>
+                    ) : <span className="text-zinc-500">-</span>
+                },
+                {
+                    header: 'Actions', sticky: true, className: 'w-[15%] text-right', render: (s) => (
+                        <div className="config-table-actions">
+                            <button onClick={() => navigate(`/update/seuil/${s.id}`)} className="config-btn config-btn-primary" style={{ padding: '0.4rem 0.75rem', fontSize: '0.7rem' }}>
+                                <Pencil className="w-3.5 h-3.5" /> Modifier
+                            </button>
+                        </div>
+                    )
+                }
+            ]);
+        }
+    }, [deleteStatut, selectedItem, navigate])
+
 
     useEffect(() => {
         chargerCategories();
@@ -130,6 +191,16 @@ function SeuilListe() {
                                 className="w-full px-3 py-2 rounded-lg bg-zinc-900/60 border border-white/10 text-zinc-200 text-sm placeholder-zinc-500 focus:outline-none focus:border-cyan-400/50"
                             />
                         </div>
+                        {deleteStatut ? (
+                            <button onClick={supprimerSeuil} className="config-btn config-btn-danger" style={{ padding: '0.4rem 0.75rem', fontSize: '0.7rem' }}>
+                                <Trash2 className="w-3.5 h-3.5" /> Supprimer {selectedItem.length} seuils 
+                            </button>
+
+                        ) : (
+                            <button  onClick={toggleDelete} className="config-btn config-btn-danger" style={{ padding: '0.4rem 0.75rem', fontSize: '0.7rem' }}>
+                               <Trash2 className="w-3.5 h-3.5" />Supprimer seuil 
+                            </button>
+                        )}
                         <ResetFiltreButton actif={filtresActifs} onClick={reinitialiserFiltres} />
                     </div>
                 </div>
