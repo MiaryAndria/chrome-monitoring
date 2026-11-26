@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { RefreshCw, Activity, Loader2 } from 'lucide-react';
+import { RefreshCw, Activity, Loader2, Filter } from 'lucide-react';
 import {
     getListeSynchronisation,
     getSynchronisationEnCours,
@@ -38,18 +38,15 @@ function SynchronisationListe() {
     const [fenetre_fin, setFenetreFin] = useState('');
     const [statuts, setStatuts] = useState([]);
     const [enCours, setEnCours] = useState(null);
+    // Filtres réellement appliqués (envoyés à l'API) — ne changent qu'au clic sur "Filtrer"
+    const [applied, setApplied] = useState({});
 
     const { items: synch, total, totalPages, loading } = usePaginatedData(
         getListeSynchronisation,
         showAll ? 1 : currentPage,
         showAll ? 10000 : pageSize,
-        {
-            statut: statut || undefined,
-            date_debut: date_debut || undefined,
-            date_fin: date_fin || undefined,
-            fenetre_debut: fenetre_debut || undefined,
-            fenetre_fin: fenetre_fin || undefined,
-        }
+        filtreSynchronisation
+        
     );
 
     // Statuts alimentés par l'API (jamais figés dans le code)
@@ -81,9 +78,17 @@ function SynchronisationListe() {
 
     useEffect(() => {
         setCurrentPage(1);
-    }, [statut, date_debut, date_fin, fenetre_debut, fenetre_fin]);
+    }, []);
 
-    const filtresActifs = date_debut || date_fin || fenetre_debut || fenetre_fin || statut;
+    const filtresActifs = statut !== "" || date_debut !== "" || date_fin !== "" || fenetre_debut !== "" || fenetre_fin !== "";
+
+    const filtreSynchronisation =  {
+            statut: statut || undefined,
+            date_debut: date_debut || undefined,
+            date_fin: date_fin || undefined,
+            fenetre_debut: fenetre_debut || undefined,
+            fenetre_fin: fenetre_fin || undefined,
+    };
 
     const resetFilter = () => {
         setDateDebut('');
@@ -93,6 +98,10 @@ function SynchronisationListe() {
         setStatut('');
         setCurrentPage(1);
     };
+
+    useEffect(()=>{
+        setCurrentPage(1);
+    },[date_debut,date_fin,fenetre_debut,fenetre_fin])
 
     // La synchro en cours est affichée en haut ; on la retire du tableau
     const liste = enCours ? synch.filter((s) => s.id !== enCours.id) : synch;
@@ -201,6 +210,9 @@ function SynchronisationListe() {
                             <label className="config-form-label">Fenêtre fin</label>
                             <input type="date" value={fenetre_fin} onChange={(e) => setFenetreFin(e.target.value)} className={inputDateClass} />
                         </div>
+                        <button onClick={filtrer} className="config-btn config-btn-primary">
+                            <Filter className="w-4 h-4" /> Filtrer
+                        </button>
                         <ResetFiltreButton actif={!!filtresActifs} onClick={resetFilter} />
                     </div>
                 </div>

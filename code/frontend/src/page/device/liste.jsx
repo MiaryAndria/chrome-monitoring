@@ -147,10 +147,6 @@ function ListeDevice() {
         setCurrentPage(1);
     };
 
-    const actualiser = () => {
-        setReloadKey((k) => k + 1);
-    };
-
     const handleCopySN = (serialNumber) => {
         if (!serialNumber) return;
         
@@ -251,9 +247,7 @@ function ListeDevice() {
                         subtitle={filterSearch || filterStatus || filterType || filtresActifs ? "Aucun appareil ne correspond aux filtres actifs." : "Aucune donnée disponible."}
                         action={
                             <div className="flex items-center justify-center gap-2">
-                                <button onClick={actualiser} className="px-4 py-2 text-xs font-semibold rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 hover:bg-cyan-500/20 hover:border-cyan-500/50 transition-all cursor-pointer">
-                                    Actualiser
-                                </button>
+
                                 <ResetFiltreButton actif={filtresActifs} onClick={reinitialiserFiltres} />
                             </div>
                         }
