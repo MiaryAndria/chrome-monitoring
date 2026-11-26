@@ -68,7 +68,7 @@ def get_liste_synchronisation(cur, limit, offset, statut=None, date_debut=None, 
         ORDER BY date_debut DESC, id DESC
         LIMIT %s OFFSET %s
         """,
-        (statut, statut, date_debut, date_debut, date_fin, date_fin,fenetre_debut,fenetre_fin, limit, offset),
+        (statut, statut, date_debut, date_debut, date_fin, date_fin, fenetre_debut, fenetre_debut, fenetre_fin, fenetre_fin, limit, offset),
     )
     return cur.fetchall()
 
@@ -83,7 +83,7 @@ def count_synchronisation(cur, statut=None, date_debut=None, date_fin=None,fenet
           AND (%s IS NULL or fenetre_debut >=%s)
           AND (%s IS NULL or fenetre_fin <= %s)
         """,
-        (statut, statut, date_debut, date_debut, date_fin, date_fin,fenetre_debut,fenetre_fin),
+        (statut, statut, date_debut, date_debut, date_fin, date_fin, fenetre_debut, fenetre_debut, fenetre_fin, fenetre_fin),
     )
     row = cur.fetchone()
     return row[0] if row else 0
