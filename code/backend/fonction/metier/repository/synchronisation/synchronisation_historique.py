@@ -58,7 +58,8 @@ def update_synchronisation_journal(cur, id_sync, journal):
 def get_liste_synchronisation(cur, limit, offset, statut=None, date_debut=None, date_fin=None,fenetre_debut=None,fenetre_fin=None):
     cur.execute(
         """
-        SELECT *
+        SELECT id, source, date_debut, date_fin, fenetre_debut, fenetre_fin,
+               nb_lignes, message, statut, date_statut
         FROM v_synchronisation
         WHERE (%s IS NULL OR statut = %s)
           AND (%s IS NULL OR date_debut >= %s)

@@ -40,8 +40,8 @@ def getListeSynchronisation(page=1, page_size=10, statut=None, date_debut=None, 
                 "fenetre_fin": r[5],
                 "nb_lignes": r[6] or 0,
                 "message": r[7],
-                "statut": r[9],
-                "date_statut": r[10],
+                "statut": r[8],
+                "date_statut": r[9],
                 "duree_s": _duree(r[2], r[3]),
             })
         return cache_set(cle, build_page(items, total, page, page_size))
@@ -87,6 +87,10 @@ def getSynchronisationEnCours():
         r = get_synchronisation_en_cours(cur)
         if r is None:
             return None
+        journal = r[8] or {}
+        logs = journal.get("logs") or []
+        if len(logs) > 300:
+            journal = {**journal, "logs": logs[-300:]}
         return {
             "id": r[0],
             "source": r[1],
@@ -99,7 +103,7 @@ def getSynchronisationEnCours():
             "statut": r[9],
             "date_statut": r[10],
             "duree_s": _duree(r[2], r[3]),
-            "journal": r[8],
+            "journal": journal,
         }
 
 

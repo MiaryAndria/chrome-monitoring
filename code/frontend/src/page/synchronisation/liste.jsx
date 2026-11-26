@@ -67,8 +67,16 @@ function SynchronisationListe() {
             if (actif) setEnCours(data);
         };
         charger();
-        const timer = setInterval(charger, 3000);
-        return () => { actif = false; clearInterval(timer); };
+        const timer = setInterval(charger, 2000);
+        const onVisible = () => {
+            if (document.visibilityState === 'visible') charger();
+        };
+        document.addEventListener('visibilitychange', onVisible);
+        return () => {
+            actif = false;
+            clearInterval(timer);
+            document.removeEventListener('visibilitychange', onVisible);
+        };
     }, []);
 
     useEffect(() => {

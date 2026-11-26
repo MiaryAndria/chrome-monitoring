@@ -187,3 +187,7 @@ ALTER TABLE t_synchronisation_historique
 
 CREATE INDEX IF NOT EXISTS idx_sync_hist_date
     ON t_synchronisation_historique (date_debut DESC);
+
+-- Accélère le LATERAL de la vue v_synchronisation (dernier statut par synchro)
+CREATE INDEX IF NOT EXISTS idx_statut_sync_id
+    ON t_statut_synchronisation (id_synchronisation, date DESC, id DESC);
