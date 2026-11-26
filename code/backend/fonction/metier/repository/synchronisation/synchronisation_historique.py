@@ -63,9 +63,9 @@ def get_liste_synchronisation(cur, limit, offset, statut=None, date_debut=None, 
         FROM v_synchronisation
         WHERE (%s IS NULL OR statut = %s)
           AND (%s IS NULL OR date_debut >= %s)
-          AND (%s IS NULL OR date_debut <= %s)
-          AND(%s IS NULL or fenetre_debut >=%s)
-          AND(%s IS NULL or fenetre_fin <= %s)
+          AND (%s IS NULL OR date_debut < (%s + INTERVAL '1 day'))
+          AND (%s IS NULL OR fenetre_debut >= %s)
+          AND (%s IS NULL OR fenetre_fin < (%s + INTERVAL '1 day'))
         ORDER BY date_debut DESC, id DESC
         LIMIT %s OFFSET %s
         """,
@@ -80,9 +80,9 @@ def count_synchronisation(cur, statut=None, date_debut=None, date_fin=None,fenet
         SELECT COUNT(*) FROM v_synchronisation
         WHERE (%s IS NULL OR statut = %s)
           AND (%s IS NULL OR date_debut >= %s)
-          AND (%s IS NULL OR date_debut <= %s)
-          AND (%s IS NULL or fenetre_debut >=%s)
-          AND (%s IS NULL or fenetre_fin <= %s)
+          AND (%s IS NULL OR date_debut < (%s + INTERVAL '1 day'))
+          AND (%s IS NULL OR fenetre_debut >= %s)
+          AND (%s IS NULL OR fenetre_fin < (%s + INTERVAL '1 day'))
         """,
         (statut, statut, date_debut, date_debut, date_fin, date_fin, fenetre_debut, fenetre_debut, fenetre_fin, fenetre_fin),
     )
