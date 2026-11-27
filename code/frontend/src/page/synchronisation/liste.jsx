@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { RefreshCw, Activity, Loader2, Filter } from 'lucide-react';
+import { RefreshCw, Activity, Loader2, Filter, CheckCircle2 } from 'lucide-react';
 import {
     getListeSynchronisation,
     getSynchronisationEnCours,
@@ -38,6 +38,9 @@ function SynchronisationListe() {
     const [heureFin, setHeureFin] = useState('23:59');
     const [statuts, setStatuts] = useState([]);
     const [enCours, setEnCours] = useState(null);
+    const [termine, setTermine] = useState(null);
+    const [reload, setReload] = useState(0);
+    const dernierRef = useRef(null);
 
     const [applied, setApplied] = useState({});
 
@@ -45,7 +48,7 @@ function SynchronisationListe() {
         getListeSynchronisation,
         showAll ? 1 : currentPage,
         showAll ? 10000 : pageSize,
-        applied
+        { ...applied, reload }
     );
 
     // Statuts alimentés par l'API (jamais figés dans le code)
@@ -58,10 +61,35 @@ function SynchronisationListe() {
     // Suivi de la synchro en cours (polling léger)
     useEffect(() => {
         let actif = true;
+        let timeoutFin = null;
+
         const charger = async () => {
             const data = await getSynchronisationEnCours();
-            if (actif) setEnCours(data);
+            if (!actif) return;
+
+            if (data) {
+                dernierRef.current = data;
+                setEnCours(data);
+                setTermine(null);
+            } else {
+                setEnCours(null);
+                // La synchro vient de se terminer : on garde un affichage "Terminée"
+                // quelques secondes à 100 %, et on force le rechargement de la liste.
+                if (dernierRef.current) {
+                    const snapshot = {
+                        ...dernierRef.current,
+                        journal: { ...(dernierRef.current.journal || {}), progression: 100 },
+                    };
+                    dernierRef.current = null;
+                    setTermine(snapshot);
+                    setReload((r) => r + 1);
+                    timeoutFin = setTimeout(() => {
+                        if (actif) setTermine(null);
+                    }, 4000);
+                }
+            }
         };
+
         charger();
         const timer = setInterval(charger, 2000);
         const onVisible = () => {
@@ -71,6 +99,7 @@ function SynchronisationListe() {
         return () => {
             actif = false;
             clearInterval(timer);
+            if (timeoutFin) clearTimeout(timeoutFin);
             document.removeEventListener('visibilitychange', onVisible);
         };
     }, []);
@@ -104,8 +133,11 @@ function SynchronisationListe() {
         setCurrentPage(1);
     },[date_debut,date_fin])
 
-    // La synchro en cours est affichée en haut ; on la retire du tableau
-    const liste = enCours ? synch.filter((s) => s.id !== enCours.id) : synch;
+    // Synchro affichée en haut : celle en cours, ou celle qui vient de se terminer
+    const courante = enCours || termine;
+
+    // La synchro affichée en haut est retirée du tableau
+    const liste = courante ? synch.filter((s) => s.id !== courante.id) : synch;
 
     const columns = [
         { header: 'Source', className: 'w-[8%]', render: (s) => <span className="font-mono text-zinc-400">{s.source}</span> },
@@ -141,7 +173,8 @@ function SynchronisationListe() {
         },
     ];
 
-    const progression = enCours?.journal?.progression ?? 0;
+    const progression = courante?.journal?.progression ?? 0;
+    const estTermine = !enCours && !!termine;
 
     return (
         <PageLayout
@@ -151,34 +184,38 @@ function SynchronisationListe() {
         >
             <div className="space-y-6">
 
-                {/* Synchronisation en cours : barre de progression + logs + message */}
-                {enCours && (
-                    <div className="glass-panel rounded-2xl p-5 border border-cyan-500/25">
+                {/* Synchro en cours / qui vient de se terminer : progression + logs */}
+                {courante && (
+                    <div className={`glass-panel rounded-2xl p-5 border ${estTermine ? 'border-emerald-500/30' : 'border-cyan-500/25'}`}>
                         <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
                             <h2 className="section-title flex items-center gap-2">
-                                <Loader2 className="w-4 h-4 animate-spin text-cyan-400" />
-                                Synchronisation en cours #{enCours.id}
+                                {estTermine ? (
+                                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                                ) : (
+                                    <Loader2 className="w-4 h-4 animate-spin text-cyan-400" />
+                                )}
+                                {estTermine ? `Synchronisation terminée #${courante.id}` : `Synchronisation en cours #${courante.id}`}
                             </h2>
-                            <span className="text-xs text-zinc-400">Démarrée : {fmtDate(enCours.date_debut)}</span>
+                            <span className="text-xs text-zinc-400">Démarrée : {fmtDate(courante.date_debut)}</span>
                         </div>
 
                         <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden mb-2">
-                            <div className="h-full bg-cyan-500 transition-all duration-500" style={{ width: `${progression}%` }} />
+                            <div className={`h-full transition-all duration-500 ${estTermine ? 'bg-emerald-500' : 'bg-cyan-500'}`} style={{ width: `${progression}%` }} />
                         </div>
                         <div className="text-[11px] text-zinc-500 mb-3">
-                            {progression}% {enCours.message ? `• ${enCours.message}` : '• en cours…'}
+                            {progression}% {courante.message ? `• ${courante.message}` : estTermine ? '• terminée' : '• en cours…'}
                         </div>
 
-                        {enCours.journal?.compteurs && (
+                        {courante.journal?.compteurs && (
                             <div className="flex flex-wrap gap-4 text-xs text-zinc-400 mb-3">
-                                <span>devices : {enCours.journal.compteurs.devices ?? 0}</span>
-                                <span>télémétrie : {enCours.journal.compteurs.telemetrie ?? 0}</span>
-                                <span>événements : {enCours.journal.compteurs.evenements ?? 0}</span>
+                                <span>devices : {courante.journal.compteurs.devices ?? 0}</span>
+                                <span>télémétrie : {courante.journal.compteurs.telemetrie ?? 0}</span>
+                                <span>événements : {courante.journal.compteurs.evenements ?? 0}</span>
                             </div>
                         )}
 
                         <pre className="text-[11px] bg-black/40 rounded-lg p-3 max-h-56 overflow-auto text-zinc-400 whitespace-pre-wrap">
-{(enCours.journal?.logs || []).map((l) => `${l.ts} [${l.niveau}] ${l.message}`).join('\n') || 'En attente de logs…'}
+{(courante.journal?.logs || []).map((l) => `${l.ts} [${l.niveau}] ${l.message}`).join('\n') || 'En attente de logs…'}
                         </pre>
                     </div>
                 )}

@@ -44,7 +44,7 @@ def getListeSynchronisation(page=1, page_size=10, statut=None, date_debut=None, 
                 "date_statut": r[9],
                 "duree_s": _duree(r[2], r[3]),
             })
-        return cache_set(cle, build_page(items, total, page, page_size))
+        return cache_set(cle, build_page(items, total, page, page_size), 5)
 
 
 def getDetailSynchronisation(id_sync):

@@ -347,6 +347,7 @@ Table t_synchronisation_historique {
   fenetre_fin timestamptz
   nb_lignes integer [not null, default: 0]
   message text [default: '']
+  journal jsonb
 }
 
 Table t_statut_synchronisation {
